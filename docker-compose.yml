@@ -1,0 +1,15 @@
+version: '3'
+services:
+  dev:
+    image: keboolabot/go-client-dev
+    build: .
+    ports:
+      - "6060:6060" #godoc
+    volumes:
+      - ./:/code:z
+      - cache:/tmp/cache
+    environment:
+      - TEST_KBC_PROJECTS
+
+volumes:
+  cache:
