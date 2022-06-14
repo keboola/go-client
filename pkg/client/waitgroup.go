@@ -9,18 +9,18 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// WaitGroupConcurrencyLimit is maximum number of concurrent requests in one WaitGroup.
+// WaitGroupConcurrencyLimit isthe  maximum number of concurrent requests in one WaitGroup.
 const WaitGroupConcurrencyLimit = 8
 
 // WaitGroup allows sending requests concurrently using Send method
-// and wait until all requests are completed using Wait method.
+// and wait until all requests are completed using the Wait method.
 //
 // The request starts immediately after calling the Send method.
 // If an error occurs, sending will not stop, all requests will be sent.
 // Wait method at the end returns all errors that have occurred, if any.
 //
 // If you need to schedule requests and send them later,
-// or you want to stop at the first error, use client.RunGroup instead.
+// or if you want to stop at the first error, use client.RunGroup instead.
 type WaitGroup struct {
 	ctx    context.Context
 	sender Sender

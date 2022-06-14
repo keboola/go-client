@@ -28,7 +28,7 @@ func (v ComponentID) String() string {
 	return string(v)
 }
 
-// ComponentKey is unique identifier of a component.
+// ComponentKey is a unique identifier of a component.
 type ComponentKey struct {
 	ID ComponentID `json:"id"`
 }

@@ -9,14 +9,14 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// BranchID is ID of a development branch in Storage API.
+// BranchID is an ID of a development branch in Storage API.
 type BranchID int
 
 func (id BranchID) String() string {
 	return strconv.Itoa(int(id))
 }
 
-// BranchKey is unique identifier of a branch.
+// BranchKey is a unique identifier of a branch.
 type BranchKey struct {
 	ID BranchID `json:"id" writeoptional:"true"`
 }
@@ -39,7 +39,7 @@ func ListBranchesRequest() client.APIRequest[*[]*Branch] {
 	return client.NewAPIRequest(&result, request)
 }
 
-// GetDefaultBranchRequest lists all branches and returns default branch.
+// GetDefaultBranchRequest lists all branches and returns the default branch.
 func GetDefaultBranchRequest() client.APIRequest[*Branch] {
 	defaultBranch := &Branch{}
 	request := ListBranchesRequest().

@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Error represents Encryption API error structure.
+// Error represents the structure Encryption API error.
 type Error struct {
 	Message     string `json:"error"`
 	ErrCode     int    `json:"code"`

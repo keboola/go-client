@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Error represents Scheduler API error structure.
+// Error represents the structure Scheduler API error.
 type Error struct {
 	Message     string `json:"error"`
 	ErrCode     int    `json:"code"`

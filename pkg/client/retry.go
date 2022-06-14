@@ -29,7 +29,7 @@ type RetryConfig struct {
 	WaitTimeMax         time.Duration
 }
 
-// RetryCondition defines which responses should be retried.
+// RetryCondition defines which responses should retry.
 type RetryCondition func(*http.Response, error) bool
 
 // TestingRetry - fast retry for use in tests.
@@ -40,7 +40,7 @@ func TestingRetry() RetryConfig {
 	return v
 }
 
-// DefaultRetry returns default RetryConfig.
+// DefaultRetry returns a default RetryConfig.
 func DefaultRetry() RetryConfig {
 	return RetryConfig{
 		TotalRequestTimeout: RequestTimeout,
@@ -51,7 +51,7 @@ func DefaultRetry() RetryConfig {
 	}
 }
 
-// DefaultRetryCondition - retry on defined network and HTTP errors.
+// DefaultRetryCondition retries on common network and HTTP errors.
 func DefaultRetryCondition() RetryCondition {
 	return func(response *http.Response, err error) bool {
 		// On network errors - except hostname not found
@@ -84,7 +84,7 @@ func DefaultRetryCondition() RetryCondition {
 	}
 }
 
-// NewBackoff returns expotential backoff for HTTP retries.
+// NewBackoff returns an exponential backoff for HTTP retries.
 func (c RetryConfig) NewBackoff() backoff.BackOff {
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = c.WaitTimeStart

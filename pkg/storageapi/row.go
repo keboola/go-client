@@ -12,7 +12,7 @@ func (v RowID) String() string {
 	return string(v)
 }
 
-// ConfigRowKey is unique identifier of ConfigRow.
+// ConfigRowKey is a unique identifier of ConfigRow.
 type ConfigRowKey struct {
 	BranchID    BranchID    `json:"-"`
 	ComponentID ComponentID `json:"-"`

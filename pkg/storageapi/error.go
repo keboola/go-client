@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Error represents Storage API error structure.
+// Error represents the structure of Storage API error.
 type Error struct {
 	Message     string `json:"error"`
 	ErrCode     string `json:"code"`

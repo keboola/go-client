@@ -1,7 +1,7 @@
 // Package schedulerapi contains request definitions for the Scheduler API.
 // The definitions are not complete and can be extended as needed.
-// Requests can be sent by any HTTP client that implements client.Sender interface.
-// It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client, see APIClient function.
+// Requests can be sent by any HTTP client that implements the client.Sender interface.
+// It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client, see the APIClient function.
 package schedulerapi
 
 import (

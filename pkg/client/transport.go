@@ -9,22 +9,22 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// DialTimeout specifies default maximum connection initialization time.
+// DialTimeout specifies the default maximum connection initialization time.
 const DialTimeout = 3 * time.Second
 
-// KeepAlive specifies default interval between keep-alive probes.
+// KeepAlive specifies the default interval between keep-alive probes.
 const KeepAlive = 10 * time.Second
 
-// TLSHandshakeTimeout specifies default timeout of TLS handshake.
+// TLSHandshakeTimeout specifies the default timeout of TLS handshake.
 const TLSHandshakeTimeout = 5 * time.Second
 
-// ResponseHeaderTimeout specifies default amount of time to wait for a server's response headers.
+// ResponseHeaderTimeout specifies the default amount of time to wait for a server's response headers.
 const ResponseHeaderTimeout = 20 * time.Second
 
-// MaxConnectionsPerHost specifies default maximum number of open connections to a host.
+// MaxConnectionsPerHost specifies the default maximum number of open connections to a host.
 const MaxConnectionsPerHost = 32
 
-// DefaultTransport default transport with reasonable limits.
+// DefaultTransport is the default Client transport with reasonable limits.
 func DefaultTransport() http.RoundTripper {
 	dialer := Dialer()
 	return &http.Transport{
@@ -51,7 +51,7 @@ func HTTP2Transport() http.RoundTripper {
 	}
 }
 
-// Dialer - default dialer.
+// Dialer is the default dialer.
 func Dialer() *net.Dialer {
 	return &net.Dialer{
 		Timeout:   DialTimeout,

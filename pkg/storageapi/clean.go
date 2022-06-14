@@ -6,7 +6,7 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// CleanProjectRequest clear whole project, default branch is reset to default state, other branches are deleted.
+// CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
 // Useful for E2E tests.
 func CleanProjectRequest() client.APIRequest[client.NoResult] {
 	// For each branch

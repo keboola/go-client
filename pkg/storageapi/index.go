@@ -15,7 +15,7 @@ type Index struct {
 	servicesMap Services
 }
 
-// IndexComponents is Index of Storage API with components included.
+// IndexComponents is the Index of Storage API with components included.
 type IndexComponents struct {
 	Index
 	Components Components `json:"components"`
@@ -24,14 +24,14 @@ type IndexComponents struct {
 // Services slice.
 type Services map[ServiceID]ServiceURL
 
-// ServiceID is id of a Keboola service, for example "encryption".
+// ServiceID is an ID of a Keboola service, for example "encryption".
 type ServiceID string
 
 func (u ServiceID) String() string {
 	return string(u)
 }
 
-// ServiceURL is url of a Keboola service, for example "https://encryption.keboola.com".
+// ServiceURL is an url of a Keboola service, for example "https://encryption.keboola.com".
 type ServiceURL string
 
 func (u ServiceURL) String() string {
