@@ -27,9 +27,9 @@ type Sendable interface {
 // Sender is implementation of HTTP client, e.g. using go-resty/resty lib, or native net/http.
 type Sender interface {
 	// Send method sends defined request and returns response.
-	// Type of the return value "result" must be the same as type of the argument "resultDef", otherwise panic will occur.
+	// Type of the return value "result" must be the same as type of the argument HTTPRequest.ResultDef(), otherwise panic will occur.
 	//   In Go, this rule cannot be written using generic types yet, methods cannot have generic types.
-	//   Send[R Result](request HTTPRequest, resultDef R, errorDef error) (result R, error error)
+	//   Send[R Result](ctx context.Context, request HTTPRequest[R]) (rawResponse *http.Response, result R, error error)
 	Send(ctx context.Context, request HTTPRequest) (rawResponse *http.Response, result any, error error)
 }
 

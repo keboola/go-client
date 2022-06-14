@@ -1,5 +1,14 @@
 # Keboola Go Client
 
+- Supported Keboola APIs:
+  - [Storage API](https://keboola.docs.apiary.io/#)
+  - [Encryption API](https://keboolaencryption.docs.apiary.io/#)
+  - [Scheduler API](https://app.swaggerhub.com/apis/odinuv/scheduler)
+- Not all API requests are covered, clients are extended as needed.
+- The definitions are independent of client implementation, see `Sender` interface.
+- Contains `Client`, default `Sender` implementation, based on standard `net/http` package.
+- Support retries and tracing/telemetry.
+
 ## Development
 
 Clone the repository and run dev container:
