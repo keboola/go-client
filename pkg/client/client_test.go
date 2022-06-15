@@ -360,7 +360,7 @@ func TestContext_DeadlineExceeded(t *testing.T) {
 	})
 
 	// Create client
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Millisecond))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(50*time.Millisecond))
 	defer cancel()
 	c := New().WithTransport(transport)
 
@@ -377,7 +377,7 @@ func TestContext_Canceled(t *testing.T) {
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", "https://example.com", func(request *http.Request) (*http.Response, error) {
-		time.Sleep(10 * time.Millisecond) // <<<<<<<
+		time.Sleep(100 * time.Millisecond) // <<<<<<<
 		return httpmock.NewStringResponse(504, "test"), nil
 	})
 
@@ -388,7 +388,7 @@ func TestContext_Canceled(t *testing.T) {
 	wg := NewWaitGroup(ctx, c)
 	wg.Send(NewHTTPRequest().WithGet("https://example.com"))
 
-	time.Sleep(4 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	cancel()
 
 	err := wg.Wait()
