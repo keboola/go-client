@@ -6,7 +6,7 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// EventID represents ID of a event in Storage API.
+// EventID represents an ID of an event in Storage API.
 type EventID string
 
 func (v EventID) String() string {

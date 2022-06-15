@@ -10,19 +10,19 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// JobID is ID of a storage job.
+// JobID is an ID of a storage job.
 type JobID int
 
 func (id JobID) String() string {
 	return strconv.Itoa(int(id))
 }
 
-// JobKey is unique identifier of Job.
+// JobKey is a unique identifier of Job.
 type JobKey struct {
 	ID JobID `json:"id"`
 }
 
-// Job - Storage API job.
+// Job is a storage job.
 type Job struct {
 	JobKey
 	Status          string         `json:"status"`

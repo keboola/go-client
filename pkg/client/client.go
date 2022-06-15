@@ -1,14 +1,15 @@
-// Package client allows definition of an HTTP client for an API.
+// Package client provides support for defining an HTTP client for an API.
 //
 // Use HTTPRequest interface to define immutable HTTP requests, see NewHTTPRequest function.
 // Requests are sent using the Sender interface.
 //
-// Client is default implementation of the Sender interface.
-// Client is based on standard Go net/http client and contains retry and tracing/telemetry support.
+// Client is a default implementation of the Sender interface.
+// Client is based on the standard net/http package and contains retry and tracing/telemetry support.
 // It is easy to implement your custom HTTP client, by implementing Sender interface.
 //
-// ApiRequest[R Result] is a generic type that contains
+// APIRequest[R Result] is a generic type that contains
 // target data type to which the API response will be mapped.
+// Use NewAPIRequest function to create a APIRequest from a HTTPRequest.
 //
 // RunGroup and WaitGroup are helpers for concurrent requests.
 package client
@@ -29,7 +30,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
-// Client is default and configurable implementation of Sender by Go native http.Client.
+// Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
 	transport    http.RoundTripper
@@ -39,14 +40,14 @@ type Client struct {
 	traceFactory TraceFactory
 }
 
-// New creates new http Client.
+// New creates new HTTP Client.
 func New() *Client {
 	c := &Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
 	c.header.Set("User-Agent", "keboola-go-client")
 	return c
 }
 
-// WithBaseURL returns clone of Client with base url set.
+// WithBaseURL returns a clone of the Client with base url set.
 func (c Client) WithBaseURL(baseURLStr string) Client {
 	baseURL, err := url.Parse(baseURLStr)
 	if err != nil {
@@ -56,20 +57,20 @@ func (c Client) WithBaseURL(baseURLStr string) Client {
 	return c
 }
 
-// WithUserAgent returns clone of Client with user agent set.
+// WithUserAgent returns a clone of the Client with user agent set.
 func (c Client) WithUserAgent(v string) Client {
 	c.header.Set("User-Agent", v)
 	return c
 }
 
-// WithHeader returns clone of Client with common header set.
+// WithHeader returns a clone of the Client with common header set.
 func (c Client) WithHeader(key, value string) Client {
 	c.header = c.header.Clone()
 	c.header.Set(key, value)
 	return c
 }
 
-// WithHeaders returns clone of Client with common headers set.
+// WithHeaders returns a clone of the Client with common headers set.
 func (c Client) WithHeaders(headers map[string]string) Client {
 	c.header = c.header.Clone()
 	for k, v := range headers {
@@ -78,25 +79,25 @@ func (c Client) WithHeaders(headers map[string]string) Client {
 	return c
 }
 
-// WithTransport returns clone of Client with a http transport set.
+// WithTransport returns a clone of the Client with a HTTP transport set.
 func (c Client) WithTransport(transport http.RoundTripper) Client {
 	c.transport = transport
 	return c
 }
 
-// WithRetry returns clone of Client with retry config set.
+// WithRetry returns a clone of the Client with retry config set.
 func (c Client) WithRetry(retry RetryConfig) Client {
 	c.retry = retry
 	return c
 }
 
-// WithTrace returns clone of Client with Trace hooks set.
+// WithTrace returns a clone of the Client with Trace hooks set.
 func (c Client) WithTrace(fn TraceFactory) Client {
 	c.traceFactory = fn
 	return c
 }
 
-// Send method sends http request and returns http response, implements Sendable interface.
+// Send method sends HTTP request and returns HTTP response, it implements the Sender interface.
 func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Response, result any, err error) {
 	// If method or url is not set, panic occurs. So we get these values first.
 	method := reqDef.Method()
@@ -279,11 +280,11 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 			if err := json.NewDecoder(r.Body).Decode(errDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON error: %w`, err)
 			}
-			// Set http request
+			// Set HTTP request
 			if v, ok := errDef.(errorWithRequest); ok {
 				v.SetRequest(r.Request)
 			}
-			// Set http response
+			// Set HTTP response
 			if v, ok := errDef.(errorWithResponse); ok {
 				v.SetResponse(r)
 			}

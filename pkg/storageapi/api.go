@@ -1,8 +1,8 @@
 // Package storageapi contains request definitions for the Storage API.
 // The definitions are not complete and can be extended as needed.
-// Requests can be sent by any HTTP client that implements client.Sender interface.
+// Requests can be sent by any HTTP client that implements the client.Sender interface.
 // It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client,
-// see APIClient and APIClientWithToken functions.
+// see the APIClient and the APIClientWithToken functions.
 package storageapi
 
 import (

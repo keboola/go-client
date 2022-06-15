@@ -19,15 +19,15 @@ type Result = any
 // NoResult type.
 type NoResult struct{}
 
-// Sendable is an HTTPRequest or APIRequest.
+// Sendable is HTTPRequest or APIRequest.
 type Sendable interface {
 	SendOrErr(ctx context.Context, sender Sender) error
 }
 
-// Sender is implementation of HTTP client, e.g. using go-resty/resty lib, or native net/http.
+// Sender represents an HTTP client, the Client is a default implementation using the standard net/http package.
 type Sender interface {
 	// Send method sends defined request and returns response.
-	// Type of the return value "result" must be the same as type of the argument HTTPRequest.ResultDef(), otherwise panic will occur.
+	// Type of the return value "result" must be the same as type of the HTTPRequest.ResultDef(), otherwise panic will occur.
 	//   In Go, this rule cannot be written using generic types yet, methods cannot have generic types.
 	//   Send[R Result](ctx context.Context, request HTTPRequest[R]) (rawResponse *http.Response, result R, error error)
 	Send(ctx context.Context, request HTTPRequest) (rawResponse *http.Response, result any, error error)
@@ -46,14 +46,14 @@ type httpRequestReadOnly interface {
 	PathParams() map[string]string
 	// FormData method returns Form parameters.
 	FormData() url.Values
-	// RequestBody method returns definition of HTTP request body.
-	// Supported request body data types is
-	// `string`, `[]byte`, `struct`, `map`, `slice` and `io.Reader`. Body value can be pointer or non-pointer.
-	// Automatic marshalling for JSON and XML content type, if it is `struct`, `map`, or `slice`.
+	// RequestBody method returns a definition of HTTP request body.
+	// Supported request body data types are:
+	// `*string`, `*[]byte`, `*struct`, `*map`, `*slice`, `io.Reader` and `io.ReadCloser`.
+	// Automatic marshaling for JSON is provided, if it is `*struct`, `*map`, or `*slice`.
 	RequestBody() any
-	// ErrorDef method returns the value to which error should be mapped.
+	// ErrorDef method returns a target value for error result mapping.
 	ErrorDef() error
-	// ResultDef method returns the value to which result should be mapped.
+	// ResultDef method returns a target value for result mapping.
 	ResultDef() any
 }
 
@@ -62,14 +62,14 @@ type httpResponseCommon interface {
 	ResponseHeader() http.Header
 	// StatusCode method returns HTTP status code.
 	StatusCode() int
-	// RawResponse method returns native HTTP response
+	// RawResponse method returns the standard HTTP response.
 	RawResponse() *http.Response
 	// IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
 	IsSuccess() bool
 	// IsError method returns true if HTTP status `code >= 400` otherwise false.
 	IsError() bool
-	// Error method returns the error response mapped as a data type, if any.
-	// It can also return native HTTP errors, e.g. some network problem.
+	// Error method returns the error response mapped to a data type specified by ErrorDef if any.
+	// It can also return native HTTP errors, e.g. some network problems.
 	Error() error
 }
 
@@ -84,7 +84,7 @@ type HTTPRequest interface {
 	WithPut(url string) HTTPRequest
 	// WithDelete is shortcut for WithMethod(http.MethodDelete).WithURL(url)
 	WithDelete(url string) HTTPRequest
-	// WithMethod method sets the HApiRequest[R]APIRequest[R]P method.
+	// WithMethod method sets the HTTP method.
 	WithMethod(method string) HTTPRequest
 	// WithBaseURL method sets the base URL.
 	WithBaseURL(baseURL string) HTTPRequest
@@ -100,13 +100,13 @@ type HTTPRequest interface {
 	AndPathParam(param, value string) HTTPRequest
 	// WithPathParams method sets multiple URL path key-value pairs.
 	WithPathParams(params map[string]string) HTTPRequest
-	// WithFormBody method sets Form parameters and Content-APIRequest[R]ype header to "application/x-www-form-urlencoded".
-	WithFormBody(body map[string]string) HTTPRequest
-	// WithJSONBody method sets request body to a JSON value and Content-APIRequest[R]ype header to "application/json".
+	// WithFormBody method sets Form parameters and Content-Type header to "application/x-www-form-urlencoded".
+	WithFormBody(form map[string]string) HTTPRequest
+	// WithJSONBody method sets request body to the JSON value and Content-Type header to "application/json".
 	WithJSONBody(body any) HTTPRequest
-	// WithError method is to register the request `Error` value for automatic mapping.
+	// WithError method registers the request `Error` value for automatic mapping.
 	WithError(err error) HTTPRequest
-	// WithResult method is to register the request `Result` value for automatic mapping.
+	// WithResult method registers the request `Result` value for automatic mapping.
 	WithResult(result any) HTTPRequest
 	// WithOnComplete method registers callback to be executed when the request is completed.
 	WithOnComplete(func(ctx context.Context, sender Sender, response HTTPResponse, err error) error) HTTPRequest
@@ -119,7 +119,7 @@ type HTTPRequest interface {
 	SendOrErr(ctx context.Context, sender Sender) error
 }
 
-// HTTPResponse whose result is mapped to Result().
+// HTTPResponse with response mapped to the Result() value.
 type HTTPResponse interface {
 	httpRequestReadOnly
 	httpResponseCommon
@@ -127,7 +127,7 @@ type HTTPResponse interface {
 	Result() any
 }
 
-// APIRequest whose result is mapped to generic type R.
+// APIRequest with response mapped to the generic type R.
 type APIRequest[R Result] interface {
 	// WithOnComplete method registers callback to be executed when the request is completed.
 	WithOnComplete(func(ctx context.Context, sender Sender, result R, err error) error) APIRequest[R]
@@ -145,8 +145,8 @@ func NewHTTPRequest() HTTPRequest {
 	return httpRequest{header: make(http.Header)}
 }
 
-// NewAPIRequest creates an API request whose response should be mapped to type R.
-// It is composed of one or multiple Sendable.
+// NewAPIRequest creates an API request with the result mapped to the R type.
+// It is composed of one or multiple Sendable (HTTPRequest or APIRequest).
 func NewAPIRequest[R Result](result R, requests ...Sendable) APIRequest[R] {
 	if len(requests) == 0 {
 		panic(fmt.Errorf("at least one request must be provided"))
@@ -307,9 +307,9 @@ func (r httpRequest) WithPathParams(params map[string]string) HTTPRequest {
 	return r
 }
 
-func (r httpRequest) WithFormBody(body map[string]string) HTTPRequest {
+func (r httpRequest) WithFormBody(form map[string]string) HTTPRequest {
 	r.formData = make(url.Values)
-	for k, v := range body {
+	for k, v := range form {
 		r.formData.Set(k, v)
 	}
 	return r.AndHeader("Content-Type", "application/x-www-form-urlencoded")

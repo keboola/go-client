@@ -9,14 +9,14 @@ import (
 	"github.com/keboola/go-utils/pkg/orderedmap"
 )
 
-// ConfigID represents ID of a configuration in Storage API.
+// ConfigID represents an ID of a configuration in Storage API.
 type ConfigID string
 
 func (v ConfigID) String() string {
 	return string(v)
 }
 
-// ConfigKey is unique identifier of a configuration.
+// ConfigKey is a unique identifier of a configuration.
 type ConfigKey struct {
 	BranchID    BranchID    `json:"branchId"`
 	ComponentID ComponentID `json:"componentId"`
@@ -37,7 +37,7 @@ type Config struct {
 	Content           *orderedmap.OrderedMap `json:"configuration"`
 }
 
-// ConfigWithRows configuration with its configuration rows.
+// ConfigWithRows is a configuration with its configuration rows.
 type ConfigWithRows struct {
 	*Config
 	Rows []*ConfigRow `json:"rows"`

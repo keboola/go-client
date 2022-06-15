@@ -177,7 +177,7 @@ func TestRequestContext(t *testing.T) {
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
-		// Request context should be used by http request
+		// Request context should be used by HTTP request
 		assert.Equal(t, "testValue", request.Context().Value("testKey"))
 		return httpmock.NewStringResponse(200, "test"), nil
 	})

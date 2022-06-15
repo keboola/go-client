@@ -8,7 +8,7 @@ import (
 // TimeFormat used in Storage API
 const TimeFormat = "2006-01-02T15:04:05-0700"
 
-// Time encoded/decoded in TimeFormat used in Storage API.
+// Time is encoded/decoded in TimeFormat used in Storage API.
 type Time time.Time
 
 // UnmarshalJSON implements JSON decoding.

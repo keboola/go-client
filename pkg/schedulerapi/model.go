@@ -14,7 +14,7 @@ func (v ScheduleID) String() string {
 // ConfigID is ID of a configuration in Storage API.
 type ConfigID = storageapi.ConfigID
 
-// ScheduleKey is unique identifier of a schedule.
+// ScheduleKey is a unique identifier of a schedule.
 type ScheduleKey struct {
 	ID ScheduleID `json:"id" validate:"required"`
 }

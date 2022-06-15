@@ -22,7 +22,7 @@ func GenerateIDRequest() client.APIRequest[*Ticket] {
 	return client.NewAPIRequest(result, request)
 }
 
-// TicketProvider generates new IDs and GUARANTEES that the IDs will retured be in the same order as the Request method was called.
+// TicketProvider generates new IDs and GUARANTEES that the IDs will be returned with the same order as the Request method was called.
 type TicketProvider struct {
 	group     *client.RunGroup
 	callbacks []func(ticket *Ticket)

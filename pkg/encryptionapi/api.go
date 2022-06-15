@@ -1,6 +1,6 @@
 // Package encryptionapi contains request definitions for the Encryption API.
-// Requests can be sent by any HTTP client that implements client.Sender interface.
-// It is necessary to set API host in the HTTP client, see APIClient function.
+// Requests can be sent by any HTTP client that implements the client.Sender interface.
+// It is necessary to set API host in the HTTP client, see the APIClient function.
 package encryptionapi
 
 import (

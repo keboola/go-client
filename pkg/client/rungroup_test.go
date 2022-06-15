@@ -79,12 +79,12 @@ func TestRunGroup_HandleError(t *testing.T) {
 	// No requests have been sent yet
 	assert.Equal(t, 0, transport.GetTotalCallCount())
 
-	// Run and wait, first error returned
+	// Run and wait, first error is returned
 	err := g.RunAndWait()
 	assert.Error(t, err)
 	assert.Equal(t, `request GET "https://example.com/foo" failed: 401 Unauthorized`, err.Error())
 
 	// NOT all requests have been sent
-	// Sending stops when first error occurs
+	// Sending stops when the first error occurs
 	assert.Less(t, transport.GetTotalCallCount(), 100)
 }
