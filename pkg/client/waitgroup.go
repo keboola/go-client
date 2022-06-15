@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// WaitGroupConcurrencyLimit isthe  maximum number of concurrent requests in one WaitGroup.
+// WaitGroupConcurrencyLimit is the  maximum number of concurrent requests in one WaitGroup.
 const WaitGroupConcurrencyLimit = 8
 
 // WaitGroup allows sending requests concurrently using Send method
