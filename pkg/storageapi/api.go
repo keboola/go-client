@@ -2,7 +2,7 @@
 // The definitions are not complete and can be extended as needed.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
 // It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client,
-// see the APIClient and the APIClientWithToken functions.
+// see the ClientWithHost and the ClientWithHostAndToken functions.
 package storageapi
 
 import (
@@ -12,15 +12,20 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// APIClient creates HTTP client with api host set.
-func APIClient(c client.Client, apiHost string) client.Client {
+// ClientWithHost returns HTTP client with api host set.
+func ClientWithHost(c client.Client, apiHost string) client.Client {
 	apiHost = strings.TrimPrefix(apiHost, "https://")
 	return c.WithBaseURL(`https://` + apiHost)
 }
 
-// APIClientWithToken creates HTTP client with api host and token set.
-func APIClientWithToken(c client.Client, apiHost, apiToken string) client.Client {
-	return APIClient(c, apiHost).WithHeader("X-StorageApi-Token", apiToken)
+// ClientWithToken returns HTTP client with api token set.
+func ClientWithToken(c client.Client, apiToken string) client.Client {
+	return c.WithHeader("X-StorageApi-Token", apiToken)
+}
+
+// ClientWithHostAndToken returns HTTP client with api host and token set.
+func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Client {
+	return ClientWithToken(ClientWithHost(c, apiHost), apiToken)
 }
 
 func newRequest() client.HTTPRequest {

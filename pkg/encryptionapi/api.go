@@ -1,6 +1,6 @@
 // Package encryptionapi contains request definitions for the Encryption API.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
-// It is necessary to set API host in the HTTP client, see the APIClient function.
+// It is necessary to set API host in the HTTP client, see the ClientWithHost function.
 package encryptionapi
 
 import (
@@ -15,8 +15,8 @@ import (
 // ComponentID is id of a Keboola component.
 type ComponentID = storageapi.ComponentID
 
-// APIClient creates HTTP client with api host set.
-func APIClient(c client.Client, apiHost string) client.Client {
+// ClientWithHost returns HTTP client with api host set.
+func ClientWithHost(c client.Client, apiHost string) client.Client {
 	apiHost = strings.TrimPrefix(apiHost, "https://")
 	return c.WithBaseURL(`https://` + apiHost)
 }

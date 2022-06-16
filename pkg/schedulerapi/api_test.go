@@ -18,7 +18,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 	project := testproject.GetTestProject(t)
 
 	// Get storage client and clear project
-	storageClient := storageapi.APIClientWithToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 	_, err := storageapi.CleanProjectRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 
@@ -90,7 +90,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 	assert.True(t, found)
 
 	// Get scheduler client
-	schedulerClient := schedulerapi.APIClient(client.NewTestClient(), schedulerHost.String(), project.StorageAPIToken())
+	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerHost.String(), project.StorageAPIToken())
 
 	// List should return no schedule
 	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)

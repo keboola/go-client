@@ -12,7 +12,7 @@ import (
 
 func clientForRandomProject(t *testing.T) (*testproject.Project, client.Client) {
 	project := testproject.GetTestProject(t)
-	c := APIClientWithToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	c := ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 	return project, c
 }
 
