@@ -36,6 +36,11 @@ type ComponentKey struct {
 // Components slice.
 type Components []*Component
 
+// ComponentsMap is immutable map of components, see Components.ToMap.
+type ComponentsMap struct {
+	data map[ComponentID]*Component
+}
+
 // Component https://keboola.docs.apiary.io/#reference/components-and-configurations/get-development-branch-components/get-development-branch-components
 type Component struct {
 	ComponentKey
@@ -60,6 +65,15 @@ type ComponentWithConfigs struct {
 	BranchID BranchID `json:"branchId"`
 	Component
 	Configs []*ConfigWithRows `json:"configurations"`
+}
+
+// ToMap converts Components slice to ComponentsMap.
+func (v Components) ToMap() ComponentsMap {
+	out := ComponentsMap{data: make(map[ComponentID]*Component)}
+	for _, component := range v {
+		out.data[component.ID] = component
+	}
+	return out
 }
 
 // IsTransformation returns true, if component is transformation.
@@ -149,4 +163,15 @@ func (v Components) NewComponentList() (Components, error) {
 	})
 
 	return components, nil
+}
+
+func (m ComponentsMap) ForEach(fn func(component *Component)) {
+	for _, component := range m.data {
+		fn(component)
+	}
+}
+
+func (m ComponentsMap) Get(id ComponentID) (*Component, bool) {
+	v, found := m.data[id]
+	return v, found
 }

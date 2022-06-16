@@ -1,18 +1,13 @@
 package storageapi
 
 import (
-	"sync"
-
 	"github.com/keboola/go-client/pkg/client"
 )
 
 // Index of Storage API.
 type Index struct {
-	Services []*Service `json:"services"`
-	Features []string   `json:"features"`
-
-	lock        *sync.Mutex
-	servicesMap Services
+	Services Services `json:"services"`
+	Features Features `json:"features"`
 }
 
 // IndexComponents is the Index of Storage API with components included.
@@ -20,9 +15,6 @@ type IndexComponents struct {
 	Index
 	Components Components `json:"components"`
 }
-
-// Services slice.
-type Services map[ServiceID]ServiceURL
 
 // ServiceID is an ID of a Keboola service, for example "encryption".
 type ServiceID string
@@ -38,21 +30,30 @@ func (u ServiceURL) String() string {
 	return string(u)
 }
 
+// ServicesMap is immutable map of services, see Services.ToMap.
+type ServicesMap struct {
+	data map[ServiceID]ServiceURL
+}
+
+// Services slice.
+type Services []*Service
+
+type Features []string
+
+// FeaturesMap is immutable map of features, see Features.ToMap.
+type FeaturesMap struct {
+	data map[string]bool
+}
+
 // Service is a Keboola service, for example Encryption API.
 type Service struct {
 	ID  ServiceID  `json:"id"`
 	URL ServiceURL `json:"url"`
 }
 
-// URLByID return service URL by service ID.
-func (s Services) URLByID(serviceID ServiceID) (ServiceURL, bool) {
-	v, found := s[serviceID]
-	return v, found
-}
-
 // IndexRequest returns index of Storage API without components definitions.
 func IndexRequest() client.APIRequest[*Index] {
-	index := &Index{lock: &sync.Mutex{}}
+	index := &Index{}
 	request := newRequest().
 		WithResult(index).
 		WithGet("").
@@ -62,24 +63,45 @@ func IndexRequest() client.APIRequest[*Index] {
 
 // IndexComponentsRequest returns index of Storage API with components definitions.
 func IndexComponentsRequest() client.APIRequest[*IndexComponents] {
-	result := &IndexComponents{Index: Index{lock: &sync.Mutex{}}}
+	result := &IndexComponents{}
 	request := newRequest().
 		WithResult(result).
 		WithGet("")
 	return client.NewAPIRequest(result, request)
 }
 
-// AllServices converts services slice to map.
-func (i Index) AllServices() Services {
-	i.lock.Lock()
-	defer i.lock.Unlock()
-	if i.servicesMap == nil {
-		i.servicesMap = make(Services)
-		for _, s := range i.Services {
-			i.servicesMap[s.ID] = s.URL
-		}
+// ToMap converts Services slice to ServicesMap.
+func (v Services) ToMap() ServicesMap {
+	out := ServicesMap{data: make(map[ServiceID]ServiceURL)}
+	for _, s := range v {
+		out.data[s.ID] = s.URL
 	}
-	return i.servicesMap
+	return out
+}
+
+// URLByID return service URL by service ID.
+func (m ServicesMap) URLByID(serviceID ServiceID) (ServiceURL, bool) {
+	v, found := m.data[serviceID]
+	return v, found
+}
+
+// ToMap converts Features slice to FeaturesMap.
+func (v Features) ToMap() FeaturesMap {
+	out := FeaturesMap{data: make(map[string]bool)}
+	for _, feature := range v {
+		out.data[feature] = true
+	}
+	return out
+}
+
+// Has returns true if project has the feature enabled.
+func (m FeaturesMap) Has(feature string) bool {
+	return m.data[feature]
+}
+
+// AllServices converts services slice to map.
+func (i Index) AllServices() ServicesMap {
+	return i.Services.ToMap()
 }
 
 // ServiceURLByID return service URL by service ID.
