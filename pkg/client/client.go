@@ -41,8 +41,8 @@ type Client struct {
 }
 
 // New creates new HTTP Client.
-func New() *Client {
-	c := &Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
+func New() Client {
+	c := Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
 	c.header.Set("User-Agent", "keboola-go-client")
 	return c
 }
