@@ -21,10 +21,6 @@ type BranchKey struct {
 	ID BranchID `json:"id" writeoptional:"true"`
 }
 
-func (k BranchKey) ObjectId() ObjectId {
-	return ObjectId(k.ID.String())
-}
-
 // Branch https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
 type Branch struct {
 	BranchKey
@@ -32,10 +28,6 @@ type Branch struct {
 	Description string `json:"description"`
 	Created     Time   `json:"created" readonly:"true"`
 	IsDefault   bool   `json:"isDefault" readonly:"true"`
-}
-
-func (b Branch) Key() Key {
-	return b.BranchKey
 }
 
 // ListBranchesRequest https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches

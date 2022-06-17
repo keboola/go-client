@@ -33,19 +33,17 @@ func newRequest() client.HTTPRequest {
 	return client.NewHTTPRequest().WithBaseURL("v2/storage").WithError(&Error{})
 }
 
-type ObjectId string
-
-type Key interface {
-	ObjectId() ObjectId
+type ObjectKey interface {
+	BranchKey | ConfigKey | ConfigRowKey
 }
 
 type Object interface {
-	Key() Key
+	Branch | Config | ConfigRow
 }
 
 // CreateRequest creates request to create object according its type.
-func CreateRequest(object Object) client.APIRequest[client.NoResult] {
-	switch v := object.(type) {
+func CreateRequest[T Object](object T) client.APIRequest[client.NoResult] {
+	switch v := any(object).(type) {
 	case *Branch:
 		return client.NewAPIRequest(client.NoResult{}, CreateBranchRequest(v))
 	case *Config:
@@ -60,8 +58,8 @@ func CreateRequest(object Object) client.APIRequest[client.NoResult] {
 }
 
 // UpdateRequest creates request to update object according its type.
-func UpdateRequest(object Object, changedFields []string) client.APIRequest[client.NoResult] {
-	switch v := object.(type) {
+func UpdateRequest[T Object](object T, changedFields []string) client.APIRequest[client.NoResult] {
+	switch v := any(object).(type) {
 	case *Branch:
 		return client.NewAPIRequest(client.NoResult{}, UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
@@ -76,8 +74,8 @@ func UpdateRequest(object Object, changedFields []string) client.APIRequest[clie
 }
 
 // DeleteRequest creates request to delete object according its type.
-func DeleteRequest(key Key) client.APIRequest[client.NoResult] {
-	switch k := key.(type) {
+func DeleteRequest[T ObjectKey](key T) client.APIRequest[client.NoResult] {
+	switch k := any(key).(type) {
 	case BranchKey:
 		return DeleteBranchRequest(k)
 	case ConfigKey:
@@ -90,8 +88,8 @@ func DeleteRequest(key Key) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func AppendMetadataRequest(object Object, metadata map[string]string) client.APIRequest[client.NoResult] {
-	switch v := object.(type) {
+func AppendMetadataRequest[T Object](object T, metadata map[string]string) client.APIRequest[client.NoResult] {
+	switch v := any(object).(type) {
 	case *Branch:
 		return AppendBranchMetadataRequest(v.BranchKey, metadata)
 	case *ConfigWithRows:
