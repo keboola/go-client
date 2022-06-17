@@ -28,6 +28,15 @@ func (v ComponentID) String() string {
 	return string(v)
 }
 
+func (v ComponentID) WithoutVendor() string {
+	parts := strings.SplitN(string(v), ".", 2)
+	if len(parts) == 1 {
+		// A component without vendor
+		return parts[0]
+	}
+	return parts[1]
+}
+
 // ComponentKey is a unique identifier of a component.
 type ComponentKey struct {
 	ID ComponentID `json:"id"`

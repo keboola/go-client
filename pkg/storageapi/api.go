@@ -34,32 +34,32 @@ func newRequest() client.HTTPRequest {
 }
 
 // CreateRequest creates request to create object according its type.
-func CreateRequest[R client.Result](object R) client.Sendable {
+func CreateRequest[R client.Result](object R) client.APIRequest[client.NoResult] {
 	switch v := any(object).(type) {
 	case *Branch:
-		return CreateBranchRequest(v)
+		return client.NewAPIRequest(client.NoResult{}, CreateBranchRequest(v))
 	case *Config:
-		return CreateConfigRequest(&ConfigWithRows{Config: v})
+		return client.NewAPIRequest(client.NoResult{}, CreateConfigRequest(&ConfigWithRows{Config: v}))
 	case *ConfigWithRows:
-		return CreateConfigRequest(v)
+		return client.NewAPIRequest(client.NoResult{}, CreateConfigRequest(v))
 	case *ConfigRow:
-		return CreateConfigRowRequest(v)
+		return client.NewAPIRequest(client.NoResult{}, CreateConfigRowRequest(v))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
 }
 
 // UpdateRequest creates request to update object according its type.
-func UpdateRequest[R client.Result](object R, changedFields []string) client.Sendable {
+func UpdateRequest[R client.Result](object R, changedFields []string) client.APIRequest[client.NoResult] {
 	switch v := any(object).(type) {
 	case *Branch:
-		return UpdateBranchRequest(v, changedFields)
+		return client.NewAPIRequest(client.NoResult{}, UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
-		return UpdateConfigRequest(v.Config, changedFields)
+		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRequest(v.Config, changedFields))
 	case *Config:
-		return UpdateConfigRequest(v, changedFields)
+		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRequest(v, changedFields))
 	case *ConfigRow:
-		return UpdateConfigRowRequest(v, changedFields)
+		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRowRequest(v, changedFields))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
