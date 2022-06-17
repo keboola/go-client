@@ -23,8 +23,8 @@ type ConfigKey struct {
 	ID          ConfigID    `json:"id" writeas:"configurationId" writeoptional:"true"`
 }
 
-func (k ConfigKey) ObjectId() string {
-	return k.ID.String()
+func (k ConfigKey) ObjectId() any {
+	return k.ID
 }
 
 // Config https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/list-configurations

@@ -34,7 +34,7 @@ func newRequest() client.HTTPRequest {
 }
 
 type Object interface {
-	ObjectId() string
+	ObjectId() any
 }
 
 // CreateRequest creates request to create object according its type.
