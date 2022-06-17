@@ -20,6 +20,10 @@ type ConfigRowKey struct {
 	ID          RowID       `json:"id" writeas:"rowId" writeoptional:"true"`
 }
 
+func (k ConfigRowKey) ObjectId() string {
+	return k.ID.String()
+}
+
 // ConfigRow https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/list-configurations
 type ConfigRow struct {
 	ConfigRowKey

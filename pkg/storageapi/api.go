@@ -33,33 +33,37 @@ func newRequest() client.HTTPRequest {
 	return client.NewHTTPRequest().WithBaseURL("v2/storage").WithError(&Error{})
 }
 
+type Object interface {
+	ObjectId() string
+}
+
 // CreateRequest creates request to create object according its type.
-func CreateRequest(object any) client.APIRequest[client.NoResult] {
+func CreateRequest(object Object) client.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
-		return client.NewAPIRequest(client.NoResult{}, CreateBranchRequest(v))
+		return client.NewAPIRequest(object, CreateBranchRequest(v))
 	case *Config:
-		return client.NewAPIRequest(client.NoResult{}, CreateConfigRequest(&ConfigWithRows{Config: v}))
+		return client.NewAPIRequest(object, CreateConfigRequest(&ConfigWithRows{Config: v}))
 	case *ConfigWithRows:
-		return client.NewAPIRequest(client.NoResult{}, CreateConfigRequest(v))
+		return client.NewAPIRequest(object, CreateConfigRequest(v))
 	case *ConfigRow:
-		return client.NewAPIRequest(client.NoResult{}, CreateConfigRowRequest(v))
+		return client.NewAPIRequest(object, CreateConfigRowRequest(v))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
 }
 
 // UpdateRequest creates request to update object according its type.
-func UpdateRequest(object any, changedFields []string) client.APIRequest[client.NoResult] {
+func UpdateRequest(object Object, changedFields []string) client.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
-		return client.NewAPIRequest(client.NoResult{}, UpdateBranchRequest(v, changedFields))
+		return client.NewAPIRequest(object, UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
-		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRequest(v.Config, changedFields))
+		return client.NewAPIRequest(object, UpdateConfigRequest(v.Config, changedFields))
 	case *Config:
-		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRequest(v, changedFields))
+		return client.NewAPIRequest(object, UpdateConfigRequest(v, changedFields))
 	case *ConfigRow:
-		return client.NewAPIRequest(client.NoResult{}, UpdateConfigRowRequest(v, changedFields))
+		return client.NewAPIRequest(object, UpdateConfigRowRequest(v, changedFields))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}

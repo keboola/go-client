@@ -21,6 +21,10 @@ type BranchKey struct {
 	ID BranchID `json:"id" writeoptional:"true"`
 }
 
+func (k BranchKey) ObjectId() string {
+	return k.ID.String()
+}
+
 // Branch https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
 type Branch struct {
 	BranchKey
