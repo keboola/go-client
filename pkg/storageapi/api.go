@@ -88,16 +88,14 @@ func DeleteRequest[T ObjectKey](key T) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func AppendMetadataRequest[T Object](object T, metadata map[string]string) client.APIRequest[client.NoResult] {
-	switch v := any(object).(type) {
-	case *Branch:
-		return AppendBranchMetadataRequest(v.BranchKey, metadata)
-	case *ConfigWithRows:
-		return AppendConfigMetadataRequest(v.ConfigKey, metadata)
-	case *Config:
-		return AppendConfigMetadataRequest(v.ConfigKey, metadata)
+func AppendMetadataRequest[T ObjectKey](key T, metadata map[string]string) client.APIRequest[client.NoResult] {
+	switch v := any(key).(type) {
+	case BranchKey:
+		return AppendBranchMetadataRequest(v, metadata)
+	case ConfigKey:
+		return AppendConfigMetadataRequest(v, metadata)
 	default:
-		panic(fmt.Errorf(`unexpected type "%T"`, object))
+		panic(fmt.Errorf(`unexpected type "%T"`, key))
 	}
 }
 
