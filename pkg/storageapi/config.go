@@ -23,6 +23,10 @@ type ConfigKey struct {
 	ID          ConfigID    `json:"id" writeas:"configurationId" writeoptional:"true"`
 }
 
+func (k ConfigKey) ObjectId() ObjectId {
+	return ObjectId(k.ID.String())
+}
+
 // Config https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/list-configurations
 type Config struct {
 	ConfigKey
@@ -35,6 +39,10 @@ type Config struct {
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	IsDisabled        bool                   `json:"isDisabled"`
 	Content           *orderedmap.OrderedMap `json:"configuration"`
+}
+
+func (c Config) Key() Key {
+	return c.ConfigKey
 }
 
 // ConfigWithRows is a configuration with its configuration rows.

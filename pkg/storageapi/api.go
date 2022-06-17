@@ -33,9 +33,19 @@ func newRequest() client.HTTPRequest {
 	return client.NewHTTPRequest().WithBaseURL("v2/storage").WithError(&Error{})
 }
 
+type ObjectId string
+
+type Key interface {
+	ObjectId() ObjectId
+}
+
+type Object interface {
+	Key() Key
+}
+
 // CreateRequest creates request to create object according its type.
-func CreateRequest[R client.Result](object R) client.APIRequest[client.NoResult] {
-	switch v := any(object).(type) {
+func CreateRequest(object Object) client.APIRequest[client.NoResult] {
+	switch v := object.(type) {
 	case *Branch:
 		return client.NewAPIRequest(client.NoResult{}, CreateBranchRequest(v))
 	case *Config:
@@ -50,8 +60,8 @@ func CreateRequest[R client.Result](object R) client.APIRequest[client.NoResult]
 }
 
 // UpdateRequest creates request to update object according its type.
-func UpdateRequest[R client.Result](object R, changedFields []string) client.APIRequest[client.NoResult] {
-	switch v := any(object).(type) {
+func UpdateRequest(object Object, changedFields []string) client.APIRequest[client.NoResult] {
+	switch v := object.(type) {
 	case *Branch:
 		return client.NewAPIRequest(client.NoResult{}, UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
@@ -66,7 +76,7 @@ func UpdateRequest[R client.Result](object R, changedFields []string) client.API
 }
 
 // DeleteRequest creates request to delete object according its type.
-func DeleteRequest(key any) client.APIRequest[client.NoResult] {
+func DeleteRequest(key Key) client.APIRequest[client.NoResult] {
 	switch k := key.(type) {
 	case BranchKey:
 		return DeleteBranchRequest(k)
@@ -80,7 +90,7 @@ func DeleteRequest(key any) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func AppendMetadataRequest(object any, metadata map[string]string) client.APIRequest[client.NoResult] {
+func AppendMetadataRequest(object Object, metadata map[string]string) client.APIRequest[client.NoResult] {
 	switch v := object.(type) {
 	case *Branch:
 		return AppendBranchMetadataRequest(v.BranchKey, metadata)

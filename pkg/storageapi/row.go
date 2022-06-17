@@ -20,6 +20,10 @@ type ConfigRowKey struct {
 	ID          RowID       `json:"id" writeas:"rowId" writeoptional:"true"`
 }
 
+func (k ConfigRowKey) ObjectId() ObjectId {
+	return ObjectId(k.ID.String())
+}
+
 // ConfigRow https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/list-configurations
 type ConfigRow struct {
 	ConfigRowKey
@@ -31,6 +35,10 @@ type ConfigRow struct {
 	Version           int                    `json:"version" readonly:"true"`
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	Content           *orderedmap.OrderedMap `json:"configuration"`
+}
+
+func (r ConfigRow) Key() Key {
+	return r.ConfigRowKey
 }
 
 // GetConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/row-detail
