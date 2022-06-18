@@ -81,7 +81,7 @@ func (c Client) WithHeaders(headers map[string]string) Client {
 
 // WithTransport returns a clone of the Client with a HTTP transport set.
 func (c Client) WithTransport(transport http.RoundTripper) Client {
-	if transport == nil {
+	if transport == nil || transport == http.RoundTripper(nil) {
 		panic(fmt.Errorf("transport cannot be nit"))
 	}
 	c.transport = transport
