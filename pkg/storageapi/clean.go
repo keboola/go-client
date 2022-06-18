@@ -4,11 +4,18 @@ import (
 	"context"
 
 	"github.com/keboola/go-client/pkg/client"
+	"golang.org/x/sync/semaphore"
 )
 
 // CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
 // Useful for E2E tests.
 func CleanProjectRequest() client.APIRequest[client.NoResult] {
+	// Only one delete branch request can run simultaneously.
+	// Branch deletion is performed via Storage Job, which uses locks.
+	// If we ran multiple requests, then only one job would run and the other jobs would wait.
+	// The problem is that the lock is checked again after 30 seconds, so there is a long delay.
+	deleteBranchSem := semaphore.NewWeighted(1)
+
 	// For each branch
 	request := ListBranchesRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Branch) error {
@@ -30,14 +37,21 @@ func CleanProjectRequest() client.APIRequest[client.NoResult] {
 						WithOnSuccess(func(ctx context.Context, sender client.Sender, result *MetadataDetails) error {
 							wgMetadata := client.NewWaitGroup(ctx, sender)
 							for _, item := range *result {
-								item := item
 								wgMetadata.Send(DeleteBranchMetadataRequest(branch.BranchKey, item.ID))
 							}
 							return wgMetadata.Wait()
 						}))
 				} else {
 					// If it is not default branch -> delete branch.
-					wg.Send(DeleteBranchRequest(branch.BranchKey))
+					wg.Send(DeleteBranchRequest(branch.BranchKey).
+						WithBefore(func(ctx context.Context, sender client.Sender) error {
+							return deleteBranchSem.Acquire(ctx, 1)
+						}).
+						WithOnComplete(func(_ context.Context, _ client.Sender, _ client.NoResult, err error) error {
+							deleteBranchSem.Release(1)
+							return nil
+						}),
+					)
 				}
 			}
 			return wg.Wait()
