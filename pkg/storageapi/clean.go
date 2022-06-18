@@ -8,8 +8,8 @@ import (
 )
 
 // CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
-// Useful for E2E tests.
-func CleanProjectRequest() client.APIRequest[client.NoResult] {
+// Useful for E2E tests. Result is default branch.
+func CleanProjectRequest() client.APIRequest[*Branch] {
 	// Only one delete branch request can run simultaneously.
 	// Branch deletion is performed via Storage Job, which uses locks.
 	// If we ran multiple requests, then only one job would run and the other jobs would wait.
@@ -17,6 +17,7 @@ func CleanProjectRequest() client.APIRequest[client.NoResult] {
 	deleteBranchSem := semaphore.NewWeighted(1)
 
 	// For each branch
+	var defaultBranch *Branch
 	request := ListBranchesRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Branch) error {
 			wg := client.NewWaitGroup(ctx, sender)
@@ -24,6 +25,7 @@ func CleanProjectRequest() client.APIRequest[client.NoResult] {
 				branch := branch
 				// Clear branch
 				if branch.IsDefault {
+					defaultBranch = branch
 					// Default branch cannot be deleted
 					// Reset description
 					if branch.Description != "" {
@@ -44,7 +46,7 @@ func CleanProjectRequest() client.APIRequest[client.NoResult] {
 				} else {
 					// If it is not default branch -> delete branch.
 					wg.Send(DeleteBranchRequest(branch.BranchKey).
-						WithBefore(func(ctx context.Context, sender client.Sender) error {
+						WithBefore(func(ctx context.Context, _ client.Sender) error {
 							return deleteBranchSem.Acquire(ctx, 1)
 						}).
 						WithOnComplete(func(_ context.Context, _ client.Sender, _ client.NoResult, err error) error {
@@ -56,5 +58,5 @@ func CleanProjectRequest() client.APIRequest[client.NoResult] {
 			}
 			return wg.Wait()
 		})
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return client.NewAPIRequest(defaultBranch, request)
 }
