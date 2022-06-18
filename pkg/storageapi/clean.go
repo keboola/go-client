@@ -17,7 +17,7 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 	deleteBranchSem := semaphore.NewWeighted(1)
 
 	// For each branch
-	var defaultBranch *Branch
+	defaultBranch := &Branch{}
 	request := ListBranchesRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Branch) error {
 			wg := client.NewWaitGroup(ctx, sender)
@@ -25,7 +25,8 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 				branch := branch
 				// Clear branch
 				if branch.IsDefault {
-					defaultBranch = branch
+					// Store default branch
+					*defaultBranch = *branch
 					// Default branch cannot be deleted
 					// Reset description
 					if branch.Description != "" {
