@@ -82,7 +82,7 @@ func (c Client) WithHeaders(headers map[string]string) Client {
 // WithTransport returns a clone of the Client with a HTTP transport set.
 func (c Client) WithTransport(transport http.RoundTripper) Client {
 	if transport == nil || transport == http.RoundTripper(nil) {
-		panic(fmt.Errorf("transport cannot be nit"))
+		panic(fmt.Errorf("transport cannot be nil"))
 	}
 	c.transport = transport
 	return c
@@ -102,6 +102,11 @@ func (c Client) WithTrace(fn TraceFactory) Client {
 
 // Send method sends HTTP request and returns HTTP response, it implements the Sender interface.
 func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Response, result any, err error) {
+	// Method cannot be called on an empty value
+	if c.transport == nil {
+		panic(fmt.Errorf("client value is not initialized"))
+	}
+
 	// If method or url is not set, panic occurs. So we get these values first.
 	method := reqDef.Method()
 	reqURLStr := reqDef.URL()
