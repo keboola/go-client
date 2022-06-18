@@ -170,7 +170,7 @@ func ListBranchMetadataRequest(key BranchKey) client.APIRequest[*MetadataDetails
 func AppendBranchMetadataRequest(key BranchKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
-		return nil
+		return client.NewNoOperationAPIRequest(client.NoResult{})
 	}
 
 	formBody := make(map[string]string)
