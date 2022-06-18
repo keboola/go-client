@@ -45,11 +45,9 @@ type httpRequestReadOnly interface {
 	QueryParams() url.Values
 	// PathParams method returns HTTP path parameters mapped to a {placeholder} in the URL.
 	PathParams() map[string]string
-	// FormData method returns Form parameters.
-	FormData() url.Values
 	// RequestBody method returns a definition of HTTP request body.
 	// Supported request body data types are:
-	// `*string`, `*[]byte`, `*struct`, `*map`, `*slice`, `io.Reader` and `io.ReadCloser`.
+	// `*string`, `*[]byte`, `*struct`, `*map`, `*slice`, `io.ReadSeeker` and `io.ReadSeekCloser`.
 	// Automatic marshaling for JSON is provided, if it is `*struct`, `*map`, or `*slice`.
 	RequestBody() any
 	// ErrorDef method returns a target value for error result mapping.
@@ -229,11 +227,10 @@ func (r httpRequest) PathParams() map[string]string {
 	return r.pathParams
 }
 
-func (r httpRequest) FormData() url.Values {
-	return r.formData
-}
-
 func (r httpRequest) RequestBody() any {
+	if r.formData != nil {
+		return r.formData.Encode()
+	}
 	return r.body
 }
 
@@ -327,6 +324,7 @@ func (r httpRequest) WithFormBody(form map[string]string) HTTPRequest {
 }
 
 func (r httpRequest) WithJSONBody(body any) HTTPRequest {
+	r.formData = nil
 	r.body = body
 	return r.AndHeader("Content-Type", "application/json")
 }

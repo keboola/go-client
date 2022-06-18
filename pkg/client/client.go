@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
-
 	"github.com/cenkalti/backoff/v4"
 )
 
@@ -170,9 +169,15 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 	}
 
 	// Body
-	req.Body, err = requestBody(reqDef)
-	if err != nil {
-		return nil, nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+	if reqDef.RequestBody() != nil {
+		// rewindingBody provides body stream rewind on retry
+		req.Body = newRewindingBody(func() (io.ReadCloser, error) {
+			if body, err := requestBody(reqDef); err == nil {
+				return body, nil
+			} else {
+				return nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+			}
+		})
 	}
 
 	// Setup native client
@@ -217,23 +222,33 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 	contentType := r.RequestHeader().Get("Content-Type")
 	body := r.RequestBody()
-	if r.FormData() != nil {
-		// Form data
-		return io.NopCloser(strings.NewReader(r.FormData().Encode())), nil
-	} else if v, ok := body.(io.ReadCloser); ok {
-		// io.ReadCloser stream
+	if v, ok := body.(string); ok {
+		return io.NopCloser(strings.NewReader(v)), nil
+	}
+	if v, ok := body.([]byte); ok {
+		return io.NopCloser(bytes.NewReader(v)), nil
+	}
+	if v, ok := body.(io.ReadSeekCloser); ok {
+		// io.ReadSeekCloser stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return v, nil
-	} else if v, ok := body.(io.Reader); ok {
-		// io.Reader stream
+	}
+	if v, ok := body.(io.ReadSeeker); ok {
+		// io.ReadSeeker stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return io.NopCloser(v), nil
-	} else if body != nil && contentType == "application/json" {
+	}
+	if body != nil && contentType == "application/json" {
 		// Json body
 		c, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf(`cannot encode JSON body: %w`, err)
 		}
 		return io.NopCloser(bytes.NewReader(c)), nil
-
 	}
 	// empty body
 	return nil, nil
@@ -353,20 +368,13 @@ type roundTripper struct {
 	wrapped http.RoundTripper
 }
 
-type errorWithRequest interface {
-	error
-	SetRequest(request *http.Request)
-}
-
-type errorWithResponse interface {
-	error
-	SetResponse(response *http.Response)
-}
-
 func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	state := rt.retry.NewBackoff()
 	attempt := 0
 	for {
+		// Store original body, for retries
+		originalBody := req.Body
+
 		// Trace request start
 		if rt.trace != nil && rt.trace.HTTPRequestStart != nil {
 			rt.trace.HTTPRequestStart(req)
@@ -399,6 +407,14 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			rt.trace.HTTPRequestRetry(attempt, delay)
 		}
 
+		// Rewind body before retry, see rewindingBody struct
+		req.Body = originalBody
+		if req.Body != nil {
+			if err := req.Body.Close(); err != nil {
+				return nil, err
+			}
+		}
+
 		// Wait
 		select {
 		case <-req.Context().Done():
@@ -408,6 +424,47 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			// time elapsed, retry
 		}
 	}
+}
+
+func newRewindingBody(factory func() (io.ReadCloser, error)) *rewindingBody {
+	return &rewindingBody{factory: factory}
+}
+
+// rewindingBody can be read multiple times, allows retries.
+type rewindingBody struct {
+	factory func() (io.ReadCloser, error)
+	wrapped io.ReadCloser
+}
+
+func (b *rewindingBody) Read(p []byte) (n int, err error) {
+	// Initialize the reader at first read.
+	if b.wrapped == nil {
+		if v, err := b.factory(); err == nil {
+			b.wrapped = v
+		} else {
+			return 0, err
+		}
+	}
+	return b.wrapped.Read(p)
+}
+
+func (b *rewindingBody) Close() error {
+	if b.wrapped == nil {
+		return nil
+	}
+	err := b.wrapped.Close()
+	b.wrapped = nil // allow next read
+	return err
+}
+
+type errorWithRequest interface {
+	error
+	SetRequest(request *http.Request)
+}
+
+type errorWithResponse interface {
+	error
+	SetResponse(response *http.Response)
 }
 
 func urlError(req *http.Request, err error) *url.Error {

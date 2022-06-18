@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/jarcoal/httpmock"
@@ -41,48 +40,62 @@ func NewMockedClient() (Client, *httpmock.MockTransport) {
 // DumpTracer dumps HTTP request and response to a writer.
 // Output may contain unmasked tokens, do not use it in production.
 func DumpTracer(wr io.Writer) *Trace {
-	var req, res []byte
+	var requestMethod, requestUri string
+	var responseStatusCode int
+	var requestDump []byte
+	var responseErr error
 	var startTime, headersTime time.Time
-	lock := &sync.Mutex{}
+
 	t := &Trace{}
 	t.HTTPRequestStart = func(r *http.Request) {
-		lock.Lock()
-		defer lock.Unlock()
 		startTime = time.Now()
-		req, _ = httputil.DumpRequestOut(r, true)
+		requestMethod = r.Method
+		requestUri = r.URL.RequestURI()
+		requestDump, _ = httputil.DumpRequestOut(r, true)
 	}
 	t.HTTPRequestDone = func(r *http.Response, err error) {
-		if err == nil {
-			lock.Lock()
-			defer lock.Unlock()
+		// Response can be nil, for example, if some network error occurred
+		if r != nil {
+			responseStatusCode = r.StatusCode
+			responseErr = err
 			headersTime = time.Now()
-			if req == nil {
-				// Dump request of mocked responses
-				req, _ = httputil.DumpRequestOut(r.Request, true)
+
+			// Dump request of mocked responses
+			if requestDump == nil {
+				requestDump, _ = httputil.DumpRequestOut(r.Request, true)
 			}
-			res, _ = httputil.DumpResponse(r, false)
 		}
-	}
-	t.RequestProcessed = func(result any, err error) {
-		lock.Lock()
-		defer lock.Unlock()
+
+		if err != nil {
+			responseErr = err
+		}
+
+		// Dump request and response
 		fmt.Fprintln(wr)
 		fmt.Fprintln(wr, ">>>>>> HTTP DUMP")
-		if req != nil {
-			fmt.Fprintln(wr, strings.TrimSpace(string(req)))
-			fmt.Fprintln(wr, "------")
-		}
+		fmt.Fprintln(wr, strings.TrimSpace(string(requestDump)))
+		fmt.Fprintln(wr, "------")
 		if err != nil {
 			fmt.Fprintln(wr, "ERROR: ", err)
-			fmt.Fprintln(wr, "<<<<<< HTTP DUMP END")
-			fmt.Fprintln(wr)
-			fmt.Fprintln(wr)
 		} else {
-			fmt.Fprintln(wr, strings.TrimSpace(string(res)))
-			fmt.Fprintln(wr, "<<<<<< HTTP DUMP END,", "HEADERS AT:", headersTime.Sub(startTime), ", DONE AT:", time.Since(startTime))
-			fmt.Fprintln(wr)
-			fmt.Fprintln(wr)
+			responseDump, _ := httputil.DumpResponse(r, false)
+			fmt.Fprintln(wr, strings.TrimSpace(string(responseDump)))
 		}
+		fmt.Fprintln(wr, "<<<<<< HTTP DUMP END")
+		fmt.Fprintln(wr)
+		fmt.Fprintln(wr)
+	}
+	t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
+		fmt.Fprintln(wr)
+		fmt.Fprintln(wr, ">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr)
+		fmt.Fprintln(wr)
+		fmt.Fprintln(wr)
+	}
+	t.RequestProcessed = func(result any, err error) {
+		fmt.Fprintln(wr)
+		fmt.Fprintln(wr, ">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
+		fmt.Fprintln(wr)
+		fmt.Fprintln(wr)
 	}
 	return t
 }
