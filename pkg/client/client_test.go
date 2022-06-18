@@ -189,14 +189,15 @@ func TestRequestContext(t *testing.T) {
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
 
-func TestDefaultUserAgent(t *testing.T) {
+func TestDefaultHeaders(t *testing.T) {
 	t.Parallel()
 
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", "https://example.com", func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -215,7 +216,8 @@ func TestWithUserAgent(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"my-user-agent"},
+			"User-Agent":      []string{"my-user-agent"},
+			"Accept-Encoding": []string{"gzip, br"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -234,8 +236,9 @@ func TestWithHeader(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
-			"My-Header":  []string{"my-value"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
+			"My-Header":       []string{"my-value"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -254,9 +257,10 @@ func TestWithHeaders(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
-			"Key1":       []string{"value1"},
-			"Key2":       []string{"value2"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
+			"Key1":            []string{"value1"},
+			"Key2":            []string{"value2"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})

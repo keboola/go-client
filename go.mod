@@ -3,6 +3,7 @@ module github.com/keboola/go-client
 go 1.18
 
 require (
+	github.com/andybalholm/brotli v1.0.4
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/go-multierror v1.1.1

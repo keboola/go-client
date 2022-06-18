@@ -16,6 +16,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -26,6 +27,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/andybalholm/brotli"
 
 	"github.com/cenkalti/backoff/v4"
 )
@@ -44,6 +47,7 @@ type Client struct {
 func New() Client {
 	c := Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
 	c.header.Set("User-Agent", "keboola-go-client")
+	c.header.Set("Accept-Encoding", "gzip, br")
 	return c
 }
 
@@ -242,6 +246,20 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		return nil, nil, nil
 	}
 
+	// Process content encoding
+	contentEncoding := strings.ToLower(r.Header.Get("Content-Encoding"))
+	switch contentEncoding {
+	case "gzip":
+		if v, err := gzip.NewReader(r.Body); err == nil {
+			r.Body = v
+		} else {
+			return nil, nil, fmt.Errorf("cannot decode gzip response: %w", err)
+		}
+	case "br":
+		r.Body = io.NopCloser(brotli.NewReader(r.Body))
+	}
+
+	// Process content type
 	contentType := r.Header.Get("Content-Type")
 	if v, ok := resultDef.(*[]byte); ok {
 		// Load response body as []byte
