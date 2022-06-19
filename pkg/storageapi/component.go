@@ -141,7 +141,7 @@ func (c *Component) IsExcludedFromNewList() bool {
 }
 
 // NewComponentList returns only the components that should be included in list of available new components.
-func (v Components) NewComponentList() (Components, error) {
+func (v Components) NewComponentList() Components {
 	// Filter out:
 	//	- deprecated
 	//  - not published
@@ -171,7 +171,7 @@ func (v Components) NewComponentList() (Components, error) {
 		return idI < idJ
 	})
 
-	return components, nil
+	return components
 }
 
 func (m ComponentsMap) ForEach(fn func(component *Component)) {
