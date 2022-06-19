@@ -76,6 +76,26 @@ type ComponentWithConfigs struct {
 	Configs []*ConfigWithRows `json:"configurations"`
 }
 
+// SortComponents by name, keboola vendor will be first.
+func SortComponents(components Components) {
+	// Sort "keboola" vendor first
+	sort.SliceStable(components, func(i, j int) bool {
+		idI := components[i].ID
+		idJ := components[j].ID
+
+		// Components from keboola vendor will be first
+		vendor := `keboola.`
+		vendorI := strings.HasPrefix(string(idI), vendor)
+		vendorJ := strings.HasPrefix(string(idJ), vendor)
+		if vendorI != vendorJ {
+			return vendorI
+		}
+
+		// Sort by ID otherwise
+		return idI < idJ
+	})
+}
+
 // ToMap converts Components slice to ComponentsMap.
 func (v Components) ToMap() ComponentsMap {
 	out := ComponentsMap{data: make(map[ComponentID]*Component)}
@@ -153,24 +173,7 @@ func (v Components) NewComponentList() Components {
 			components = append(components, c)
 		}
 	}
-
-	// Sort "keboola" vendor first
-	sort.SliceStable(components, func(i, j int) bool {
-		idI := components[i].ID
-		idJ := components[j].ID
-
-		// Components from keboola vendor will be first
-		vendor := `keboola.`
-		vendorI := strings.HasPrefix(string(idI), vendor)
-		vendorJ := strings.HasPrefix(string(idJ), vendor)
-		if vendorI != vendorJ {
-			return vendorI
-		}
-
-		// Sort by ID otherwise
-		return idI < idJ
-	})
-
+	SortComponents(components)
 	return components
 }
 
