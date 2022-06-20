@@ -54,7 +54,7 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 						}).
 						WithOnComplete(func(_ context.Context, _ client.Sender, _ client.NoResult, err error) error {
 							deleteBranchSem.Release(1)
-							return nil
+							return err
 						}),
 					)
 				}
