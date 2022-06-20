@@ -1,7 +1,7 @@
 // Package schedulerapi contains request definitions for the Scheduler API.
 // The definitions are not complete and can be extended as needed.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
-// It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client, see the APIClient function.
+// It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client, see the ClientWithHostAndToken function.
 package schedulerapi
 
 import (
@@ -12,8 +12,8 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
-// APIClient creates HTTP client with api host set.
-func APIClient(c client.Client, apiHost, apiToken string) client.Client {
+// ClientWithHostAndToken returns HTTP client with api host set.
+func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Client {
 	apiHost = strings.TrimPrefix(apiHost, "https://")
 	return c.WithBaseURL(`https://`+apiHost).WithHeader("X-StorageApi-Token", apiToken)
 }
