@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/json-iterator/go v1.1.12
-	github.com/keboola/go-utils v0.0.0-20220613121006-ff7fcfaebb31
+	github.com/keboola/go-utils v0.0.0-20220620090327-5a174c7760a2
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d

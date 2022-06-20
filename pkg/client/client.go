@@ -35,11 +35,11 @@ import (
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
-	transport    http.RoundTripper
-	baseURL      *url.URL
-	header       http.Header
-	retry        RetryConfig
-	traceFactory TraceFactory
+	transport      http.RoundTripper
+	baseURL        *url.URL
+	header         http.Header
+	retry          RetryConfig
+	traceFactories []TraceFactory
 }
 
 // New creates new HTTP Client.
@@ -97,9 +97,10 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 	return c
 }
 
-// WithTrace returns a clone of the Client with Trace hooks set.
-func (c Client) WithTrace(fn TraceFactory) Client {
-	c.traceFactory = fn
+// AndTrace returns a clone of the Client with Trace hooks added.
+// The last registered hook is executed first.
+func (c Client) AndTrace(fn TraceFactory) Client {
+	c.traceFactories = append(c.traceFactories, fn)
 	return c
 }
 
@@ -116,11 +117,13 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 
 	// Init trace
 	var trace *Trace
-	if c.traceFactory != nil {
-		trace = c.traceFactory()
-		if trace != nil {
-			ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
-		}
+	for _, fn := range c.traceFactories {
+		oldTrace := trace
+		trace = fn()
+		trace.compose(oldTrace)
+	}
+	if trace != nil {
+		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
 	}
 
 	// Trace got request
@@ -266,23 +269,16 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 	}
 
 	// Process content encoding
-	contentEncoding := strings.ToLower(r.Header.Get("Content-Encoding"))
-	switch contentEncoding {
-	case "gzip":
-		if v, err := gzip.NewReader(r.Body); err == nil {
-			r.Body = v
-		} else {
-			return nil, nil, fmt.Errorf("cannot decode gzip response: %w", err)
-		}
-	case "br":
-		r.Body = io.NopCloser(brotli.NewReader(r.Body))
+	decodedBody, err := decodeBody(r.Body, r.Header.Get("Content-Encoding"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot decode response body: %w", err)
 	}
 
 	// Process content type
 	contentType := r.Header.Get("Content-Type")
 	if v, ok := resultDef.(*[]byte); ok {
 		// Load response body as []byte
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -291,7 +287,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(*string); ok {
 		// Load response body as string
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -300,7 +296,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(io.WriteCloser); ok {
 		// Stream response to io.WriteCloser
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 		if err := v.Close(); err != nil {
@@ -308,21 +304,21 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		}
 	} else if v, ok := resultDef.(io.Writer); ok {
 		// Stream response to io.Writer
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 	} else if contentType == "application/json" {
 		// Map JSON response
 		if r.StatusCode > 199 && r.StatusCode < 300 && resultDef != nil {
 			// Map JSON response to defined result
-			if err := json.NewDecoder(r.Body).Decode(resultDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(resultDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON result: %w`, err)
 			}
 			return resultDef, nil, nil
 
 		} else if r.StatusCode > 399 && errDef != nil {
 			// Map JSON response to defined error
-			if err := json.NewDecoder(r.Body).Decode(errDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(errDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON error: %w`, err)
 			}
 			// Set HTTP request
@@ -424,6 +420,22 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		case <-time.NewTimer(delay).C:
 			// time elapsed, retry
 		}
+	}
+}
+
+func decodeBody(body io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
+	contentEncoding = strings.ToLower(contentEncoding)
+	switch contentEncoding {
+	case "gzip":
+		if v, err := gzip.NewReader(body); err == nil {
+			return v, nil
+		} else {
+			return nil, fmt.Errorf("cannot decode gzip: %w", err)
+		}
+	case "br":
+		return io.NopCloser(brotli.NewReader(body)), nil
+	default:
+		return body, nil
 	}
 }
 

@@ -107,7 +107,7 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	componentsJson, err := json.MarshalIndent(components, "", "  ")
 	assert.NoError(t, err)
-	wildcards.AssertWildcards(t, expectedComponentsConfigTest(), string(componentsJson), "Unexpected components")
+	wildcards.Assert(t, expectedComponentsConfigTest(), string(componentsJson), "Unexpected components")
 
 	// Update metadata
 	metadata := map[string]string{"KBC.KaC.meta1": "value"}
