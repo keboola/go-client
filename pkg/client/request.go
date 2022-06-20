@@ -156,6 +156,12 @@ func NewAPIRequest[R Result](result R, requests ...Sendable) APIRequest[R] {
 	return &apiRequest[R]{requests: requests, result: result}
 }
 
+// NewNoOperationAPIRequest returns an APIRequest that immediately returns a Result without calling any HTTPRequest.
+// It is handy in situations where there is no work to be done.
+func NewNoOperationAPIRequest[R Result](result R) APIRequest[R] {
+	return &apiRequest[R]{result: result}
+}
+
 // httpRequest implements HTTPRequest interface.
 type httpRequest struct {
 	method      string
