@@ -170,14 +170,18 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 
 	// Body
 	if reqDef.RequestBody() != nil {
-		// rewindingBody provides body stream rewind on retry
-		req.Body = newRewindingBody(func() (io.ReadCloser, error) {
+		// GetBody factory is used for requests when a redirect/retry requires reading the body more than once.
+		req.GetBody = func() (io.ReadCloser, error) {
 			if body, err := requestBody(reqDef); err == nil {
 				return body, nil
 			} else {
 				return nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
 			}
-		})
+		}
+		req.Body, err = req.GetBody()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Setup native client
@@ -372,9 +376,6 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	state := rt.retry.NewBackoff()
 	attempt := 0
 	for {
-		// Store original body, for retries
-		originalBody := req.Body
-
 		// Trace request start
 		if rt.trace != nil && rt.trace.HTTPRequestStart != nil {
 			rt.trace.HTTPRequestStart(req)
@@ -407,11 +408,11 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			rt.trace.HTTPRequestRetry(attempt, delay)
 		}
 
-		// Rewind body before retry, see rewindingBody struct
-		req.Body = originalBody
-		if req.Body != nil {
-			if err := req.Body.Close(); err != nil {
-				return nil, err
+		// Rewind body before retry
+		if req.GetBody != nil {
+			req.Body, err = req.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("cannot rewind body: %w", err)
 			}
 		}
 
@@ -424,37 +425,6 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			// time elapsed, retry
 		}
 	}
-}
-
-func newRewindingBody(factory func() (io.ReadCloser, error)) *rewindingBody {
-	return &rewindingBody{factory: factory}
-}
-
-// rewindingBody can be read multiple times, allows retries.
-type rewindingBody struct {
-	factory func() (io.ReadCloser, error)
-	wrapped io.ReadCloser
-}
-
-func (b *rewindingBody) Read(p []byte) (n int, err error) {
-	// Initialize the reader at first read.
-	if b.wrapped == nil {
-		if v, err := b.factory(); err == nil {
-			b.wrapped = v
-		} else {
-			return 0, err
-		}
-	}
-	return b.wrapped.Read(p)
-}
-
-func (b *rewindingBody) Close() error {
-	if b.wrapped == nil {
-		return nil
-	}
-	err := b.wrapped.Close()
-	b.wrapped = nil // allow next read
-	return err
 }
 
 type errorWithRequest interface {
