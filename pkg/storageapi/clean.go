@@ -7,6 +7,8 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const mainBranchDescription = ""
+
 // CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
 // Useful for E2E tests. Result is default branch.
 func CleanProjectRequest() client.APIRequest[*Branch] {
@@ -25,14 +27,14 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 				branch := branch
 				// Clear branch
 				if branch.IsDefault {
-					// Store default branch
-					*defaultBranch = *branch
 					// Default branch cannot be deleted
 					// Reset description
-					if branch.Description != "" {
-						branch.Description = ""
+					if branch.Description != mainBranchDescription {
+						branch.Description = mainBranchDescription
 						wg.Send(UpdateBranchRequest(branch, []string{"description"}))
 					}
+					// Store default branch
+					*defaultBranch = *branch
 					// Clear configs
 					wg.Send(DeleteConfigsInBranchRequest(branch.BranchKey))
 					// Clear metadata
