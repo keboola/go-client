@@ -128,7 +128,7 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 
 	// Trace got request
 	if trace != nil && trace.GotRequest != nil {
-		trace.GotRequest(reqDef)
+		ctx = trace.GotRequest(ctx, reqDef)
 	}
 
 	// Replace path parameters

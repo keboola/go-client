@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +21,7 @@ const dumpTraceMaxLength = 2000
 type Trace struct {
 	httptrace.ClientTrace // native, low level trace
 	// GotRequest is called when Client.Send method is called.
-	GotRequest func(request HTTPRequest)
+	GotRequest func(ctx context.Context, request HTTPRequest) context.Context
 	// RequestProcessed is called when Client.Send method is done.
 	RequestProcessed func(result any, err error)
 	// HTTPRequestStart is called when the request begins. It includes redirects and retries.
