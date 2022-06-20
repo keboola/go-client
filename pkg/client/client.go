@@ -16,6 +16,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/cenkalti/backoff/v4"
 )
 
@@ -41,9 +43,10 @@ type Client struct {
 }
 
 // New creates new HTTP Client.
-func New() *Client {
-	c := &Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
+func New() Client {
+	c := Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
 	c.header.Set("User-Agent", "keboola-go-client")
+	c.header.Set("Accept-Encoding", "gzip, br")
 	return c
 }
 
@@ -237,10 +240,17 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		return nil, nil, nil
 	}
 
+	// Process content encoding
+	decodedBody, err := decodeBody(r.Body, r.Header.Get("Content-Encoding"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot decode response body: %w", err)
+	}
+
+	// Process content type
 	contentType := r.Header.Get("Content-Type")
 	if v, ok := resultDef.(*[]byte); ok {
 		// Load response body as []byte
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -249,7 +259,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(*string); ok {
 		// Load response body as string
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -258,7 +268,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(io.WriteCloser); ok {
 		// Stream response to io.WriteCloser
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 		if err := v.Close(); err != nil {
@@ -266,21 +276,21 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		}
 	} else if v, ok := resultDef.(io.Writer); ok {
 		// Stream response to io.Writer
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 	} else if contentType == "application/json" {
 		// Map JSON response
 		if r.StatusCode > 199 && r.StatusCode < 300 && resultDef != nil {
 			// Map JSON response to defined result
-			if err := json.NewDecoder(r.Body).Decode(resultDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(resultDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON result: %w`, err)
 			}
 			return resultDef, nil, nil
 
 		} else if r.StatusCode > 399 && errDef != nil {
 			// Map JSON response to defined error
-			if err := json.NewDecoder(r.Body).Decode(errDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(errDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON error: %w`, err)
 			}
 			// Set HTTP request
@@ -385,6 +395,32 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			// time elapsed, retry
 		}
 	}
+}
+
+func decodeBody(body io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
+	contentEncoding = strings.ToLower(contentEncoding)
+	switch contentEncoding {
+	case "gzip":
+		if v, err := gzip.NewReader(body); err == nil {
+			return v, nil
+		} else {
+			return nil, fmt.Errorf("cannot decode gzip: %w", err)
+		}
+	case "br":
+		return io.NopCloser(brotli.NewReader(body)), nil
+	default:
+		return body, nil
+	}
+}
+
+type errorWithRequest interface {
+	error
+	SetRequest(request *http.Request)
+}
+
+type errorWithResponse interface {
+	error
+	SetResponse(response *http.Response)
 }
 
 func urlError(req *http.Request, err error) *url.Error {
