@@ -146,77 +146,79 @@ type dumpTrace struct {
 
 // DumpTracer dumps HTTP request and response to a writer.
 // Output may contain unmasked tokens, do not use it in production!
-func DumpTracer(wr io.Writer) *Trace {
-	var requestMethod, requestUri string
-	var responseStatusCode int
-	var requestDump []byte
-	var responseErr error
-	var startTime, headersTime time.Time
+func DumpTracer(wr io.Writer) TraceFactory {
+	return func() *Trace {
+		var requestMethod, requestUri string
+		var responseStatusCode int
+		var requestDump []byte
+		var responseErr error
+		var startTime, headersTime time.Time
 
-	t := &dumpTrace{wr: wr}
-	t.HTTPRequestStart = func(r *http.Request) {
-		startTime = time.Now()
-		requestMethod = r.Method
-		requestUri = r.URL.RequestURI()
-		requestDump, _ = httputil.DumpRequestOut(r, true)
-	}
-	t.HTTPRequestDone = func(r *http.Response, err error) {
-		// Response can be nil, for example, if some network error occurred
-		if r != nil {
-			responseStatusCode = r.StatusCode
-			responseErr = err
-			headersTime = time.Now()
+		t := &dumpTrace{wr: wr}
+		t.HTTPRequestStart = func(r *http.Request) {
+			startTime = time.Now()
+			requestMethod = r.Method
+			requestUri = r.URL.RequestURI()
+			requestDump, _ = httputil.DumpRequestOut(r, true)
 		}
-		if err != nil {
-			responseErr = err
-		}
+		t.HTTPRequestDone = func(r *http.Response, err error) {
+			// Response can be nil, for example, if some network error occurred
+			if r != nil {
+				responseStatusCode = r.StatusCode
+				responseErr = err
+				headersTime = time.Now()
+			}
+			if err != nil {
+				responseErr = err
+			}
 
-		// Dump request
-		t.log()
-		t.log(">>>>>> HTTP DUMP")
-		t.dump(string(requestDump))
+			// Dump request
+			t.log()
+			t.log(">>>>>> HTTP DUMP")
+			t.dump(string(requestDump))
 
-		// Dump response
-		t.log("------")
-		if err != nil {
-			t.log("ERROR: ", err)
-		} else {
-			// Dump response headers
-			if v, err := httputil.DumpResponse(r, false); err == nil {
-				t.log(strings.TrimSpace(string(v)))
+			// Dump response
+			t.log("------")
+			if err != nil {
+				t.log("ERROR: ", err)
 			} else {
-				t.log("cannot dump response headers: ", err)
-			}
-			// Dump response body
-			if r.Body != nil {
-				// Decode body and copy raw body to rawBody buffer
-				var rawBody bytes.Buffer
-				var decodedBody strings.Builder
-				bodyReader, err := decodeBody(io.NopCloser(io.TeeReader(r.Body, &rawBody)), r.Header.Get("Content-Encoding"))
-				if err != nil {
-					t.log("cannot read response body: ", err)
+				// Dump response headers
+				if v, err := httputil.DumpResponse(r, false); err == nil {
+					t.log(strings.TrimSpace(string(v)))
+				} else {
+					t.log("cannot dump response headers: ", err)
 				}
-				if _, err := io.Copy(&decodedBody, bodyReader); err != nil {
-					t.log("cannot read response body: ", err)
+				// Dump response body
+				if r.Body != nil {
+					// Decode body and copy raw body to rawBody buffer
+					var rawBody bytes.Buffer
+					var decodedBody strings.Builder
+					bodyReader, err := decodeBody(io.NopCloser(io.TeeReader(r.Body, &rawBody)), r.Header.Get("Content-Encoding"))
+					if err != nil {
+						t.log("cannot read response body: ", err)
+					}
+					if _, err := io.Copy(&decodedBody, bodyReader); err != nil {
+						t.log("cannot read response body: ", err)
+					}
+					// Set buffered raw body back to the response
+					r.Body = io.NopCloser(bytes.NewReader(rawBody.Bytes()))
+					// Dump decoded response
+					t.log("------")
+					t.dump(decodedBody.String())
 				}
-				// Set buffered raw body back to the response
-				r.Body = io.NopCloser(bytes.NewReader(rawBody.Bytes()))
-				// Dump decoded response
-				t.log("------")
-				t.dump(decodedBody.String())
 			}
+			t.log("<<<<<< HTTP DUMP END")
 		}
-		t.log("<<<<<< HTTP DUMP END")
+		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
+			t.log()
+			t.log(">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr)
+		}
+		t.RequestProcessed = func(result any, err error) {
+			t.log()
+			t.log(">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
+		}
+		return &t.Trace
 	}
-	t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
-		t.log()
-		t.log(">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr)
-	}
-	t.RequestProcessed = func(result any, err error) {
-		t.log()
-		t.log(">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
-	}
-	return &t.Trace
 }
 
 func (t *dumpTrace) dump(body string) {

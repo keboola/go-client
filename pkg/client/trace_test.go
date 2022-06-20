@@ -210,9 +210,7 @@ func TestDumpTracer(t *testing.T) {
 	c := New().
 		WithTransport(transport).
 		WithRetry(TestingRetry()).
-		AndTrace(func() *Trace {
-			return DumpTracer(&logs)
-		})
+		AndTrace(DumpTracer(&logs))
 
 	// Expected trace
 	expected := `

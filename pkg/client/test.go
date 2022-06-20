@@ -15,14 +15,11 @@ var testTransport = DefaultTransport()
 //
 // Output may contain unmasked tokens, do not use it in production!
 func NewTestClient() Client {
-	return New().
-		WithTransport(testTransport).
-		AndTrace(func() *Trace {
-			if os.Getenv("TEST_HTTP_CLIENT_VERBOSE") == "true" {
-				return DumpTracer(os.Stdout)
-			}
-			return nil
-		})
+	c := New().WithTransport(testTransport)
+	if os.Getenv("TEST_HTTP_CLIENT_VERBOSE") == "true" {
+		c = c.AndTrace(DumpTracer(os.Stdout))
+	}
+	return c
 }
 
 // NewMockedClient creates the Client with mocked HTTP transport.
