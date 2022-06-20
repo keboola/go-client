@@ -33,11 +33,11 @@ import (
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
-	transport    http.RoundTripper
-	baseURL      *url.URL
-	header       http.Header
-	retry        RetryConfig
-	traceFactory TraceFactory
+	transport      http.RoundTripper
+	baseURL        *url.URL
+	header         http.Header
+	retry          RetryConfig
+	traceFactories []TraceFactory
 }
 
 // New creates new HTTP Client.
@@ -91,9 +91,10 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 	return c
 }
 
-// WithTrace returns a clone of the Client with Trace hooks set.
-func (c Client) WithTrace(fn TraceFactory) Client {
-	c.traceFactory = fn
+// AndTrace returns a clone of the Client with Trace hooks added.
+// The last registered hook is executed first.
+func (c Client) AndTrace(fn TraceFactory) Client {
+	c.traceFactories = append(c.traceFactories, fn)
 	return c
 }
 
@@ -105,11 +106,13 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 
 	// Init trace
 	var trace *Trace
-	if c.traceFactory != nil {
-		trace = c.traceFactory()
-		if trace != nil {
-			ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
-		}
+	for _, fn := range c.traceFactories {
+		oldTrace := trace
+		trace = fn()
+		trace.compose(oldTrace)
+	}
+	if trace != nil {
+		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
 	}
 
 	// Trace got request
