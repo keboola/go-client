@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	jsonlib "encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -597,7 +598,10 @@ func cloneURLValues(in url.Values) (out url.Values) {
 func castToString(v any) string {
 	// Ordered map
 	if orderedMap, ok := v.(*orderedmap.OrderedMap); ok {
-		if v, err := json.Marshal(orderedMap); err != nil {
+		// Standard json encoding library is used.
+		// JsonIter lib returns non-compact JSON,
+		// if custom OrderedMap.MarshalJSON method is used.
+		if v, err := jsonlib.Marshal(orderedMap); err != nil {
 			panic(fmt.Errorf(`cannot cast %T to string %w`, v, err))
 		} else {
 			return string(v)
