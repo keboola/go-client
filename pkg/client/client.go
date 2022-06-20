@@ -164,9 +164,19 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 	}
 
 	// Body
-	req.Body, err = requestBody(reqDef)
-	if err != nil {
-		return nil, nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+	if reqDef.RequestBody() != nil {
+		// GetBody factory is used for requests when a redirect/retry requires reading the body more than once.
+		req.GetBody = func() (io.ReadCloser, error) {
+			if body, err := requestBody(reqDef); err == nil {
+				return body, nil
+			} else {
+				return nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+			}
+		}
+		req.Body, err = req.GetBody()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Setup native client
@@ -211,23 +221,33 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 	contentType := r.RequestHeader().Get("Content-Type")
 	body := r.RequestBody()
-	if r.FormData() != nil {
-		// Form data
-		return io.NopCloser(strings.NewReader(r.FormData().Encode())), nil
-	} else if v, ok := body.(io.ReadCloser); ok {
-		// io.ReadCloser stream
+	if v, ok := body.(string); ok {
+		return io.NopCloser(strings.NewReader(v)), nil
+	}
+	if v, ok := body.([]byte); ok {
+		return io.NopCloser(bytes.NewReader(v)), nil
+	}
+	if v, ok := body.(io.ReadSeekCloser); ok {
+		// io.ReadSeekCloser stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return v, nil
-	} else if v, ok := body.(io.Reader); ok {
-		// io.Reader stream
+	}
+	if v, ok := body.(io.ReadSeeker); ok {
+		// io.ReadSeeker stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return io.NopCloser(v), nil
-	} else if body != nil && contentType == "application/json" {
+	}
+	if body != nil && contentType == "application/json" {
 		// Json body
 		c, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf(`cannot encode JSON body: %w`, err)
 		}
 		return io.NopCloser(bytes.NewReader(c)), nil
-
 	}
 	// empty body
 	return nil, nil
@@ -384,6 +404,14 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		attempt++
 		if rt.trace != nil && rt.trace.HTTPRequestRetry != nil {
 			rt.trace.HTTPRequestRetry(attempt, delay)
+		}
+
+		// Rewind body before retry
+		if req.GetBody != nil {
+			req.Body, err = req.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("cannot rewind body: %w", err)
+			}
 		}
 
 		// Wait

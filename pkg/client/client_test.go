@@ -273,6 +273,35 @@ func TestWithHeaders(t *testing.T) {
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
 
+func TestRetryBodyRewind(t *testing.T) {
+	t.Parallel()
+
+	// Mocked response
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder("POST", `https://example.com`, func(request *http.Request) (*http.Response, error) {
+		requestBody, err := io.ReadAll(request.Body)
+		assert.NoError(t, err)
+		// Each retry attempt must send same body
+		assert.Equal(t, `{"foo":"bar"}`, string(requestBody))
+		return httpmock.NewStringResponse(502, "retry!"), nil
+	})
+
+	// Create client
+	ctx := context.Background()
+	c := New().
+		WithTransport(transport).
+		WithRetry(TestingRetry())
+
+	// Post
+	jsonBody := map[string]any{"foo": "bar"}
+	_, _, err := NewHTTPRequest().WithPost("https://example.com").WithJSONBody(jsonBody).Send(ctx, c)
+	assert.Error(t, err)
+	assert.Equal(t, `request POST "https://example.com" failed: 502 Bad Gateway`, err.Error())
+
+	// Check number of requests
+	assert.Equal(t, 1+5, transport.GetCallCountInfo()["POST https://example.com"])
+}
+
 func TestRetryCount(t *testing.T) {
 	t.Parallel()
 
