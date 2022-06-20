@@ -21,6 +21,10 @@ type BranchKey struct {
 	ID BranchID `json:"id" writeoptional:"true"`
 }
 
+func (k BranchKey) ObjectId() any {
+	return k.ID
+}
+
 // Branch https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
 type Branch struct {
 	BranchKey
@@ -166,7 +170,7 @@ func ListBranchMetadataRequest(key BranchKey) client.APIRequest[*MetadataDetails
 func AppendBranchMetadataRequest(key BranchKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
-		return nil
+		return client.NewNoOperationAPIRequest(client.NoResult{})
 	}
 
 	formBody := make(map[string]string)

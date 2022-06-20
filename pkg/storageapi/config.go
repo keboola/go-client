@@ -23,6 +23,10 @@ type ConfigKey struct {
 	ID          ConfigID    `json:"id" writeas:"configurationId" writeoptional:"true"`
 }
 
+func (k ConfigKey) ObjectId() any {
+	return k.ID
+}
+
 // Config https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/list-configurations
 type Config struct {
 	ConfigKey
@@ -207,7 +211,7 @@ func ListConfigMetadataRequest(branchID BranchID) client.APIRequest[*ConfigsMeta
 func AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
-		return nil
+		return client.NewNoOperationAPIRequest(client.NoResult{})
 	}
 	formBody := make(map[string]string)
 	i := 0

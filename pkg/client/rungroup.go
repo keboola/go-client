@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"sync"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -22,7 +21,7 @@ const RunGroupConcurrencyLimit = 32
 type RunGroup struct {
 	ctx    context.Context
 	sender Sender
-	start  *sync.WaitGroup
+	start  chan struct{} // postpone sending until RunAndWait will be called
 	group  *errgroup.Group
 	sem    *semaphore.Weighted // limit concurrency
 }
@@ -34,15 +33,11 @@ func NewRunGroup(ctx context.Context, sender Sender) *RunGroup {
 
 // RunGroupWithLimit creates a new RunGroup with given concurrent requests limit.
 func RunGroupWithLimit(ctx context.Context, sender Sender, limit int64) *RunGroup {
-	// Postpone sending until RunAndWait will be called
-	start := &sync.WaitGroup{}
-	start.Add(1)
-
 	group, ctx := errgroup.WithContext(ctx)
 	return &RunGroup{
 		ctx:    ctx,
 		sender: sender,
-		start:  start,
+		start:  make(chan struct{}),
 		group:  group,
 		sem:    semaphore.NewWeighted(limit),
 	}
@@ -54,8 +49,8 @@ func RunGroupWithLimit(ctx context.Context, sender Sender, limit int64) *RunGrou
 // even if RunAndWait has already been called, but is not yet finished.
 func (g *RunGroup) Add(request Sendable) {
 	g.group.Go(func() error {
-		// Wait for RunAndWait call
-		g.start.Wait()
+		// Postpone sending until RunAndWait will be called
+		<-g.start
 
 		// Limit number of concurrent requests
 		if err := g.sem.Acquire(g.ctx, 1); err != nil {
@@ -74,6 +69,6 @@ func (g *RunGroup) Add(request Sendable) {
 // Additional requests can be added using the Add method (for example from a request callback),
 // even if RunAndWait has already been called, but is not yet finished.
 func (g *RunGroup) RunAndWait() error {
-	g.start.Done()
+	close(g.start)
 	return g.group.Wait()
 }

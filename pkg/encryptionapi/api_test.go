@@ -12,7 +12,7 @@ import (
 func TestEncryptRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := encryptionapi.APIClient(client.NewTestClient(), "https://encryption.keboola.com")
+	c := encryptionapi.ClientWithHost(client.NewTestClient(), "https://encryption.keboola.com")
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
 	encryptedMapPtr, err := encryptionapi.EncryptRequest(1234, "keboola.ex-generic-v2", mapToEncrypt).Send(ctx, c)
@@ -25,7 +25,7 @@ func TestEncryptRequest(t *testing.T) {
 func TestError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := encryptionapi.APIClient(client.NewTestClient(), "https://encryption.keboola.com")
+	c := encryptionapi.ClientWithHost(client.NewTestClient(), "https://encryption.keboola.com")
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
 	_, err := encryptionapi.EncryptRequest(1234, "", mapToEncrypt).Send(ctx, c)

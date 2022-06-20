@@ -28,6 +28,15 @@ func (v ComponentID) String() string {
 	return string(v)
 }
 
+func (v ComponentID) WithoutVendor() string {
+	parts := strings.SplitN(string(v), ".", 2)
+	if len(parts) == 1 {
+		// A component without vendor
+		return parts[0]
+	}
+	return parts[1]
+}
+
 // ComponentKey is a unique identifier of a component.
 type ComponentKey struct {
 	ID ComponentID `json:"id"`
@@ -35,6 +44,11 @@ type ComponentKey struct {
 
 // Components slice.
 type Components []*Component
+
+// ComponentsMap is immutable map of components, see Components.ToMap.
+type ComponentsMap struct {
+	data map[ComponentID]*Component
+}
 
 // Component https://keboola.docs.apiary.io/#reference/components-and-configurations/get-development-branch-components/get-development-branch-components
 type Component struct {
@@ -60,6 +74,35 @@ type ComponentWithConfigs struct {
 	BranchID BranchID `json:"branchId"`
 	Component
 	Configs []*ConfigWithRows `json:"configurations"`
+}
+
+// SortComponents by name, keboola vendor will be first.
+func SortComponents(components Components) {
+	// Sort "keboola" vendor first
+	sort.SliceStable(components, func(i, j int) bool {
+		idI := components[i].ID
+		idJ := components[j].ID
+
+		// Components from keboola vendor will be first
+		vendor := `keboola.`
+		vendorI := strings.HasPrefix(string(idI), vendor)
+		vendorJ := strings.HasPrefix(string(idJ), vendor)
+		if vendorI != vendorJ {
+			return vendorI
+		}
+
+		// Sort by ID otherwise
+		return idI < idJ
+	})
+}
+
+// ToMap converts Components slice to ComponentsMap.
+func (v Components) ToMap() ComponentsMap {
+	out := ComponentsMap{data: make(map[ComponentID]*Component)}
+	for _, component := range v {
+		out.data[component.ID] = component
+	}
+	return out
 }
 
 // IsTransformation returns true, if component is transformation.
@@ -118,7 +161,7 @@ func (c *Component) IsExcludedFromNewList() bool {
 }
 
 // NewComponentList returns only the components that should be included in list of available new components.
-func (v Components) NewComponentList() (Components, error) {
+func (v Components) NewComponentList() Components {
 	// Filter out:
 	//	- deprecated
 	//  - not published
@@ -130,23 +173,17 @@ func (v Components) NewComponentList() (Components, error) {
 			components = append(components, c)
 		}
 	}
+	SortComponents(components)
+	return components
+}
 
-	// Sort "keboola" vendor first
-	sort.SliceStable(components, func(i, j int) bool {
-		idI := components[i].ID
-		idJ := components[j].ID
+func (m ComponentsMap) ForEach(fn func(component *Component)) {
+	for _, component := range m.data {
+		fn(component)
+	}
+}
 
-		// Components from keboola vendor will be first
-		vendor := `keboola.`
-		vendorI := strings.HasPrefix(string(idI), vendor)
-		vendorJ := strings.HasPrefix(string(idJ), vendor)
-		if vendorI != vendorJ {
-			return vendorI
-		}
-
-		// Sort by ID otherwise
-		return idI < idJ
-	})
-
-	return components, nil
+func (m ComponentsMap) Get(id ComponentID) (*Component, bool) {
+	v, found := m.data[id]
+	return v, found
 }

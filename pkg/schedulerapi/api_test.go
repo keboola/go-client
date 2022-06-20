@@ -15,12 +15,7 @@ import (
 func TestSchedulerApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
-
-	// Get storage client and clear project
-	storageClient := storageapi.APIClientWithToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
-	_, err := storageapi.CleanProjectRequest().Send(ctx, storageClient)
-	assert.NoError(t, err)
+	_, storageClient, schedulerClient := clientsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
@@ -83,15 +78,6 @@ func TestSchedulerApiCalls(t *testing.T) {
 	_, err = storageapi.CreateConfigRequest(schedulerConfig).Send(ctx, storageClient)
 	assert.NoError(t, err)
 
-	// Get Scheduler API host
-	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
-	assert.NoError(t, err)
-	schedulerHost, found := index.AllServices().URLByID("scheduler")
-	assert.True(t, found)
-
-	// Get scheduler client
-	schedulerClient := schedulerapi.APIClient(client.NewTestClient(), schedulerHost.String(), project.StorageAPIToken())
-
 	// List should return no schedule
 	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
 	assert.NoError(t, err)
@@ -136,4 +122,33 @@ func TestSchedulerApiCalls(t *testing.T) {
 	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
+}
+
+func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
+	ctx := context.Background()
+	project := testproject.GetTestProject(t)
+
+	// Get Storage API client
+	storageApiClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+
+	// Clean project
+	if _, err := storageapi.CleanProjectRequest().Send(ctx, storageApiClient); err != nil {
+		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
+	}
+
+	// Get Scheduler API host
+	index, err := storageapi.IndexRequest().Send(ctx, storageApiClient)
+	assert.NoError(t, err)
+	schedulerHost, found := index.AllServices().URLByID("scheduler")
+	assert.True(t, found)
+
+	// Get scheduler client
+	schedulerApiClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerHost.String(), project.StorageAPIToken())
+
+	// Clean schedules
+	if _, err := schedulerapi.CleanAllSchedulesRequest().Send(ctx, schedulerApiClient); err != nil {
+		t.Fatalf(`cannot clean schedules "%d": %s`, project.ID(), err)
+	}
+
+	return project, storageApiClient, schedulerApiClient
 }

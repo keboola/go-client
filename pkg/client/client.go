@@ -16,6 +16,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -27,23 +28,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/cenkalti/backoff/v4"
 )
 
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
-	transport    http.RoundTripper
-	baseURL      *url.URL
-	header       http.Header
-	retry        RetryConfig
-	traceFactory TraceFactory
+	transport      http.RoundTripper
+	baseURL        *url.URL
+	header         http.Header
+	retry          RetryConfig
+	traceFactories []TraceFactory
 }
 
 // New creates new HTTP Client.
-func New() *Client {
-	c := &Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
+func New() Client {
+	c := Client{transport: DefaultTransport(), header: make(http.Header), retry: DefaultRetry()}
 	c.header.Set("User-Agent", "keboola-go-client")
+	c.header.Set("Accept-Encoding", "gzip, br")
 	return c
 }
 
@@ -81,6 +84,9 @@ func (c Client) WithHeaders(headers map[string]string) Client {
 
 // WithTransport returns a clone of the Client with a HTTP transport set.
 func (c Client) WithTransport(transport http.RoundTripper) Client {
+	if transport == nil || transport == http.RoundTripper(nil) {
+		panic(fmt.Errorf("transport cannot be nil"))
+	}
 	c.transport = transport
 	return c
 }
@@ -91,25 +97,33 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 	return c
 }
 
-// WithTrace returns a clone of the Client with Trace hooks set.
-func (c Client) WithTrace(fn TraceFactory) Client {
-	c.traceFactory = fn
+// AndTrace returns a clone of the Client with Trace hooks added.
+// The last registered hook is executed first.
+func (c Client) AndTrace(fn TraceFactory) Client {
+	c.traceFactories = append(c.traceFactories, fn)
 	return c
 }
 
 // Send method sends HTTP request and returns HTTP response, it implements the Sender interface.
 func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Response, result any, err error) {
+	// Method cannot be called on an empty value
+	if c.transport == nil {
+		panic(fmt.Errorf("client value is not initialized"))
+	}
+
 	// If method or url is not set, panic occurs. So we get these values first.
 	method := reqDef.Method()
 	reqURLStr := reqDef.URL()
 
 	// Init trace
 	var trace *Trace
-	if c.traceFactory != nil {
-		trace = c.traceFactory()
-		if trace != nil {
-			ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
-		}
+	for _, fn := range c.traceFactories {
+		oldTrace := trace
+		trace = fn()
+		trace.compose(oldTrace)
+	}
+	if trace != nil {
+		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
 	}
 
 	// Trace got request
@@ -158,9 +172,19 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 	}
 
 	// Body
-	req.Body, err = requestBody(reqDef)
-	if err != nil {
-		return nil, nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+	if reqDef.RequestBody() != nil {
+		// GetBody factory is used for requests when a redirect/retry requires reading the body more than once.
+		req.GetBody = func() (io.ReadCloser, error) {
+			if body, err := requestBody(reqDef); err == nil {
+				return body, nil
+			} else {
+				return nil, fmt.Errorf(`request %s "%s": cannot prepare request body: %w`, req.Method, req.URL.String(), err)
+			}
+		}
+		req.Body, err = req.GetBody()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Setup native client
@@ -205,23 +229,33 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 	contentType := r.RequestHeader().Get("Content-Type")
 	body := r.RequestBody()
-	if r.FormData() != nil {
-		// Form data
-		return io.NopCloser(strings.NewReader(r.FormData().Encode())), nil
-	} else if v, ok := body.(io.ReadCloser); ok {
-		// io.ReadCloser stream
+	if v, ok := body.(string); ok {
+		return io.NopCloser(strings.NewReader(v)), nil
+	}
+	if v, ok := body.([]byte); ok {
+		return io.NopCloser(bytes.NewReader(v)), nil
+	}
+	if v, ok := body.(io.ReadSeekCloser); ok {
+		// io.ReadSeekCloser stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return v, nil
-	} else if v, ok := body.(io.Reader); ok {
-		// io.Reader stream
+	}
+	if v, ok := body.(io.ReadSeeker); ok {
+		// io.ReadSeeker stream
+		if _, err := v.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		return io.NopCloser(v), nil
-	} else if body != nil && contentType == "application/json" {
+	}
+	if body != nil && contentType == "application/json" {
 		// Json body
 		c, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf(`cannot encode JSON body: %w`, err)
 		}
 		return io.NopCloser(bytes.NewReader(c)), nil
-
 	}
 	// empty body
 	return nil, nil
@@ -234,10 +268,17 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		return nil, nil, nil
 	}
 
+	// Process content encoding
+	decodedBody, err := decodeBody(r.Body, r.Header.Get("Content-Encoding"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot decode response body: %w", err)
+	}
+
+	// Process content type
 	contentType := r.Header.Get("Content-Type")
 	if v, ok := resultDef.(*[]byte); ok {
 		// Load response body as []byte
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -246,7 +287,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(*string); ok {
 		// Load response body as string
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(decodedBody)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
@@ -255,7 +296,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 
 	} else if v, ok := resultDef.(io.WriteCloser); ok {
 		// Stream response to io.WriteCloser
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 		if err := v.Close(); err != nil {
@@ -263,21 +304,21 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		}
 	} else if v, ok := resultDef.(io.Writer); ok {
 		// Stream response to io.Writer
-		if _, err := io.Copy(v, r.Body); err != nil {
+		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
 	} else if contentType == "application/json" {
 		// Map JSON response
 		if r.StatusCode > 199 && r.StatusCode < 300 && resultDef != nil {
 			// Map JSON response to defined result
-			if err := json.NewDecoder(r.Body).Decode(resultDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(resultDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON result: %w`, err)
 			}
 			return resultDef, nil, nil
 
 		} else if r.StatusCode > 399 && errDef != nil {
 			// Map JSON response to defined error
-			if err := json.NewDecoder(r.Body).Decode(errDef); err != nil {
+			if err := json.NewDecoder(decodedBody).Decode(errDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON error: %w`, err)
 			}
 			// Set HTTP request
@@ -327,16 +368,6 @@ type roundTripper struct {
 	wrapped http.RoundTripper
 }
 
-type errorWithRequest interface {
-	error
-	SetRequest(request *http.Request)
-}
-
-type errorWithResponse interface {
-	error
-	SetResponse(response *http.Response)
-}
-
 func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	state := rt.retry.NewBackoff()
 	attempt := 0
@@ -373,6 +404,14 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			rt.trace.HTTPRequestRetry(attempt, delay)
 		}
 
+		// Rewind body before retry
+		if req.GetBody != nil {
+			req.Body, err = req.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("cannot rewind body: %w", err)
+			}
+		}
+
 		// Wait
 		select {
 		case <-req.Context().Done():
@@ -382,6 +421,32 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			// time elapsed, retry
 		}
 	}
+}
+
+func decodeBody(body io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
+	contentEncoding = strings.ToLower(contentEncoding)
+	switch contentEncoding {
+	case "gzip":
+		if v, err := gzip.NewReader(body); err == nil {
+			return v, nil
+		} else {
+			return nil, fmt.Errorf("cannot decode gzip: %w", err)
+		}
+	case "br":
+		return io.NopCloser(brotli.NewReader(body)), nil
+	default:
+		return body, nil
+	}
+}
+
+type errorWithRequest interface {
+	error
+	SetRequest(request *http.Request)
+}
+
+type errorWithResponse interface {
+	error
+	SetResponse(response *http.Response)
 }
 
 func urlError(req *http.Request, err error) *url.Error {

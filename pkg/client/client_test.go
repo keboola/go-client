@@ -2,14 +2,12 @@ package client_test
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 
@@ -189,14 +187,15 @@ func TestRequestContext(t *testing.T) {
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
 
-func TestDefaultUserAgent(t *testing.T) {
+func TestDefaultHeaders(t *testing.T) {
 	t.Parallel()
 
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", "https://example.com", func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -215,7 +214,8 @@ func TestWithUserAgent(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"my-user-agent"},
+			"User-Agent":      []string{"my-user-agent"},
+			"Accept-Encoding": []string{"gzip, br"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -234,8 +234,9 @@ func TestWithHeader(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
-			"My-Header":  []string{"my-value"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
+			"My-Header":       []string{"my-value"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -254,9 +255,10 @@ func TestWithHeaders(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.Header{
-			"User-Agent": []string{"keboola-go-client"},
-			"Key1":       []string{"value1"},
-			"Key2":       []string{"value2"},
+			"User-Agent":      []string{"keboola-go-client"},
+			"Accept-Encoding": []string{"gzip, br"},
+			"Key1":            []string{"value1"},
+			"Key2":            []string{"value2"},
 		}, request.Header)
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
@@ -269,6 +271,35 @@ func TestWithHeaders(t *testing.T) {
 	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
+}
+
+func TestRetryBodyRewind(t *testing.T) {
+	t.Parallel()
+
+	// Mocked response
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder("POST", `https://example.com`, func(request *http.Request) (*http.Response, error) {
+		requestBody, err := io.ReadAll(request.Body)
+		assert.NoError(t, err)
+		// Each retry attempt must send same body
+		assert.Equal(t, `{"foo":"bar"}`, string(requestBody))
+		return httpmock.NewStringResponse(502, "retry!"), nil
+	})
+
+	// Create client
+	ctx := context.Background()
+	c := New().
+		WithTransport(transport).
+		WithRetry(TestingRetry())
+
+	// Post
+	jsonBody := map[string]any{"foo": "bar"}
+	_, _, err := NewHTTPRequest().WithPost("https://example.com").WithJSONBody(jsonBody).Send(ctx, c)
+	assert.Error(t, err)
+	assert.Equal(t, `request POST "https://example.com" failed: 502 Bad Gateway`, err.Error())
+
+	// Check number of requests
+	assert.Equal(t, 1+5, transport.GetCallCountInfo()["POST https://example.com"])
 }
 
 func TestRetryCount(t *testing.T) {
@@ -292,7 +323,7 @@ func TestRetryCount(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		WithTrace(func() *Trace {
+		AndTrace(func() *Trace {
 			return &Trace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
@@ -417,7 +448,7 @@ func TestStopRetryOnRequestTimeout(t *testing.T) {
 			WaitTimeStart:       40 * time.Millisecond, // <<<<<<<
 			WaitTimeMax:         40 * time.Millisecond,
 		}).
-		WithTrace(func() *Trace {
+		AndTrace(func() *Trace {
 			return &Trace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
@@ -457,7 +488,7 @@ func TestDoNotRetry(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		WithTrace(func() *Trace {
+		AndTrace(func() *Trace {
 			return &Trace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
@@ -475,93 +506,4 @@ func TestDoNotRetry(t *testing.T) {
 
 	// Check delays
 	assert.Empty(t, delays)
-}
-
-func TestTrace(t *testing.T) {
-	t.Parallel()
-
-	// Mocked response
-	transport := httpmock.NewMockTransport()
-	transport.RegisterResponder("GET", `https://example.com/redirect1`, func(request *http.Request) (*http.Response, error) {
-		header := make(http.Header)
-		header.Set("Location", "https://example.com/redirect2")
-		return &http.Response{
-			StatusCode: http.StatusMovedPermanently,
-			Header:     header,
-		}, nil
-	})
-	transport.RegisterResponder("GET", `https://example.com/redirect2`, func(request *http.Request) (*http.Response, error) {
-		header := make(http.Header)
-		header.Set("Location", "https://example.com/index")
-		return &http.Response{
-			StatusCode: http.StatusMovedPermanently,
-			Header:     header,
-		}, nil
-	})
-	transport.RegisterResponder("GET", `https://example.com/index`, httpmock.ResponderFromMultipleResponses([]*http.Response{
-		{StatusCode: http.StatusLocked},
-		{StatusCode: http.StatusTooManyRequests},
-		{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("OK"))},
-	}))
-
-	// Logs for trace testing
-	var logs strings.Builder
-
-	// Create client
-	ctx := context.Background()
-	c := New().
-		WithTransport(transport).
-		WithRetry(RetryConfig{
-			Condition:     DefaultRetryCondition(),
-			Count:         3,
-			WaitTimeStart: 1 * time.Microsecond,
-			WaitTimeMax:   20 * time.Microsecond,
-		}).
-		WithTrace(func() *Trace {
-			return &Trace{
-				GotRequest: func(request HTTPRequest) {
-					logs.WriteString(fmt.Sprintf("GotRequest        %s %s\n", request.Method(), request.URL()))
-				},
-				RequestProcessed: func(result any, err error) {
-					s := spew.NewDefaultConfig()
-					s.DisablePointerAddresses = true
-					s.DisableCapacities = true
-					logs.WriteString(fmt.Sprintf("RequestProcessed  result=%s err=%v\n", strings.TrimSpace(s.Sdump(result)), err))
-				},
-				HTTPRequestStart: func(request *http.Request) {
-					logs.WriteString(fmt.Sprintf("HTTPRequestStart  %s %s\n", request.Method, request.URL))
-				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
-				},
-				HTTPRequestRetry: func(attempt int, delay time.Duration) {
-					logs.WriteString(fmt.Sprintf("HttpRequestRetry  attempt=%d delay=%s\n", attempt, delay))
-				},
-			}
-		})
-
-	// Expected events
-	expected := `
-GotRequest        GET https://example.com/redirect1
-HTTPRequestStart  GET https://example.com/redirect1
-HttpRequestDone   301 Moved Permanently err=<nil>
-HTTPRequestStart  GET https://example.com/redirect2
-HttpRequestDone   301 Moved Permanently err=<nil>
-HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   423 Locked err=<nil>
-HttpRequestRetry  attempt=1 delay=1µs
-HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   429 Too Many Requests err=<nil>
-HttpRequestRetry  attempt=2 delay=2µs
-HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   200 OK err=<nil>
-RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
-`
-
-	// Test
-	str := ""
-	_, result, err := NewHTTPRequest().WithGet("https://example.com/redirect1").WithResult(&str).Send(ctx, c)
-	assert.NoError(t, err)
-	assert.Equal(t, "OK", *result.(*string))
-	assert.Equal(t, strings.TrimLeft(expected, "\n"), logs.String())
 }

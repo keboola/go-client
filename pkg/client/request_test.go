@@ -107,11 +107,12 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.Equal(t, map[string]string{"foo1": "bar1"}, a.PathParams())
 	assert.Equal(t, map[string]string{"foo2": "bar2"}, b.PathParams())
 
-	// WithPathParams
+	// WithFormBody
 	a = a.WithFormBody(map[string]string{"foo1": "bar1"})
 	b = a.WithFormBody(map[string]string{"foo2": "bar2"})
-	assert.Equal(t, url.Values{"foo1": []string{"bar1"}}, a.FormData())
-	assert.Equal(t, url.Values{"foo2": []string{"bar2"}}, b.FormData())
+	assert.NotEqual(t, a, b)
+	assert.Equal(t, "foo1=bar1", a.RequestBody())
+	assert.Equal(t, "foo2=bar2", b.RequestBody())
 
 	// WithPathParams
 	a = a.WithJSONBody(123)

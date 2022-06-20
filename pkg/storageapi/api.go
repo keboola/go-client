@@ -2,7 +2,7 @@
 // The definitions are not complete and can be extended as needed.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
 // It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client,
-// see the APIClient and the APIClientWithToken functions.
+// see the ClientWithHost and the ClientWithHostAndToken functions.
 package storageapi
 
 import (
@@ -12,15 +12,20 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// APIClient creates HTTP client with api host set.
-func APIClient(c client.Client, apiHost string) client.Client {
+// ClientWithHost returns HTTP client with api host set.
+func ClientWithHost(c client.Client, apiHost string) client.Client {
 	apiHost = strings.TrimPrefix(apiHost, "https://")
 	return c.WithBaseURL(`https://` + apiHost)
 }
 
-// APIClientWithToken creates HTTP client with api host and token set.
-func APIClientWithToken(c client.Client, apiHost, apiToken string) client.Client {
-	return APIClient(c, apiHost).WithHeader("X-StorageApi-Token", apiToken)
+// ClientWithToken returns HTTP client with api token set.
+func ClientWithToken(c client.Client, apiToken string) client.Client {
+	return c.WithHeader("X-StorageApi-Token", apiToken)
+}
+
+// ClientWithHostAndToken returns HTTP client with api host and token set.
+func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Client {
+	return ClientWithToken(ClientWithHost(c, apiHost), apiToken)
 }
 
 func newRequest() client.HTTPRequest {
@@ -28,33 +33,37 @@ func newRequest() client.HTTPRequest {
 	return client.NewHTTPRequest().WithBaseURL("v2/storage").WithError(&Error{})
 }
 
+type Object interface {
+	ObjectId() any
+}
+
 // CreateRequest creates request to create object according its type.
-func CreateRequest[R client.Result](object R) client.Sendable {
-	switch v := any(object).(type) {
+func CreateRequest(object Object) client.APIRequest[Object] {
+	switch v := object.(type) {
 	case *Branch:
-		return CreateBranchRequest(v)
+		return client.NewAPIRequest(object, CreateBranchRequest(v))
 	case *Config:
-		return CreateConfigRequest(&ConfigWithRows{Config: v})
+		return client.NewAPIRequest(object, CreateConfigRequest(&ConfigWithRows{Config: v}))
 	case *ConfigWithRows:
-		return CreateConfigRequest(v)
+		return client.NewAPIRequest(object, CreateConfigRequest(v))
 	case *ConfigRow:
-		return CreateConfigRowRequest(v)
+		return client.NewAPIRequest(object, CreateConfigRowRequest(v))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
 }
 
 // UpdateRequest creates request to update object according its type.
-func UpdateRequest[R client.Result](object R, changedFields []string) client.Sendable {
-	switch v := any(object).(type) {
+func UpdateRequest(object Object, changedFields []string) client.APIRequest[Object] {
+	switch v := object.(type) {
 	case *Branch:
-		return UpdateBranchRequest(v, changedFields)
+		return client.NewAPIRequest(object, UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
-		return UpdateConfigRequest(v.Config, changedFields)
+		return client.NewAPIRequest(object, UpdateConfigRequest(v.Config, changedFields))
 	case *Config:
-		return UpdateConfigRequest(v, changedFields)
+		return client.NewAPIRequest(object, UpdateConfigRequest(v, changedFields))
 	case *ConfigRow:
-		return UpdateConfigRowRequest(v, changedFields)
+		return client.NewAPIRequest(object, UpdateConfigRowRequest(v, changedFields))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
@@ -75,16 +84,14 @@ func DeleteRequest(key any) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func AppendMetadataRequest(object any, metadata map[string]string) client.APIRequest[client.NoResult] {
-	switch v := object.(type) {
-	case *Branch:
-		return AppendBranchMetadataRequest(v.BranchKey, metadata)
-	case *ConfigWithRows:
-		return AppendConfigMetadataRequest(v.ConfigKey, metadata)
-	case *Config:
-		return AppendConfigMetadataRequest(v.ConfigKey, metadata)
+func AppendMetadataRequest(key any, metadata map[string]string) client.APIRequest[client.NoResult] {
+	switch v := key.(type) {
+	case BranchKey:
+		return AppendBranchMetadataRequest(v, metadata)
+	case ConfigKey:
+		return AppendConfigMetadataRequest(v, metadata)
 	default:
-		panic(fmt.Errorf(`unexpected type "%T"`, object))
+		panic(fmt.Errorf(`unexpected type "%T"`, key))
 	}
 }
 

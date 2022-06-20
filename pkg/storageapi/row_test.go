@@ -105,7 +105,7 @@ func TestConfigRowApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	componentsJson, err := json.MarshalIndent(components, "", "  ")
 	assert.NoError(t, err)
-	wildcards.AssertWildcards(t, expectedComponentsConfigRowTest(), string(componentsJson), "Unexpected components")
+	wildcards.Assert(t, expectedComponentsConfigRowTest(), string(componentsJson), "Unexpected components")
 }
 
 func expectedComponentsConfigRowTest() string {
