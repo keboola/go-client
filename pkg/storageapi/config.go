@@ -211,7 +211,7 @@ func ListConfigMetadataRequest(branchID BranchID) client.APIRequest[*ConfigsMeta
 func AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
-		return nil
+		return client.NewNoOperationAPIRequest(client.NoResult{})
 	}
 	formBody := make(map[string]string)
 	i := 0
