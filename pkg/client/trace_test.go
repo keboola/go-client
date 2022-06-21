@@ -58,8 +58,9 @@ func TestTrace(t *testing.T) {
 		}).
 		AndTrace(func() *Trace {
 			return &Trace{
-				GotRequest: func(request HTTPRequest) {
+				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
 					logs.WriteString(fmt.Sprintf("GotRequest        %s %s\n", request.Method(), request.URL()))
+					return ctx
 				},
 				RequestProcessed: func(result any, err error) {
 					s := spew.NewDefaultConfig()
@@ -122,8 +123,9 @@ func TestTrace_Multiple(t *testing.T) {
 		WithRetry(TestingRetry()).
 		AndTrace(func() *Trace {
 			return &Trace{
-				GotRequest: func(request HTTPRequest) {
+				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
 					logs.WriteString(fmt.Sprintf("1: GotRequest        %s %s\n", request.Method(), request.URL()))
+					return ctx
 				},
 				RequestProcessed: func(result any, err error) {
 					s := spew.NewDefaultConfig()
@@ -141,8 +143,9 @@ func TestTrace_Multiple(t *testing.T) {
 		}).
 		AndTrace(func() *Trace {
 			return &Trace{
-				GotRequest: func(request HTTPRequest) {
+				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
 					logs.WriteString(fmt.Sprintf("2: GotRequest        %s %s\n", request.Method(), request.URL()))
+					return ctx
 				},
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("2: HTTPRequestStart  %s %s\n", request.Method, request.URL))
