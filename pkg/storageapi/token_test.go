@@ -17,6 +17,7 @@ func TestVerifyToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, project.ID(), token.ProjectID())
 	assert.NotEmpty(t, token.ProjectName())
+	assert.NotEmpty(t, token.Owner.Features)
 }
 
 func TestVerifyTokenEmpty(t *testing.T) {
