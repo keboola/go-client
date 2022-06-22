@@ -14,8 +14,9 @@ type Token struct {
 
 // TokenOwner - owner of Token.
 type TokenOwner struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID       int      `json:"id"`
+	Name     string   `json:"name"`
+	Features Features `json:"features"`
 }
 
 // ProjectID returns ID of project to which the token belongs.
