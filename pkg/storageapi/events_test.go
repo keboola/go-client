@@ -17,8 +17,8 @@ func TestSendEvent(t *testing.T) {
 		ComponentID: "keboola.keboola-as-code",
 		Type:        "info",
 		Message:     "Test event",
-		Params:      map[string]any{"foo1": "bar1"},
-		Results:     map[string]any{"foo2": "bar2"},
+		Params:      map[string]any{"command": "bar1"},
+		Results:     map[string]any{"projectId": 123, "error": "err"},
 		Duration:    DurationSeconds(123456 * time.Millisecond),
 	}).Send(ctx, c)
 	assert.NoError(t, err)
