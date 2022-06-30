@@ -180,7 +180,6 @@ func expectedComponentsConfigTest() string {
             "description": "Row1 description",
             "changeDescription": "Row1 test",
             "isDisabled": false,
-            "created": "%s",
             "version": 1,
             "state": null,
             "configuration": {
@@ -193,7 +192,6 @@ func expectedComponentsConfigTest() string {
             "description": "Row2 description",
             "changeDescription": "Row2 test",
             "isDisabled": true,
-            "created": "%s",
             "version": 1,
             "state": null,
             "configuration": {

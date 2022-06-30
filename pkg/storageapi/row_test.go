@@ -152,7 +152,6 @@ func expectedComponentsConfigRowTest() string {
             "description": "Row1 description modified",
             "changeDescription": "updated",
             "isDisabled": true,
-            "created": "%s",
             "version": 2,
             "state": null,
             "configuration": {

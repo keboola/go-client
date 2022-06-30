@@ -31,7 +31,6 @@ type ConfigRow struct {
 	Description       string                 `json:"description"`
 	ChangeDescription string                 `json:"changeDescription"`
 	IsDisabled        bool                   `json:"isDisabled"`
-	Created           Time                   `json:"created" readonly:"true"`
 	Version           int                    `json:"version" readonly:"true"`
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	Content           *orderedmap.OrderedMap `json:"configuration"`
