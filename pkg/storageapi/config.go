@@ -228,3 +228,14 @@ func AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) client.APIReq
 		WithFormBody(formBody)
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
+
+// DeleteConfigMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/components-configurations-metadata/delete
+func DeleteConfigMetadataRequest(key ConfigKey, metaID string) client.APIRequest[client.NoResult] {
+	request := newRequest().
+		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/metadata/{metadataId}").
+		AndPathParam("branchId", key.BranchID.String()).
+		AndPathParam("componentId", string(key.ComponentID)).
+		AndPathParam("configId", string(key.ID)).
+		AndPathParam("metadataId", metaID)
+	return client.NewAPIRequest(client.NoResult{}, request)
+}

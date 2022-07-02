@@ -114,17 +114,21 @@ func TestConfigApiCalls(t *testing.T) {
 	_, err = AppendConfigMetadataRequest(config.ConfigKey, metadata).Send(ctx, c)
 	assert.NoError(t, err)
 
-	// List metadata - skipped, Storage API returns metadata also for deleted configs
-	//configsMetadata, err := ListConfigMetadataRequest(branch.ID).Send(ctx, c)
-	//assert.NoError(t, err)
-	//assert.Equal(t, map[ConfigKey]Metadata{
-	//	config.ConfigKey: map[string]string{"KBC.KaC.meta1": "value"},
-	//}, configsMetadata.ToMap())
-
-	// List metadata - workaround, get only metadata for specified config
+	// List metadata
 	configsMetadata, err := ListConfigMetadataRequest(branch.ID).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value"}, configsMetadata.ToMap()[config.ConfigKey])
+	assert.Equal(t, map[ConfigKey]Metadata{
+		config.ConfigKey: map[string]string{"KBC.KaC.meta1": "value"},
+	}, configsMetadata.ToMap())
+
+	// Delete metadata
+	_, err = DeleteConfigMetadataRequest(config.ConfigKey, (*configsMetadata)[0].Metadata[0].ID).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// Check that metadata is deleted
+	configsMetadata, err = ListConfigMetadataRequest(branch.ID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Empty(t, configsMetadata)
 
 	// Delete configuration
 	_, err = DeleteConfigRequest(config.ConfigKey).Send(ctx, c)
