@@ -83,11 +83,20 @@ func TestBranchApiCalls(t *testing.T) {
 	wildcards.Assert(t, expectedBranchesAll(), string(branchesJson), "Unexpected branches state")
 
 	// Append branch metadata
-	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value"}).Send(ctx, c)
+	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}).Send(ctx, c)
 	assert.NoError(t, err)
 
 	// List metadata
 	metadata, err := ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}, metadata.ToMap())
+
+	// Append metadata with empty value
+	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": ""}).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// Check that metadata is deleted
+	metadata, err = ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value"}, metadata.ToMap())
 

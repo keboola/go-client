@@ -166,25 +166,47 @@ func ListBranchMetadataRequest(key BranchKey) client.APIRequest[*MetadataDetails
 	return client.NewAPIRequest(&result, request)
 }
 
-// AppendBranchMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/development-branch-metadata/create-or-update
+// AppendBranchMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/development-branch-metadata/create-or-update https://keboola.docs.apiary.io/#reference/metadata/development-branch-metadata/delete
 func AppendBranchMetadataRequest(key BranchKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
 		return client.NewNoOperationAPIRequest(client.NoResult{})
 	}
 
+	// Metadata with empty values must be collected and deleted separately
+	toDelete := map[string]bool{}
 	formBody := make(map[string]string)
 	i := 0
 	for k, v := range metadata {
-		formBody[fmt.Sprintf("metadata[%d][key]", i)] = k
-		formBody[fmt.Sprintf("metadata[%d][value]", i)] = v
-		i++
+		if v == "" {
+			toDelete[k] = true
+		} else {
+			formBody[fmt.Sprintf("metadata[%d][key]", i)] = k
+			formBody[fmt.Sprintf("metadata[%d][value]", i)] = v
+			i++
+		}
 	}
 
 	request := newRequest().
 		WithPost("branch/{branchId}/metadata").
 		AndPathParam("branchId", key.ID.String()).
 		WithFormBody(formBody)
+
+	// Delete metadata with empty values
+	if len(toDelete) > 0 {
+		requestList := ListBranchMetadataRequest(key).
+			WithOnSuccess(func(ctx context.Context, sender client.Sender, details *MetadataDetails) error {
+				wg := client.NewWaitGroup(ctx, sender)
+				for _, detail := range *details {
+					if found := toDelete[detail.Key]; found {
+						wg.Send(DeleteBranchMetadataRequest(key, detail.ID))
+					}
+				}
+				return wg.Wait()
+			})
+		return client.NewAPIRequest(client.NoResult{}, request, requestList)
+	}
+
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
 
