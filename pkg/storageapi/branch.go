@@ -187,14 +187,14 @@ func AppendBranchMetadataRequest(key BranchKey, metadata Metadata) client.APIReq
 		}
 	}
 
-	request := newRequest().
+	requestAppend := newRequest().
 		WithPost("branch/{branchId}/metadata").
 		AndPathParam("branchId", key.ID.String()).
 		WithFormBody(formBody)
 
 	// Delete metadata with empty values
 	if len(toDelete) > 0 {
-		requestList := ListBranchMetadataRequest(key).
+		requestListDelete := ListBranchMetadataRequest(key).
 			WithOnSuccess(func(ctx context.Context, sender client.Sender, details *MetadataDetails) error {
 				wg := client.NewWaitGroup(ctx, sender)
 				for _, detail := range *details {
@@ -204,10 +204,14 @@ func AppendBranchMetadataRequest(key BranchKey, metadata Metadata) client.APIReq
 				}
 				return wg.Wait()
 			})
-		return client.NewAPIRequest(client.NoResult{}, request, requestList)
+
+		if len(formBody) > 0 {
+			return client.NewAPIRequest(client.NoResult{}, requestAppend, requestListDelete)
+		}
+		return client.NewAPIRequest(client.NoResult{}, requestListDelete)
 	}
 
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return client.NewAPIRequest(client.NoResult{}, requestAppend)
 }
 
 // DeleteBranchMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/development-branch-metadata/delete
