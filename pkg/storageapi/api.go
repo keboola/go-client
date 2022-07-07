@@ -95,6 +95,18 @@ func AppendMetadataRequest(key any, metadata map[string]string) client.APIReques
 	}
 }
 
+// DeleteMetadataRequest creates request to delete object metadata according its type.
+func DeleteMetadataRequest(key any, metaID string) client.APIRequest[client.NoResult] {
+	switch v := key.(type) {
+	case BranchKey:
+		return DeleteBranchMetadataRequest(v, metaID)
+	case ConfigKey:
+		return DeleteConfigMetadataRequest(v, metaID)
+	default:
+		panic(fmt.Errorf(`unexpected type "%T"`, key))
+	}
+}
+
 // Metadata - object metadata.
 type Metadata map[string]string
 
