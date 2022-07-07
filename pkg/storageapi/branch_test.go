@@ -92,7 +92,7 @@ func TestBranchApiCalls(t *testing.T) {
 	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}, metadata.ToMap())
 
 	// Append metadata with empty value
-	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": ""}).Send(ctx, c)
+	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta2": ""}).Send(ctx, c)
 	assert.NoError(t, err)
 
 	// Check that metadata is deleted
