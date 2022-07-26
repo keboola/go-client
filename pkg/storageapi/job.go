@@ -30,9 +30,9 @@ type Job struct {
 	OperationName   string         `json:"operationName"`
 	OperationParams map[string]any `json:"operationParams"`
 	Results         map[string]any `json:"results"`
-	CreateTime      Time           `json:"createdTime"`
-	StartTime       *Time          `json:"startTime"`
-	EndTime         *Time          `json:"endTime"`
+	CreateTime      client.Time    `json:"createdTime"`
+	StartTime       *client.Time   `json:"startTime"`
+	EndTime         *client.Time   `json:"endTime"`
 }
 
 // GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail

@@ -34,7 +34,7 @@ type Config struct {
 	Description       string                 `json:"description"`
 	ChangeDescription string                 `json:"changeDescription"`
 	IsDeleted         bool                   `json:"isDeleted" readonly:"true"`
-	Created           Time                   `json:"created" readonly:"true"`
+	Created           client.Time            `json:"created" readonly:"true"`
 	Version           int                    `json:"version" readonly:"true"`
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	IsDisabled        bool                   `json:"isDisabled"`
