@@ -28,10 +28,10 @@ func (k BranchKey) ObjectId() any {
 // Branch https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
 type Branch struct {
 	BranchKey
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Created     Time   `json:"created" readonly:"true"`
-	IsDefault   bool   `json:"isDefault" readonly:"true"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Created     client.Time `json:"created" readonly:"true"`
+	IsDefault   bool        `json:"isDefault" readonly:"true"`
 }
 
 // ListBranchesRequest https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
