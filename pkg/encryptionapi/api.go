@@ -4,6 +4,7 @@
 package encryptionapi
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,6 +29,9 @@ func newRequest() client.HTTPRequest {
 
 // EncryptRequest - https://keboolaencryption.docs.apiary.io/#reference/encrypt/encryption/encrypt-data
 func EncryptRequest(projectID int, componentID ComponentID, data map[string]string) client.APIRequest[*map[string]string] {
+	if componentID.String() == "" {
+		panic(fmt.Errorf("the componentId parameter is required"))
+	}
 	result := make(map[string]string)
 	request := newRequest().
 		WithResult(&result).
