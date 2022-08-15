@@ -28,8 +28,7 @@ func TestError(t *testing.T) {
 	c := encryptionapi.ClientWithHost(client.NewTestClient(), "https://encryption.keboola.com")
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
-	_, err := encryptionapi.EncryptRequest(1234, "", mapToEncrypt).Send(ctx, c)
-	assert.Error(t, err)
-	assert.IsType(t, &encryptionapi.Error{}, err)
-	assert.Contains(t, err.Error(), "The componentId parameter is required")
+	assert.PanicsWithError(t, "the componentId parameter is required", func() {
+		_, _ = encryptionapi.EncryptRequest(1234, "", mapToEncrypt).Send(ctx, c)
+	})
 }
