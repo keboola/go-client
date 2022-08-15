@@ -91,10 +91,10 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 func newJobBackoff() *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
 	b.RandomizationFactor = 0
-	b.InitialInterval = 50 * time.Millisecond
+	b.InitialInterval = 3 * time.Second
 	b.Multiplier = 2
-	b.MaxInterval = 3 * time.Second
-	b.MaxElapsedTime = 60 * time.Second
+	b.MaxInterval = 5 * time.Second
+	b.MaxElapsedTime = 5 * time.Minute
 	b.Reset()
 	return b
 }
