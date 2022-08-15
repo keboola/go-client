@@ -70,13 +70,13 @@ func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
-	// Get Scheduler API host
+	// Get Queue API host
 	index, err := storageapi.IndexRequest().Send(ctx, storageApiClient)
 	assert.NoError(t, err)
 	jobsQueueHost, found := index.AllServices().URLByID("queue")
 	assert.True(t, found)
 
-	// Get jobs queue client
+	// Get Queue client
 	jobsQueueApiClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
 	return project, storageApiClient, jobsQueueApiClient
