@@ -30,9 +30,9 @@ type Table struct {
 	Name           string                    `json:"name"`
 	DisplayName    string                    `json:"displayName"`
 	PrimaryKey     []string                  `json:"primaryKey"`
-	Created        string                    `json:"created"`
-	LastImportDate string                    `json:"lastImportDate"`
-	LastChangeDate string                    `json:"lastChangeDate"`
+	Created        Time                      `json:"created"`
+	LastImportDate Time                      `json:"lastImportDate"`
+	LastChangeDate Time                      `json:"lastChangeDate"`
 	RowsCount      int                       `json:"rowsCount"`
 	DataSizeBytes  int                       `json:"dataSizeBytes"`
 	Columns        []string                  `json:"columns"`

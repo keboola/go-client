@@ -2,6 +2,7 @@ package storageapi_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,85 +12,111 @@ import (
 	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
-func mockClient() client.Client {
+func newJsonResponder(status int, response string) httpmock.Responder {
+	r := httpmock.NewStringResponse(status, response)
+	r.Header.Set("Content-Type", "application/json")
+	return httpmock.ResponderFromResponse(r)
+}
+
+func listTablesMock() client.Client {
 	c, transport := client.NewMockedClient()
 	transport.RegisterResponder(
 		"GET",
 		"v2/storage/branch/0/tables?include=",
-		httpmock.NewJsonResponderOrPanic(200, []*Table{
+		newJsonResponder(200, `[
 			{
-				TableKey: TableKey{
-					BranchID: 0,
-					ID:       "in.c-keboola-ex-http-6336016.tmp1",
-				},
-				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
-				Name:           "tmp1",
-				DisplayName:    "tmp1",
-				PrimaryKey:     make([]string, 0),
-				Created:        "2021-10-15T13:38:11+0200",
-				LastImportDate: "2021-10-15T13:41:59+0200",
-				LastChangeDate: "2021-10-15T13:41:59+0200",
-				RowsCount:      6,
-				DataSizeBytes:  1536,
-			},
-		}),
+				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				"id": "in.c-keboola-ex-http-6336016.tmp1",
+				"name": "tmp1",
+				"displayName": "tmp1",
+				"transactional": false,
+				"primaryKey": [],
+				"indexType": null,
+				"indexKey": [],
+				"distributionType": null,
+				"distributionKey": [],
+				"syntheticPrimaryKeyEnabled": false,
+				"indexedColumns": [],
+				"created": "2021-10-15T13:38:11+0200",
+				"lastImportDate": "2021-10-15T13:41:59+0200",
+				"lastChangeDate": "2021-10-15T13:41:59+0200",
+				"rowsCount": 6,
+				"dataSizeBytes": 1536,
+				"isAlias": false,
+				"isAliasable": true,
+				"isTyped": false
+			}
+		]`),
 	)
 	transport.RegisterResponder(
 		"GET",
 		"v2/storage/branch/0/tables?include=buckets%2Cmetadata",
-		httpmock.NewJsonResponderOrPanic(200, []*Table{
+		newJsonResponder(200, `[
 			{
-				TableKey: TableKey{
-					BranchID: 0,
-					ID:       "in.c-keboola-ex-http-6336016.tmp1",
+				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				"id": "in.c-keboola-ex-http-6336016.tmp1",
+				"name": "tmp1",
+				"displayName": "tmp1",
+				"transactional": false,
+				"primaryKey": [],
+				"indexType": null,
+				"indexKey": [],
+				"distributionType": null,
+				"distributionKey": [],
+				"syntheticPrimaryKeyEnabled": false,
+				"indexedColumns": [],
+				"created": "2021-10-15T13:38:11+0200",
+				"lastImportDate": "2021-10-15T13:41:59+0200",
+				"lastChangeDate": "2021-10-15T13:41:59+0200",
+				"rowsCount": 6,
+				"dataSizeBytes": 1536,
+				"isAlias": false,
+				"isAliasable": true,
+				"isTyped": false,
+				"bucket": {
+					"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
+					"id": "in.c-keboola-ex-http-6336016",
+					"name": "c-keboola-ex-http-6336016",
+					"displayName": "keboola-ex-http-6336016",
+					"stage": "in",
+					"description": "",
+					"tables": "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
+					"created": "2021-10-15T11:29:09+0200",
+					"lastChangeDate": "2022-02-15T16:50:49+0100",
+					"isReadOnly": false,
+					"dataSizeBytes": 1536,
+					"rowsCount": 6,
+					"isMaintenance": false,
+					"backend": "snowflake",
+					"sharing": null,
+					"hasExternalSchema": false,
+					"databaseName": ""
 				},
-				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
-				Name:           "tmp1",
-				DisplayName:    "tmp1",
-				PrimaryKey:     make([]string, 0),
-				Created:        "2021-10-15T13:38:11+0200",
-				LastImportDate: "2021-10-15T13:41:59+0200",
-				LastChangeDate: "2021-10-15T13:41:59+0200",
-				RowsCount:      6,
-				DataSizeBytes:  1536,
-				Bucket: &Bucket{
-					BucketKey: BucketKey{
-						BranchID: 0,
-						ID:       "in.c-keboola-ex-http-6336016",
-					},
-					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
-					Name:           "c-keboola-ex-http-6336016",
-					DisplayName:    "keboola-ex-http-6336016",
-					Stage:          "in",
-					Description:    "",
-					Created:        "2021-10-15T11:29:09+0200",
-					LastChangeDate: "2022-02-15T16:50:49+0100",
-					IsReadOnly:     false,
-					DataSizeBytes:  1536,
-					RowsCount:      6,
-				},
-				Metadata: []MetadataDetail{
+				"metadata": [
 					{
-						ID:        "73234506",
-						Key:       "KBC.lastUpdatedBy.component.id",
-						Value:     "keboola.ex-http",
-						Timestamp: "2021-10-15T13:42:30+0200",
+						"id": "73234506",
+						"key": "KBC.lastUpdatedBy.component.id",
+						"value": "keboola.ex-http",
+						"provider": "system",
+						"timestamp": "2021-10-15T13:42:30+0200"
 					},
 					{
-						ID:        "73234507",
-						Key:       "KBC.lastUpdatedBy.configuration.id",
-						Value:     "6336016",
-						Timestamp: "2021-10-15T13:42:30+0200",
+						"id": "73234507",
+						"key": "KBC.lastUpdatedBy.configuration.id",
+						"value": "6336016",
+						"provider": "system",
+						"timestamp": "2021-10-15T13:42:30+0200"
 					},
 					{
-						ID:        "73234508",
-						Key:       "KBC.lastUpdatedBy.configurationRow.id",
-						Value:     "6336185",
-						Timestamp: "2021-10-15T13:42:30+0200",
-					},
-				},
-			},
-		}),
+						"id": "73234508",
+						"key": "KBC.lastUpdatedBy.configurationRow.id",
+						"value": "6336185",
+						"provider": "system",
+						"timestamp": "2021-10-15T13:42:30+0200"
+					}
+				]
+			}
+		]`),
 	)
 	return c
 }
@@ -98,15 +125,15 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	c := mockClient()
+	c := listTablesMock()
 
 	branchKey := BranchKey{ID: 0}
 
 	{
 		result, err := ListTablesRequest(branchKey).Send(ctx, c)
+		fmt.Println(result)
 		assert.NoError(t, err)
 		assert.Len(t, *result, 1)
-		assert.Equal(t, (*result)[0].BranchID, branchKey.ID)
 	}
 
 	{
@@ -114,7 +141,6 @@ func TestListTablesRequest(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, *result, 1)
 		assert.NotNil(t, (*result)[0].Bucket)
-		assert.Equal(t, (*result)[0].Bucket.BranchID, branchKey.ID)
 		assert.NotNil(t, (*result)[0].Metadata)
 		assert.Len(t, (*result)[0].Metadata, 3)
 	}

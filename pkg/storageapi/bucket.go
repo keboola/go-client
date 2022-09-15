@@ -27,8 +27,8 @@ type Bucket struct {
 	DisplayName    string `json:"displayName"`
 	Stage          string `json:"stage"`
 	Description    string `json:"description"`
-	Created        string `json:"created"`
-	LastChangeDate string `json:"lastChangeDate"`
+	Created        Time   `json:"created"`
+	LastChangeDate Time   `json:"lastChangeDate"`
 	IsReadOnly     bool   `json:"isReadOnly"`
 	DataSizeBytes  int    `json:"dataSizeBytes"`
 	RowsCount      int    `json:"rowsCount"`
