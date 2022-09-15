@@ -2,8 +2,8 @@ package storageapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -16,6 +16,14 @@ func newJsonResponder(status int, response string) httpmock.Responder {
 	r := httpmock.NewStringResponse(status, response)
 	r.Header.Set("Content-Type", "application/json")
 	return httpmock.ResponderFromResponse(r)
+}
+
+func parseDate(value string) Time {
+	t, err := time.Parse(TimeFormat, value)
+	if err != nil {
+		panic(err)
+	}
+	return Time(t)
 }
 
 func listTablesMock() client.Client {
@@ -130,18 +138,92 @@ func TestListTablesRequest(t *testing.T) {
 	branchKey := BranchKey{ID: 0}
 
 	{
-		result, err := ListTablesRequest(branchKey).Send(ctx, c)
-		fmt.Println(result)
+		expected := &[]*Table{
+			{
+				TableKey: TableKey{
+					BranchID: 0,
+					ID:       "in.c-keboola-ex-http-6336016.tmp1",
+				},
+				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				Name:           "tmp1",
+				DisplayName:    "tmp1",
+				PrimaryKey:     []string{},
+				Created:        parseDate("2021-10-15T13:38:11+0200"),
+				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				RowsCount:      6,
+				DataSizeBytes:  1536,
+				Columns:        nil,
+				Metadata:       nil,
+				ColumnMetadata: nil,
+				Bucket:         nil,
+			},
+		}
+
+		actual, err := ListTablesRequest(branchKey).Send(ctx, c)
 		assert.NoError(t, err)
-		assert.Len(t, *result, 1)
+		assert.Equal(t, expected, actual)
 	}
 
 	{
-		result, err := ListTablesRequest(branchKey, WithBuckets(), WithMetadata()).Send(ctx, c)
+		expected := &[]*Table{
+			{
+				TableKey: TableKey{
+					BranchID: 0,
+					ID:       "in.c-keboola-ex-http-6336016.tmp1",
+				},
+				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				Name:           "tmp1",
+				DisplayName:    "tmp1",
+				PrimaryKey:     []string{},
+				Created:        parseDate("2021-10-15T13:38:11+0200"),
+				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				RowsCount:      6,
+				DataSizeBytes:  1536,
+				Columns:        nil,
+				Metadata: []MetadataDetail{
+					{
+						ID:        "73234506",
+						Key:       "KBC.lastUpdatedBy.component.id",
+						Value:     "keboola.ex-http",
+						Timestamp: "2021-10-15T13:42:30+0200",
+					},
+					{
+						ID:        "73234507",
+						Key:       "KBC.lastUpdatedBy.configuration.id",
+						Value:     "6336016",
+						Timestamp: "2021-10-15T13:42:30+0200",
+					},
+					{
+						ID:        "73234508",
+						Key:       "KBC.lastUpdatedBy.configurationRow.id",
+						Value:     "6336185",
+						Timestamp: "2021-10-15T13:42:30+0200",
+					},
+				},
+				ColumnMetadata: nil,
+				Bucket: &Bucket{
+					BucketKey: BucketKey{
+						BranchID: 0,
+						ID:       "in.c-keboola-ex-http-6336016",
+					},
+					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
+					Name:           "c-keboola-ex-http-6336016",
+					DisplayName:    "keboola-ex-http-6336016",
+					Stage:          BucketStageIn,
+					Description:    "",
+					Created:        parseDate("2021-10-15T11:29:09+0200"),
+					LastChangeDate: parseDate("2022-02-15T16:50:49+0100"),
+					IsReadOnly:     false,
+					DataSizeBytes:  1536,
+					RowsCount:      6,
+				},
+			},
+		}
+
+		actual, err := ListTablesRequest(branchKey, WithBuckets(), WithMetadata()).Send(ctx, c)
 		assert.NoError(t, err)
-		assert.Len(t, *result, 1)
-		assert.NotNil(t, (*result)[0].Bucket)
-		assert.NotNil(t, (*result)[0].Metadata)
-		assert.Len(t, (*result)[0].Metadata, 3)
+		assert.Equal(t, expected, actual)
 	}
 }
