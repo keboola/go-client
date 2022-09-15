@@ -50,9 +50,6 @@ func (v listTablesConfig) includeString() string {
 	for k := range v.include {
 		include = append(include, k)
 	}
-	// TEMP: ensures that the order of `include` values does not change
-	// important for test runs because `RegisterResponder` considers `?a&b` and `?b&a` separately
-	// this can be removed once the request is tested against the real API
 	sort.Strings(include)
 	return strings.Join(include, ",")
 }
