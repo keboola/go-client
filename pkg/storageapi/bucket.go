@@ -15,6 +15,11 @@ func (k BucketKey) ObjectId() any {
 	return k.ID
 }
 
+const (
+	BucketStageIn  = "in"
+	BucketStageOut = "out"
+)
+
 type Bucket struct {
 	BucketKey
 	Uri            string `json:"uri"`
