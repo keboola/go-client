@@ -68,7 +68,7 @@ func mockClient() client.Client {
 					DataSizeBytes:  1536,
 					RowsCount:      6,
 				},
-				Metadata: &[]MetadataDetail{
+				Metadata: []MetadataDetail{
 					{
 						ID:        "73234506",
 						Key:       "KBC.lastUpdatedBy.component.id",
@@ -116,6 +116,6 @@ func TestListTablesRequest(t *testing.T) {
 		assert.NotNil(t, (*result)[0].Bucket)
 		assert.Equal(t, (*result)[0].Bucket.BranchID, branchKey.ID)
 		assert.NotNil(t, (*result)[0].Metadata)
-		assert.Len(t, (*(*result)[0].Metadata), 3)
+		assert.Len(t, (*result)[0].Metadata, 3)
 	}
 }

@@ -26,19 +26,19 @@ func (k TableKey) ObjectId() any {
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
 	TableKey
-	Uri            string                     `json:"uri"`
-	Name           string                     `json:"name"`
-	DisplayName    string                     `json:"displayName"`
-	PrimaryKey     []string                   `json:"primaryKey"`
-	Created        string                     `json:"created"`
-	LastImportDate string                     `json:"lastImportDate"`
-	LastChangeDate string                     `json:"lastChangeDate"`
-	RowsCount      int                        `json:"rowsCount"`
-	DataSizeBytes  int                        `json:"dataSizeBytes"`
-	Columns        *[]string                  `json:"columns"`
-	Metadata       *[]MetadataDetail          `json:"metadata"`
-	ColumnMetadata *map[string]MetadataDetail `json:"columnMetadata"`
-	Bucket         *Bucket                    `json:"bucket"`
+	Uri            string                    `json:"uri"`
+	Name           string                    `json:"name"`
+	DisplayName    string                    `json:"displayName"`
+	PrimaryKey     []string                  `json:"primaryKey"`
+	Created        string                    `json:"created"`
+	LastImportDate string                    `json:"lastImportDate"`
+	LastChangeDate string                    `json:"lastChangeDate"`
+	RowsCount      int                       `json:"rowsCount"`
+	DataSizeBytes  int                       `json:"dataSizeBytes"`
+	Columns        []string                  `json:"columns"`
+	Metadata       []MetadataDetail          `json:"metadata"`
+	ColumnMetadata map[string]MetadataDetail `json:"columnMetadata"`
+	Bucket         *Bucket                   `json:"bucket"`
 }
 
 type listTablesConfig struct {
