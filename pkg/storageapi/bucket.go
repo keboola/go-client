@@ -15,24 +15,6 @@ func (k BucketKey) ObjectId() any {
 	return k.ID
 }
 
-// "uri": "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-8103767",
-// "id": "in.c-keboola-ex-http-8103767",
-// "name": "c-keboola-ex-http-8103767",
-// "displayName": "keboola-ex-http-8103767",
-// "stage": "in",
-// "description": "",
-// "tables": "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-8103767",
-// "created": "2021-11-30T16:48:11+0100",
-// "lastChangeDate": "2022-03-18T13:45:42+0100",
-// "isReadOnly": false,
-// "dataSizeBytes": 3072,
-// "rowsCount": 8,
-// "isMaintenance": false,
-// "backend": "snowflake",
-// "sharing": null,
-// "hasExternalSchema": false,
-// "databaseName": ""
-
 type Bucket struct {
 	BucketKey
 	Uri            string `json:"uri"`
