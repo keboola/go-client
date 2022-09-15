@@ -134,14 +134,13 @@ func TestListTablesRequest(t *testing.T) {
 
 	ctx := context.Background()
 	c := listTablesMock()
-
 	branchKey := BranchKey{ID: 0}
 
 	{
 		expected := &[]*Table{
 			{
 				TableKey: TableKey{
-					BranchID: 0,
+					BranchID: branchKey.ID,
 					ID:       "in.c-keboola-ex-http-6336016.tmp1",
 				},
 				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -169,7 +168,7 @@ func TestListTablesRequest(t *testing.T) {
 		expected := &[]*Table{
 			{
 				TableKey: TableKey{
-					BranchID: 0,
+					BranchID: branchKey.ID,
 					ID:       "in.c-keboola-ex-http-6336016.tmp1",
 				},
 				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -205,7 +204,7 @@ func TestListTablesRequest(t *testing.T) {
 				ColumnMetadata: nil,
 				Bucket: &Bucket{
 					BucketKey: BucketKey{
-						BranchID: 0,
+						BranchID: branchKey.ID,
 						ID:       "in.c-keboola-ex-http-6336016",
 					},
 					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
