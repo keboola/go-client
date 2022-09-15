@@ -33,8 +33,8 @@ type Table struct {
 	Created        Time                      `json:"created"`
 	LastImportDate Time                      `json:"lastImportDate"`
 	LastChangeDate Time                      `json:"lastChangeDate"`
-	RowsCount      int                       `json:"rowsCount"`
-	DataSizeBytes  int                       `json:"dataSizeBytes"`
+	RowsCount      uint64                    `json:"rowsCount"`
+	DataSizeBytes  uint64                    `json:"dataSizeBytes"`
 	Columns        []string                  `json:"columns"`
 	Metadata       []MetadataDetail          `json:"metadata"`
 	ColumnMetadata map[string]MetadataDetail `json:"columnMetadata"`

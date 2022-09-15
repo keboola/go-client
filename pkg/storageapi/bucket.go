@@ -30,6 +30,6 @@ type Bucket struct {
 	Created        Time   `json:"created"`
 	LastChangeDate Time   `json:"lastChangeDate"`
 	IsReadOnly     bool   `json:"isReadOnly"`
-	DataSizeBytes  int    `json:"dataSizeBytes"`
-	RowsCount      int    `json:"rowsCount"`
+	DataSizeBytes  uint64 `json:"dataSizeBytes"`
+	RowsCount      uint64 `json:"rowsCount"`
 }
