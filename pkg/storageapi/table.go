@@ -54,26 +54,26 @@ func (v listTablesConfig) includeString() string {
 	return strings.Join(include, ",")
 }
 
-type Option func(listTablesConfig *listTablesConfig)
+type Option func(c *listTablesConfig)
 
 func WithBuckets() Option {
-	return func(listTablesConfig *listTablesConfig) {
-		listTablesConfig.include["buckets"] = true
+	return func(c *listTablesConfig) {
+		c.include["buckets"] = true
 	}
 }
 func WithColumns() Option {
-	return func(listTablesConfig *listTablesConfig) {
-		listTablesConfig.include["columns"] = true
+	return func(c *listTablesConfig) {
+		c.include["columns"] = true
 	}
 }
 func WithMetadata() Option {
-	return func(listTablesConfig *listTablesConfig) {
-		listTablesConfig.include["metadata"] = true
+	return func(c *listTablesConfig) {
+		c.include["metadata"] = true
 	}
 }
 func WithColumnMetadata() Option {
-	return func(listTablesConfig *listTablesConfig) {
-		listTablesConfig.include["columnMetadata"] = true
+	return func(c *listTablesConfig) {
+		c.include["columnMetadata"] = true
 	}
 }
 
