@@ -20,12 +20,12 @@ func (v SandboxID) String() string {
 const Component = "keboola.sandboxes"
 
 const (
-	SandboxSizeSmall  = "small"
-	SandboxSizeMedium = "medium"
-	SandboxSizeLarge  = "large"
+	SizeSmall  = "small"
+	SizeMedium = "medium"
+	SizeLarge  = "large"
 )
 
-type SandboxParams struct {
+type Params struct {
 	Type             string
 	Shared           bool
 	ExpireAfterHours uint64
@@ -55,7 +55,7 @@ func CreateSandboxConfigRequest(branchId BranchID, name string) client.APIReques
 	return storageapi.CreateConfigRequest(config)
 }
 
-func CreateSandboxJobRequest(configId ConfigID, sandbox SandboxParams) client.APIRequest[client.NoResult] {
+func CreateSandboxJobRequest(configId ConfigID, sandbox Params) client.APIRequest[client.NoResult] {
 	parameters := map[string]any{
 		"task":                 "create",
 		"type":                 sandbox.Type,
