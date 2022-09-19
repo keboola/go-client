@@ -52,18 +52,17 @@ func CreateJobRequest(componentID ComponentID, configID ConfigID) client.APIRequ
 //
 // Allows setting configData
 func CreateJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) client.APIRequest[*Job] {
-	data := map[string]any{
-		"component":  componentID.String(),
-		"mode":       "run",
-		"config":     configID.String(),
-		"configData": configData,
-	}
 	result := &Job{}
 	request := newRequest().
 		WithResult(result).
 		WithMethod(http.MethodPost).
 		WithURL("jobs").
-		WithJSONBody(data)
+		WithJSONBody(map[string]any{
+			"component":  componentID.String(),
+			"mode":       "run",
+			"config":     configID.String(),
+			"configData": configData,
+		})
 	return client.NewAPIRequest(result, request)
 }
 
