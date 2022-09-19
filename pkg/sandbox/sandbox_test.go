@@ -28,7 +28,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Create sandbox
 	{
 		// Create sandbox config (so UI can see it)
-		sandboxConfig, err := sandbox.CreateSandboxConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
+		sandboxConfig, err := sandbox.CreateConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
 		assert.NoError(t, err)
 		assert.NotNil(t, sandboxConfig)
 
@@ -39,14 +39,14 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 			ExpireAfterHours: 1,
 			Size:             sandbox.SizeSmall,
 		}
-		_, err = sandbox.CreateSandboxJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
+		_, err = sandbox.CreateJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
 		assert.NoError(t, err)
 
 		// Get sandbox config
 		// The initial config does not have the sandbox id, because the sandbox has not been created yet,
 		// so we need to fetch the sandbox config after the sandbox create job finishes.
 		// The sandbox id is separate from the sandbox config id, and we need both to delete the sandbox.
-		config, err := sandbox.GetSandboxConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
+		config, err := sandbox.GetConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 
@@ -60,11 +60,11 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Delete sandbox
 	{
 		// Delete sandbox (this stops the instance and deletes it)
-		_, err := sandbox.DeleteSandboxJobRequest(configId, sandboxId).Send(ctx, queueClient)
+		_, err := sandbox.DeleteJobRequest(configId, sandboxId).Send(ctx, queueClient)
 		assert.NoError(t, err)
 
 		// Delete sandbox config (so it is no longer visible in UI)
-		_, err = sandbox.DeleteSandboxConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
+		_, err = sandbox.DeleteConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
 		assert.NoError(t, err)
 	}
 }
