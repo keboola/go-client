@@ -17,7 +17,7 @@ func (v SandboxID) String() string {
 	return string(v)
 }
 
-const componentId = "keboola.sandboxes"
+const Component = "keboola.sandboxes"
 
 const (
 	SandboxSizeSmall  = "small"
@@ -36,7 +36,7 @@ type SandboxParams struct {
 func GetSandboxConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*storageapi.Config] {
 	key := storageapi.ConfigKey{
 		BranchID:    branchId,
-		ComponentID: componentId,
+		ComponentID: Component,
 		ID:          configId,
 	}
 	return storageapi.GetConfigRequest(key)
@@ -47,7 +47,7 @@ func CreateSandboxConfigRequest(branchId BranchID, name string) client.APIReques
 		Config: &storageapi.Config{
 			ConfigKey: storageapi.ConfigKey{
 				BranchID:    branchId,
-				ComponentID: componentId,
+				ComponentID: Component,
 			},
 			Name: name,
 		},
@@ -71,7 +71,7 @@ func CreateSandboxJobRequest(configId ConfigID, sandbox SandboxParams) client.AP
 	}
 
 	request := jobsqueueapi.
-		CreateJobConfigDataRequest(componentId, configId, configData).
+		CreateJobConfigDataRequest(Component, configId, configData).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
 			return jobsqueueapi.WaitForJob(ctx, sender, result)
 		})
@@ -81,7 +81,7 @@ func CreateSandboxJobRequest(configId ConfigID, sandbox SandboxParams) client.AP
 func DeleteSandboxConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[client.NoResult] {
 	request := storageapi.DeleteConfigRequest(storageapi.ConfigKey{
 		BranchID:    branchId,
-		ComponentID: componentId,
+		ComponentID: Component,
 		ID:          configId,
 	})
 	return client.NewAPIRequest(client.NoResult{}, request)
@@ -95,7 +95,7 @@ func DeleteSandboxJobRequest(configId ConfigID, sandboxId SandboxID) client.APIR
 		},
 	}
 	request := jobsqueueapi.
-		CreateJobConfigDataRequest(componentId, configId, configData).
+		CreateJobConfigDataRequest(Component, configId, configData).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
 			return jobsqueueapi.WaitForJob(ctx, sender, result)
 		})
