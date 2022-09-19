@@ -48,9 +48,9 @@ func CreateJobRequest(componentID ComponentID, configID ConfigID) client.APIRequ
 	return client.NewAPIRequest(&result, request)
 }
 
-// https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
+// CreateJobConfigDataRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
 //
-// Allows setting `configData`
+// Allows setting configData
 func CreateJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) client.APIRequest[*Job] {
 	data := map[string]any{
 		"component":  componentID.String(),
