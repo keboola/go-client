@@ -1,4 +1,4 @@
-package sandboxes_test
+package sandbox_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
-	"github.com/keboola/go-client/pkg/sandboxes"
+	"github.com/keboola/go-client/pkg/sandbox"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
@@ -22,31 +22,31 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
-	var configId sandboxes.ConfigID
-	var sandboxId sandboxes.SandboxID
+	var configId sandbox.ConfigID
+	var sandboxId sandbox.SandboxID
 
 	// Create sandbox
 	{
 		// Create sandbox config (so UI can see it)
-		sandboxConfig, err0 := sandboxes.CreateSandboxConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
+		sandboxConfig, err0 := sandbox.CreateSandboxConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
 		assert.NoError(t, err0)
 		assert.NotNil(t, sandboxConfig)
 
 		// Create sandbox from config
-		params := sandboxes.Params{
+		params := sandbox.Params{
 			Type:             "python",
 			Shared:           false,
 			ExpireAfterHours: 1,
-			Size:             sandboxes.SizeSmall,
+			Size:             sandbox.SizeSmall,
 		}
-		_, err1 := sandboxes.CreateSandboxJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
+		_, err1 := sandbox.CreateSandboxJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
 		assert.NoError(t, err1)
 
 		// Get sandbox config
 		// The initial config does not have the sandbox id, because the sandbox has not been created yet,
 		// so we need to fetch the sandbox config after the sandbox create job finishes.
 		// The sandbox id is separate from the sandbox config id, and we need both to delete the sandbox.
-		config, err2 := sandboxes.GetSandboxConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
+		config, err2 := sandbox.GetSandboxConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
 		assert.NoError(t, err2)
 		assert.NotNil(t, config)
 
@@ -54,17 +54,17 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		idParam, found, err3 := config.Content.GetNested("parameters.id")
 		assert.NoError(t, err3)
 		assert.True(t, found, "configuration is missing parameters.id")
-		sandboxId = sandboxes.SandboxID(idParam.(string))
+		sandboxId = sandbox.SandboxID(idParam.(string))
 	}
 
 	// Delete sandbox
 	{
 		// Delete sandbox (this stops the instance and deletes it)
-		_, err0 := sandboxes.DeleteSandboxJobRequest(configId, sandboxId).Send(ctx, queueClient)
+		_, err0 := sandbox.DeleteSandboxJobRequest(configId, sandboxId).Send(ctx, queueClient)
 		assert.NoError(t, err0)
 
 		// Delete sandbox config (so it is no longer visible in UI)
-		_, err1 := sandboxes.DeleteSandboxConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
+		_, err1 := sandbox.DeleteSandboxConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
 		assert.NoError(t, err1)
 	}
 }
