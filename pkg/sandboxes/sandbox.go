@@ -8,6 +8,15 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
+type BranchID = storageapi.BranchID
+type ConfigID = storageapi.ConfigID
+
+type SandboxID string
+
+func (v SandboxID) String() string {
+	return string(v)
+}
+
 const componentId = "keboola.sandboxes"
 
 const (
@@ -17,7 +26,6 @@ const (
 )
 
 type SandboxParams struct {
-	Name             string
 	Type             string
 	Shared           bool
 	ExpireAfterHours uint64
@@ -25,47 +33,69 @@ type SandboxParams struct {
 	ImageVersion     string
 }
 
-func CreateSandboxRequest(branchId storageapi.BranchID, params SandboxParams) client.APIRequest[*storageapi.ConfigWithRows] {
+func GetSandboxConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*storageapi.Config] {
+	key := storageapi.ConfigKey{
+		BranchID:    branchId,
+		ComponentID: componentId,
+		ID:          configId,
+	}
+	return storageapi.GetConfigRequest(key)
+}
+
+func CreateSandboxConfigRequest(branchId BranchID, name string) client.APIRequest[*storageapi.ConfigWithRows] {
 	config := &storageapi.ConfigWithRows{
 		Config: &storageapi.Config{
 			ConfigKey: storageapi.ConfigKey{
 				BranchID:    branchId,
 				ComponentID: componentId,
 			},
-			Name: params.Name,
+			Name: name,
 		},
 	}
-	jobParams := map[string]any{
-		"task":                 "create",
-		"type":                 params.Type,
-		"shared":               params.Shared,
-		"expirationAfterHours": params.ExpireAfterHours,
-		"size":                 params.Size,
-	}
-	if params.ImageVersion != "" {
-		jobParams["imageVersion"] = params.ImageVersion
-	}
-
-	request := storageapi.CreateConfigRequest(config).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *storageapi.ConfigWithRows) error {
-			job, err := jobsqueueapi.
-				CreateJobConfigDataRequest(componentId, result.Config.ID, map[string]any{"parameters": jobParams}).
-				Send(ctx, sender)
-			if err != nil {
-				return err
-			}
-			return jobsqueueapi.WaitForJob(ctx, sender, job)
-		})
-	return client.NewAPIRequest(config, request)
+	return storageapi.CreateConfigRequest(config)
 }
 
-func DeleteSandboxRequest(configId storageapi.ConfigID) client.APIRequest[client.NoResult] {
+func CreateSandboxJobRequest(configId ConfigID, sandbox SandboxParams) client.APIRequest[client.NoResult] {
 	parameters := map[string]any{
-		"task": "delete",
-		"id":   configId,
+		"task":                 "create",
+		"type":                 sandbox.Type,
+		"shared":               sandbox.Shared,
+		"expirationAfterHours": sandbox.ExpireAfterHours,
+		"size":                 sandbox.Size,
+	}
+	if sandbox.ImageVersion != "" {
+		parameters["imageVersion"] = sandbox.ImageVersion
+	}
+	configData := map[string]any{
+		"parameters": parameters,
+	}
+
+	request := jobsqueueapi.
+		CreateJobConfigDataRequest(componentId, configId, configData).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
+			return jobsqueueapi.WaitForJob(ctx, sender, result)
+		})
+	return client.NewAPIRequest(client.NoResult{}, request)
+}
+
+func DeleteSandboxConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[client.NoResult] {
+	request := storageapi.DeleteConfigRequest(storageapi.ConfigKey{
+		BranchID:    branchId,
+		ComponentID: componentId,
+		ID:          configId,
+	})
+	return client.NewAPIRequest(client.NoResult{}, request)
+}
+
+func DeleteSandboxJobRequest(configId ConfigID, sandboxId SandboxID) client.APIRequest[client.NoResult] {
+	configData := map[string]any{
+		"parameters": map[string]any{
+			"task": "delete",
+			"id":   sandboxId.String(),
+		},
 	}
 	request := jobsqueueapi.
-		CreateJobConfigDataRequest(componentId, configId, map[string]any{"parameters": parameters}).
+		CreateJobConfigDataRequest(componentId, configId, configData).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
 			return jobsqueueapi.WaitForJob(ctx, sender, result)
 		})
