@@ -28,8 +28,8 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Create sandbox
 	{
 		// Create sandbox config (so UI can see it)
-		sandboxConfig, err0 := sandbox.CreateSandboxConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
-		assert.NoError(t, err0)
+		sandboxConfig, err := sandbox.CreateSandboxConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
+		assert.NoError(t, err)
 		assert.NotNil(t, sandboxConfig)
 
 		// Create sandbox from config
@@ -39,20 +39,20 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 			ExpireAfterHours: 1,
 			Size:             sandbox.SizeSmall,
 		}
-		_, err1 := sandbox.CreateSandboxJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
-		assert.NoError(t, err1)
+		_, err = sandbox.CreateSandboxJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
+		assert.NoError(t, err)
 
 		// Get sandbox config
 		// The initial config does not have the sandbox id, because the sandbox has not been created yet,
 		// so we need to fetch the sandbox config after the sandbox create job finishes.
 		// The sandbox id is separate from the sandbox config id, and we need both to delete the sandbox.
-		config, err2 := sandbox.GetSandboxConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
-		assert.NoError(t, err2)
+		config, err := sandbox.GetSandboxConfigRequest(branch.ID, sandboxConfig.ID).Send(ctx, sapiClient)
+		assert.NoError(t, err)
 		assert.NotNil(t, config)
 
 		configId = config.ID
-		idParam, found, err3 := config.Content.GetNested("parameters.id")
-		assert.NoError(t, err3)
+		idParam, found, err := config.Content.GetNested("parameters.id")
+		assert.NoError(t, err)
 		assert.True(t, found, "configuration is missing parameters.id")
 		sandboxId = sandbox.SandboxID(idParam.(string))
 	}
@@ -60,12 +60,12 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Delete sandbox
 	{
 		// Delete sandbox (this stops the instance and deletes it)
-		_, err0 := sandbox.DeleteSandboxJobRequest(configId, sandboxId).Send(ctx, queueClient)
-		assert.NoError(t, err0)
+		_, err := sandbox.DeleteSandboxJobRequest(configId, sandboxId).Send(ctx, queueClient)
+		assert.NoError(t, err)
 
 		// Delete sandbox config (so it is no longer visible in UI)
-		_, err1 := sandbox.DeleteSandboxConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
-		assert.NoError(t, err1)
+		_, err = sandbox.DeleteSandboxConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
+		assert.NoError(t, err)
 	}
 }
 
