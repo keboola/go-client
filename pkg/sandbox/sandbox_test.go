@@ -22,11 +22,47 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
-	var configId sandbox.ConfigID
-	var sandboxId sandbox.SandboxID
+	var (
+		configId  sandbox.ConfigID
+		sandboxId sandbox.SandboxID
+	)
 
 	// Create sandbox
 	{
+		s, err := sandbox.Create(
+			ctx,
+			sapiClient,
+			queueClient,
+			branch.ID,
+			"test",
+			"python",
+			sandbox.WithExpireAfterHours(1),
+			sandbox.WithSize(sandbox.SizeMedium),
+		)
+		assert.NoError(t, err)
+		assert.NotNil(t, s)
+
+		id, err := sandbox.GetSandboxID(s)
+		assert.NoError(t, err)
+
+		configId, sandboxId = s.ID, id
+	}
+
+	// Delete sandbox
+	{
+		err := sandbox.Delete(
+			ctx,
+			sapiClient,
+			queueClient,
+			branch.ID,
+			configId,
+			sandboxId,
+		)
+		assert.NoError(t, err)
+	}
+
+	// Create sandbox
+	/* {
 		// Create sandbox config (so UI can see it)
 		sandboxConfig, err := sandbox.CreateConfigRequest(branch.ID, "test").Send(ctx, sapiClient)
 		assert.NoError(t, err)
@@ -54,10 +90,10 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, found, "configuration is missing parameters.id")
 		sandboxId = sandbox.SandboxID(idParam.(string))
-	}
+	} */
 
 	// Delete sandbox
-	{
+	/* {
 		// Delete sandbox (this stops the instance and deletes it)
 		_, err := sandbox.DeleteJobRequest(configId, sandboxId).Send(ctx, queueClient)
 		assert.NoError(t, err)
@@ -65,7 +101,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		// Delete sandbox config (so it is no longer visible in UI)
 		_, err = sandbox.DeleteConfigRequest(branch.ID, configId).Send(ctx, sapiClient)
 		assert.NoError(t, err)
-	}
+	} */
 }
 
 func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
