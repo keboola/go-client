@@ -33,13 +33,12 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		assert.NotNil(t, sandboxConfig)
 
 		// Create sandbox from config
-		params := sandbox.Params{
-			Type:             "python",
-			Shared:           false,
-			ExpireAfterHours: 1,
-			Size:             sandbox.SizeSmall,
-		}
-		_, err = sandbox.CreateJobRequest(sandboxConfig.ID, params).Send(ctx, queueClient)
+		_, err = sandbox.CreateJobRequest(
+			sandboxConfig.ID,
+			"python",
+			sandbox.WithExpireAfterHours(1),
+			sandbox.WithSize(sandbox.SizeMedium),
+		).Send(ctx, queueClient)
 		assert.NoError(t, err)
 
 		// Get sandbox config
