@@ -14,6 +14,10 @@ func GetConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*s
 	return storageapi.GetConfigRequest(key)
 }
 
+func ListConfigRequest(branchId BranchID) client.APIRequest[*[]*storageapi.Config] {
+	return storageapi.ListConfigRequest(branchId, Component)
+}
+
 func CreateConfigRequest(branchId BranchID, name string) client.APIRequest[*storageapi.ConfigWithRows] {
 	config := &storageapi.ConfigWithRows{
 		Config: &storageapi.Config{

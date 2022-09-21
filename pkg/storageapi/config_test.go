@@ -86,6 +86,12 @@ func TestConfigApiCalls(t *testing.T) {
 	config.Version = resultConfig.Version
 	assert.Equal(t, config.Config, resultConfig)
 
+	// List configs (should contain 1)
+	configList, err := ListConfigRequest(config.BranchID, config.ComponentID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Len(t, *configList, 1)
+	assert.Equal(t, config.Config, (*configList)[0])
+
 	// Update config
 	config.Name = "Test modified +++úěš!@#"
 	config.Description = "Test description modified"
