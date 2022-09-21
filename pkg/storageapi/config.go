@@ -113,7 +113,14 @@ func ListConfigRequest(branchId BranchID, componentId ComponentID) client.APIReq
 		WithResult(&result).
 		WithGet("branch/{branchId}/components/{componentId}/configs").
 		AndPathParam("branchId", branchId.String()).
-		AndPathParam("componentId", componentId.String())
+		AndPathParam("componentId", componentId.String()).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
+			for _, c := range result {
+				c.BranchID = branchId
+				c.ComponentID = componentId
+			}
+			return nil
+		})
 	return client.NewAPIRequest(&result, request)
 }
 

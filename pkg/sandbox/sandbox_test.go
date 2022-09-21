@@ -46,14 +46,12 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		assert.NoError(t, err)
 
 		configId, sandboxId = s.ID, id
-	}
 
-	// List sandbox config
-	{
+		// List sandbox config
 		configs, err := sandbox.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
 		assert.NoError(t, err)
-		assert.NotNil(t, configs)
 		assert.Len(t, *configs, 1)
+		assert.Equal(t, s, (*configs)[0])
 	}
 
 	// Delete sandbox
