@@ -77,6 +77,11 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Equal(t, ComponentID("ex-generic-v2"), row2.ComponentID)
 	assert.Equal(t, branch.ID, row2.BranchID)
 
+	// List configs (should contain 1)
+	configList, err := ListConfigRequest(config.BranchID, config.ComponentID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Len(t, *configList, 1)
+
 	// Get config
 	resultConfig, err := GetConfigRequest(config.ConfigKey).Send(ctx, c)
 	assert.NoError(t, err)

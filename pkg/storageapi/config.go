@@ -107,6 +107,16 @@ func ListConfigsAndRowsFrom(branch BranchKey) client.APIRequest[*[]*ComponentWit
 	return client.NewAPIRequest(&result, request)
 }
 
+func ListConfigRequest(branchId BranchID, componentId ComponentID) client.APIRequest[*[]*Config] {
+	result := make([]*Config, 0)
+	request := newRequest().
+		WithResult(&result).
+		WithGet("branch/{branchId}/components/{componentId}/configs").
+		AndPathParam("branchId", branchId.String()).
+		AndPathParam("componentId", componentId.String())
+	return client.NewAPIRequest(&result, request)
+}
+
 // GetConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/development-branch-configuration-detail
 func GetConfigRequest(key ConfigKey) client.APIRequest[*Config] {
 	result := &Config{}
