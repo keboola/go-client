@@ -81,8 +81,16 @@ func getJobRequest(job *Job) client.APIRequest[*Job] {
 
 // WaitForJob pulls job status until it is completed.
 func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
+	_, ok := ctx.Deadline()
+	if !ok {
+		return fmt.Errorf("timeout for the job was not set")
+	}
+
 	retry := newJobBackoff()
 	for {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("timeout while waiting for the component job %s to complete", job.ID)
+		}
 		// Get job status
 		if err := getJobRequest(job).SendOrErr(ctx, sender); err != nil {
 			return err
@@ -97,11 +105,12 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		}
 
 		// Wait and check again
-		delay := retry.NextBackOff()
-		if delay == backoff.Stop {
+		select {
+		case <-ctx.Done():
 			return fmt.Errorf("timeout while waiting for the component job %s to complete", job.ID)
+		default:
+			time.Sleep(retry.NextBackOff())
 		}
-		time.Sleep(delay)
 	}
 }
 
@@ -112,7 +121,6 @@ func newJobBackoff() *backoff.ExponentialBackOff {
 	b.InitialInterval = 3 * time.Second
 	b.Multiplier = 2
 	b.MaxInterval = 5 * time.Second
-	b.MaxElapsedTime = 5 * time.Minute
 	b.Reset()
 	return b
 }

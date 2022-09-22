@@ -2,13 +2,16 @@ package jobsqueueapi_test
 
 import (
 	"context"
+	"testing"
+	"time"
+
+	"github.com/jarcoal/httpmock"
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestJobsQueueApiCalls(t *testing.T) {
@@ -53,9 +56,37 @@ func TestJobsQueueApiCalls(t *testing.T) {
 	assert.NotEmpty(t, resJob.ID)
 
 	// Wait for the job
-	err = jobsqueueapi.WaitForJob(ctx, jobsQueueClient, resJob)
+	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancelFn()
+	err = jobsqueueapi.WaitForJob(timeoutCtx, jobsQueueClient, resJob)
 	// The job payload is malformed, so it fails. We are checking just that it finished.
 	assert.ErrorContains(t, err, "Unrecognized option \"foo\" under \"container\"")
+}
+
+func TestWaitForJobTimeout(t *testing.T) {
+	t.Parallel()
+	c, transport := client.NewMockedClient()
+
+	job := jobsqueueapi.Job{
+		JobKey:     jobsqueueapi.JobKey{ID: "1234"},
+		Status:     "waiting",
+		IsFinished: false,
+		URL:        "https://example.com/jobs/1234",
+		Result:     jobsqueueapi.JobResult{},
+		CreateTime: jobsqueueapi.Time{},
+		StartTime:  nil,
+		EndTime:    nil,
+	}
+
+	c = c.WithBaseURL("https://example.com")
+	transport.RegisterResponder("GET", `=~^https://example.com/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
+
+	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFn()
+
+	err := jobsqueueapi.WaitForJob(ctx, c, &job)
+
+	assert.ErrorContains(t, err, "timeout while waiting for the component job 1234 to complete")
 }
 
 func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
