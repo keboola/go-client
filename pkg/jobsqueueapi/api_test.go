@@ -90,7 +90,7 @@ func TestWaitForJobTimeout(t *testing.T) {
 	// Error - deadline exceeded
 	err := jobsqueueapi.WaitForJob(ctx, c, &job)
 	assert.Error(t, err)
-	assert.Equal(t, `timeout while waiting for the component job "1234" to complete: context deadline exceeded`, err.Error())
+	assert.Equal(t, `error while waiting for the job "1234" to complete: context deadline exceeded`, err.Error())
 
 	// Check calls count
 	assert.Equal(t, 3, transport.GetCallCountInfo()["GET https://example.com/jobs/1234"])

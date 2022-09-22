@@ -104,7 +104,7 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		// Wait and check again
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf(`timeout while waiting for the component job "%s" to complete: %w`, job.ID, ctx.Err())
+			return fmt.Errorf(`error while waiting for the job "%s" to complete: %w`, job.ID, ctx.Err())
 		case <-time.After(retry.NextBackOff()):
 			// try again
 		}
