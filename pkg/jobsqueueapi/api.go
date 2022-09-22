@@ -88,9 +88,6 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 
 	retry := newJobBackoff()
 	for {
-		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("timeout while waiting for the component job %s to complete", job.ID)
-		}
 		// Get job status
 		if err := getJobRequest(job).SendOrErr(ctx, sender); err != nil {
 			return err
@@ -107,9 +104,9 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		// Wait and check again
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout while waiting for the component job %s to complete", job.ID)
-		default:
-			time.Sleep(retry.NextBackOff())
+			return fmt.Errorf(`timeout while waiting for the component job "%s" to complete: %w`, job.ID, ctx.Err())
+		case <-time.After(retry.NextBackOff()):
+			// try again
 		}
 	}
 }

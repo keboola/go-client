@@ -1,7 +1,9 @@
 package jobsqueueapi_test
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
+	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,28 +68,45 @@ func TestJobsQueueApiCalls(t *testing.T) {
 
 func TestWaitForJobTimeout(t *testing.T) {
 	t.Parallel()
-	c, transport := client.NewMockedClient()
 
 	job := jobsqueueapi.Job{
 		JobKey:     jobsqueueapi.JobKey{ID: "1234"},
 		Status:     "waiting",
 		IsFinished: false,
-		URL:        "https://example.com/jobs/1234",
-		Result:     jobsqueueapi.JobResult{},
-		CreateTime: jobsqueueapi.Time{},
-		StartTime:  nil,
-		EndTime:    nil,
 	}
 
-	c = c.WithBaseURL("https://example.com")
+	// Trace client activity
+	var trace bytes.Buffer
+
+	// Create mocked timeout
+	c, transport := client.NewMockedClient()
+	c = c.WithBaseURL("https://example.com").AndTrace(client.LogTracer(&trace))
 	transport.RegisterResponder("GET", `=~^https://example.com/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
 
+	// Create context with deadline
 	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancelFn()
 
+	// Error - deadline exceeded
 	err := jobsqueueapi.WaitForJob(ctx, c, &job)
+	assert.Error(t, err)
+	assert.Equal(t, `timeout while waiting for the component job "1234" to complete: context deadline exceeded`, err.Error())
 
-	assert.ErrorContains(t, err, "timeout while waiting for the component job 1234 to complete")
+	// Check calls count
+	assert.Equal(t, 3, transport.GetCallCountInfo()["GET https://example.com/jobs/1234"])
+
+	// Check client activity
+	wildcards.Assert(t, strings.TrimSpace(`
+HTTP_REQUEST[0001] START GET "https://example.com/jobs/1234"
+HTTP_REQUEST[0001] DONE  GET "https://example.com/jobs/1234" | 200 | %s
+HTTP_REQUEST[0001] BODY  GET "https://example.com/jobs/1234" | %s
+HTTP_REQUEST[0002] START GET "https://example.com/jobs/1234"
+HTTP_REQUEST[0002] DONE  GET "https://example.com/jobs/1234" | 200 | %s
+HTTP_REQUEST[0002] BODY  GET "https://example.com/jobs/1234" | %s
+HTTP_REQUEST[0003] START GET "https://example.com/jobs/1234"
+HTTP_REQUEST[0003] DONE  GET "https://example.com/jobs/1234" | 200 | %s
+HTTP_REQUEST[0003] BODY  GET "https://example.com/jobs/1234" | %s
+`), trace.String())
 }
 
 func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
