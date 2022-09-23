@@ -3,6 +3,7 @@ package sandbox_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
@@ -27,10 +28,13 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		sandboxId sandbox.SandboxID
 	)
 
+	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancelFn()
+
 	// Create sandbox
 	{
 		s, err := sandbox.Create(
-			ctx,
+			timeoutCtx,
 			sapiClient,
 			queueClient,
 			branch.ID,
@@ -57,7 +61,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Delete sandbox
 	{
 		err := sandbox.Delete(
-			ctx,
+			timeoutCtx,
 			sapiClient,
 			queueClient,
 			branch.ID,
