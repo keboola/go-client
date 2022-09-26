@@ -28,18 +28,18 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		sandboxId sandbox.SandboxID
 	)
 
-	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
+	ctx, cancelFn := context.WithTimeout(ctx, time.Minute*10)
 	defer cancelFn()
 
 	// Create sandbox
 	{
 		s, err := sandbox.Create(
-			timeoutCtx,
+			ctx,
 			sapiClient,
 			queueClient,
 			branch.ID,
 			"test",
-			"python",
+			sandbox.Python,
 			sandbox.WithExpireAfterHours(1),
 			sandbox.WithSize(sandbox.SizeMedium),
 		)
@@ -61,7 +61,36 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Delete sandbox
 	{
 		err := sandbox.Delete(
-			timeoutCtx,
+			ctx,
+			sapiClient,
+			queueClient,
+			branch.ID,
+			configId,
+			sandboxId,
+		)
+		assert.NoError(t, err)
+	}
+
+	// Create/delete Snowflake sandbox
+	{
+		s, err := sandbox.Create(
+			ctx,
+			sapiClient,
+			queueClient,
+			branch.ID,
+			"test-snowflake",
+			sandbox.Snowflake,
+			sandbox.WithExpireAfterHours(1),
+		)
+		assert.NoError(t, err)
+		assert.NotNil(t, s)
+
+		configId := s.ID
+		sandboxId, err := sandbox.GetSandboxID(s)
+		assert.NoError(t, err)
+
+		err = sandbox.Delete(
+			ctx,
 			sapiClient,
 			queueClient,
 			branch.ID,

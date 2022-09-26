@@ -38,7 +38,6 @@ func newParams(type_ string, opts ...Option) params {
 		Type:             type_,
 		Shared:           false,
 		ExpireAfterHours: 0,
-		Size:             SizeSmall,
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -52,7 +51,9 @@ func (p params) toMap() map[string]any {
 		"type":                 p.Type,
 		"shared":               p.Shared,
 		"expirationAfterHours": p.ExpireAfterHours,
-		"size":                 p.Size,
+	}
+	if len(p.Size) > 0 {
+		m["size"] = p.Size
 	}
 	if len(p.ImageVersion) > 0 {
 		m["imageVersion"] = p.ImageVersion
