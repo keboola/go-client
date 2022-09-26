@@ -39,7 +39,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 			queueClient,
 			branch.ID,
 			"test",
-			sandbox.Python,
+			sandbox.TypePython,
 			sandbox.WithExpireAfterHours(1),
 			sandbox.WithSize(sandbox.SizeMedium),
 		)
@@ -70,6 +70,20 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		)
 		assert.NoError(t, err)
 	}
+}
+
+func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, sapiClient, queueClient := clientsForAnEmptyProject(t)
+
+	// Get default branch
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, sapiClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, branch)
+
+	ctx, cancelFn := context.WithTimeout(ctx, time.Minute*10)
+	defer cancelFn()
 
 	// Create/delete Snowflake sandbox
 	{
@@ -79,7 +93,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 			queueClient,
 			branch.ID,
 			"test-snowflake",
-			sandbox.Snowflake,
+			sandbox.TypeSnowflake,
 			sandbox.WithExpireAfterHours(1),
 		)
 		assert.NoError(t, err)

@@ -38,22 +38,28 @@ var SizesMap = map[string]bool{
 }
 
 const (
-	Python    = "python"
-	Snowflake = "snowflake"
-	R         = "r"
+	TypeSnowflake = "snowflake"
+	TypePython    = "python"
+	TypeR         = "r"
 )
 
+var TypesOrdered = []string{
+	TypeSnowflake,
+	TypePython,
+	TypeR,
+}
+
 var TypesMap = map[string]bool{
-	Python:    true,
-	Snowflake: true,
-	R:         true,
+	TypeSnowflake: true,
+	TypePython:    true,
+	TypeR:         true,
 }
 
 func SupportsSizes(typ string) bool {
 	switch typ {
-	case Python:
+	case TypePython:
 		return true
-	case R:
+	case TypeR:
 		return true
 	default:
 		return false
