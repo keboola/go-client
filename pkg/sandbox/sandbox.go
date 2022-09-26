@@ -25,6 +25,47 @@ const (
 	SizeLarge  = "large"
 )
 
+var SizesOrdered = []string{
+	SizeSmall,
+	SizeMedium,
+	SizeLarge,
+}
+
+var SizesMap = map[string]bool{
+	SizeSmall:  true,
+	SizeMedium: true,
+	SizeLarge:  true,
+}
+
+const (
+	TypeSnowflake = "snowflake"
+	TypePython    = "python"
+	TypeR         = "r"
+)
+
+var TypesOrdered = []string{
+	TypeSnowflake,
+	TypePython,
+	TypeR,
+}
+
+var TypesMap = map[string]bool{
+	TypeSnowflake: true,
+	TypePython:    true,
+	TypeR:         true,
+}
+
+func SupportsSizes(typ string) bool {
+	switch typ {
+	case TypePython:
+		return true
+	case TypeR:
+		return true
+	default:
+		return false
+	}
+}
+
 func GetSandboxID(c *storageapi.Config) (SandboxID, error) {
 	id, found, err := c.Content.GetNested("parameters.id")
 	if err != nil {
