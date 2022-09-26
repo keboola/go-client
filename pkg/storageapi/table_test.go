@@ -30,7 +30,7 @@ func listTablesMock() client.Client {
 	c, transport := client.NewMockedClient()
 	transport.RegisterResponder(
 		"GET",
-		"v2/storage/branch/0/tables?include=",
+		"v2/storage/tables?include=",
 		newJsonResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -58,7 +58,7 @@ func listTablesMock() client.Client {
 	)
 	transport.RegisterResponder(
 		"GET",
-		"v2/storage/branch/0/tables?include=buckets%2Cmetadata",
+		"v2/storage/tables?include=buckets%2Cmetadata",
 		newJsonResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -133,16 +133,23 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
+	_, c := clientForAnEmptyProject(t)
+
+	tables, err := ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Len(t, *tables, 0)
+}
+
+func TestMockListTablesRequest(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
 	c := listTablesMock()
-	branchKey := BranchKey{ID: 0}
 
 	{
 		expected := &[]*Table{
 			{
-				TableKey: TableKey{
-					BranchID: branchKey.ID,
-					ID:       "in.c-keboola-ex-http-6336016.tmp1",
-				},
+				ID:             "in.c-keboola-ex-http-6336016.tmp1",
 				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				Name:           "tmp1",
 				DisplayName:    "tmp1",
@@ -159,7 +166,7 @@ func TestListTablesRequest(t *testing.T) {
 			},
 		}
 
-		actual, err := ListTablesRequest(branchKey).Send(ctx, c)
+		actual, err := ListTablesRequest().Send(ctx, c)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
@@ -167,10 +174,7 @@ func TestListTablesRequest(t *testing.T) {
 	{
 		expected := &[]*Table{
 			{
-				TableKey: TableKey{
-					BranchID: branchKey.ID,
-					ID:       "in.c-keboola-ex-http-6336016.tmp1",
-				},
+				ID:             "in.c-keboola-ex-http-6336016.tmp1",
 				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				Name:           "tmp1",
 				DisplayName:    "tmp1",
@@ -203,10 +207,7 @@ func TestListTablesRequest(t *testing.T) {
 				},
 				ColumnMetadata: nil,
 				Bucket: &Bucket{
-					BucketKey: BucketKey{
-						BranchID: branchKey.ID,
-						ID:       "in.c-keboola-ex-http-6336016",
-					},
+					ID:             "in.c-keboola-ex-http-6336016",
 					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
 					Name:           "c-keboola-ex-http-6336016",
 					DisplayName:    "keboola-ex-http-6336016",
@@ -221,7 +222,7 @@ func TestListTablesRequest(t *testing.T) {
 			},
 		}
 
-		actual, err := ListTablesRequest(branchKey, WithBuckets(), WithMetadata()).Send(ctx, c)
+		actual, err := ListTablesRequest(WithBuckets(), WithMetadata()).Send(ctx, c)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
