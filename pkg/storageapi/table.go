@@ -1,7 +1,6 @@
 package storageapi
 
 import (
-	"context"
 	"sort"
 	"strings"
 
@@ -14,18 +13,9 @@ func (v TableID) String() string {
 	return string(v)
 }
 
-type TableKey struct {
-	BranchID BranchID `json:"branchId"`
-	ID       TableID  `json:"id"`
-}
-
-func (k TableKey) ObjectId() any {
-	return k.ID
-}
-
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
-	TableKey
+	ID             TableID                   `json:"id"`
 	Uri            string                    `json:"uri"`
 	Name           string                    `json:"name"`
 	DisplayName    string                    `json:"displayName"`
@@ -77,7 +67,7 @@ func WithColumnMetadata() Option {
 	}
 }
 
-func ListTablesRequest(branch BranchKey, opts ...Option) client.APIRequest[*[]*Table] {
+func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
@@ -86,18 +76,8 @@ func ListTablesRequest(branch BranchKey, opts ...Option) client.APIRequest[*[]*T
 	result := make([]*Table, 0)
 	request := newRequest().
 		WithResult(&result).
-		WithGet("branch/{branchId}/tables").
-		AndPathParam("branchId", branch.ID.String()).
-		AndQueryParam("include", config.includeString()).
-		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
-			for _, table := range result {
-				table.BranchID = branch.ID
-				if table.Bucket != nil {
-					table.Bucket.BranchID = branch.ID
-				}
-			}
-			return nil
-		})
+		WithGet("tables").
+		AndQueryParam("include", config.includeString())
 
 	return client.NewAPIRequest(&result, request)
 }
