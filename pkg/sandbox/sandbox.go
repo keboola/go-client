@@ -168,13 +168,15 @@ func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
 	result := &Sandbox{}
 	request := newRequest().
 		WithResult(&result).
-		WithGet("{sandboxId}").
+		WithGet("sandboxes/{sandboxId}").
 		AndPathParam("sandboxId", sandboxId.String())
 	return client.NewAPIRequest(result, request)
 }
 
 func ListRequest() client.APIRequest[*[]*Sandbox] {
 	result := make([]*Sandbox, 0)
-	request := newRequest().WithResult(&result)
+	request := newRequest().
+		WithResult(&result).
+		WithGet("sandboxes")
 	return client.NewAPIRequest(&result, request)
 }

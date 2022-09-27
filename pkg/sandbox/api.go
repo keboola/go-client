@@ -24,5 +24,5 @@ func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Cl
 
 func newRequest() client.HTTPRequest {
 	// Create request and set default error type
-	return client.NewHTTPRequest().WithBaseURL("sandboxes").WithError(&Error{})
+	return client.NewHTTPRequest().WithError(&Error{})
 }

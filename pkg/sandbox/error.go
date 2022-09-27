@@ -7,10 +7,10 @@ import (
 
 // Error represents the structure of Storage API error.
 type Error struct {
-	Message  string `json:"messsage"`
-	ErrCode  string `json:"statusCode"`
-	request  *http.Request
-	response *http.Response
+	Message   string `json:"messsage"`
+	ErrorInfo string `json:"error"`
+	request   *http.Request
+	response  *http.Response
 }
 
 func (e Error) Error() string {
@@ -21,15 +21,12 @@ func (e Error) Error() string {
 		panic(fmt.Errorf("http response is not set"))
 	}
 	msg := fmt.Sprintf(`%s, method: "%s", url: "%s", httpCode: "%d"`, e.Message, e.request.Method, e.request.URL, e.StatusCode())
-	if len(e.ErrCode) > 0 {
-		msg += fmt.Sprintf(`, errCode: "%s"`, e.ErrCode)
-	}
 	return msg
 }
 
 // ErrorName returns a human-readable name of the error.
 func (e Error) ErrorName() string {
-	return e.ErrCode
+	return e.ErrorInfo
 }
 
 // ErrorUserMessage returns error message for end user.

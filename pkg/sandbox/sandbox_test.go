@@ -59,8 +59,15 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		// List sandboxes
 		instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
 		assert.NoError(t, err)
-		assert.Len(t, *instanceList, 1)
-		assert.Equal(t, *instance, (*instanceList)[0])
+		assert.GreaterOrEqual(t, len(*instanceList), 1, "Sandbox instance list was empty")
+		foundInstance := false
+		for _, v := range *instanceList {
+			if v.ID == instance.ID {
+				foundInstance = true
+				break
+			}
+		}
+		assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
 
 		// List sandbox config
 		configs, err := sandbox.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
@@ -122,8 +129,15 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// List sandboxes
 	instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
 	assert.NoError(t, err)
-	assert.Len(t, *instanceList, 1)
-	assert.Equal(t, *instance, (*instanceList)[0])
+	assert.GreaterOrEqual(t, len(*instanceList), 1, "Sandbox instance list was empty")
+	foundInstance := false
+	for _, v := range *instanceList {
+		if v.ID == instance.ID {
+			foundInstance = true
+			break
+		}
+	}
+	assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
 
 	// Delete sandbox (both config and instance)
 	err = sandbox.Delete(
