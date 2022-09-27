@@ -1,4 +1,4 @@
-package sandboxapi
+package sandboxesapi
 
 import (
 	"strings"

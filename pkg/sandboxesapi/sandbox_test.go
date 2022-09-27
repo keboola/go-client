@@ -1,4 +1,4 @@
-package sandboxapi_test
+package sandboxesapi_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
-	sandboxapi "github.com/keboola/go-client/pkg/sandbox"
+	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +23,8 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
-	var configId sandboxapi.ConfigID
-	var sandboxId sandboxapi.SandboxID
+	var configId sandboxesapi.ConfigID
+	var sandboxId sandboxesapi.SandboxID
 
 	ctx, cancelFn := context.WithTimeout(ctx, time.Minute*10)
 	defer cancelFn()
@@ -32,32 +32,32 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	// Create sandbox
 	{
 		// Create python sandbox
-		config, err := sandboxapi.Create(
+		config, err := sandboxesapi.Create(
 			ctx,
 			sapiClient,
 			queueClient,
 			branch.ID,
 			"test",
-			sandboxapi.TypePython,
-			sandboxapi.WithExpireAfterHours(1),
-			sandboxapi.WithSize(sandboxapi.SizeMedium),
+			sandboxesapi.TypePython,
+			sandboxesapi.WithExpireAfterHours(1),
+			sandboxesapi.WithSize(sandboxesapi.SizeMedium),
 		)
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 
-		id, err := sandboxapi.GetSandboxID(config)
+		id, err := sandboxesapi.GetSandboxID(config)
 		assert.NoError(t, err)
 
 		configId, sandboxId = config.ID, id
 
 		// Get sandbox
-		instance, err := sandboxapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
+		instance, err := sandboxesapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
 		assert.NoError(t, err)
 		assert.NotNil(t, instance)
 		assert.Equal(t, sandboxId, instance.ID)
 
 		// List sandboxes
-		instanceList, err := sandboxapi.ListRequest().Send(ctx, sandboxClient)
+		instanceList, err := sandboxesapi.ListRequest().Send(ctx, sandboxClient)
 		assert.NoError(t, err)
 		foundInstance := false
 		for _, v := range *instanceList {
@@ -69,7 +69,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
 
 		// List sandbox config
-		configs, err := sandboxapi.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
+		configs, err := sandboxesapi.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
 		assert.NoError(t, err)
 		assert.Len(t, *configs, 1)
 		assert.Equal(t, config, (*configs)[0])
@@ -77,7 +77,7 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 
 	// Delete sandbox
 	{
-		err := sandboxapi.Delete(
+		err := sandboxesapi.Delete(
 			ctx,
 			sapiClient,
 			queueClient,
@@ -103,30 +103,30 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	defer cancelFn()
 
 	// Create sandbox (both config and instance)
-	config, err := sandboxapi.Create(
+	config, err := sandboxesapi.Create(
 		ctx,
 		sapiClient,
 		queueClient,
 		branch.ID,
 		"test-snowflake",
-		sandboxapi.TypeSnowflake,
-		sandboxapi.WithExpireAfterHours(1),
+		sandboxesapi.TypeSnowflake,
+		sandboxesapi.WithExpireAfterHours(1),
 	)
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 
 	configId := config.ID
-	sandboxId, err := sandboxapi.GetSandboxID(config)
+	sandboxId, err := sandboxesapi.GetSandboxID(config)
 	assert.NoError(t, err)
 
 	// Get sandbox
-	instance, err := sandboxapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
+	instance, err := sandboxesapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, instance)
 	assert.Equal(t, sandboxId, instance.ID)
 
 	// List sandboxes
-	instanceList, err := sandboxapi.ListRequest().Send(ctx, sandboxClient)
+	instanceList, err := sandboxesapi.ListRequest().Send(ctx, sandboxClient)
 	assert.NoError(t, err)
 	foundInstance := false
 	for _, v := range *instanceList {
@@ -138,7 +138,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
 
 	// Delete sandbox (both config and instance)
-	err = sandboxapi.Delete(
+	err = sandboxesapi.Delete(
 		ctx,
 		sapiClient,
 		queueClient,
@@ -174,7 +174,7 @@ func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender
 	jobsQueueApiClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
 	// Get Sandbox client
-	sandboxApiClient := sandboxapi.ClientWithHostAndToken(client.NewTestClient(), sandboxHost.String(), project.StorageAPIToken())
+	sandboxApiClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxHost.String(), project.StorageAPIToken())
 
 	return project, storageApiClient, jobsQueueApiClient, sandboxApiClient
 }
