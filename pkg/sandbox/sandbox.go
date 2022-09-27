@@ -17,6 +17,29 @@ func (v SandboxID) String() string {
 	return string(v)
 }
 
+type Sandbox struct {
+	/* Created  Time      `json:"createdTimestamp"`
+	Updated  Time      `json:"updatedTimestamp"`
+	Start    Time      `json:"startTimestamp"` */
+	ID       SandboxID `json:"id"`
+	Type     string    `json:"type"`
+	Size     string    `json:"size"` // Only exists for container sandboxes (Python, R)
+	Active   bool      `json:"active"`
+	Shared   bool      `json:"shared"`
+	User     string    `json:"user"`
+	Host     string    `json:"host"`
+	Url      string    `json:"url"`
+	Password string    `json:"password"`
+	// Workspace details - only exists for Snowflake sandboxes
+	Details *struct {
+		Connection struct {
+			Database  string `json:"database"`
+			Schema    string `json:"schema"`
+			Warehouse string `json:"warehouse"`
+		} `json:"connection"`
+	} `json:"workspaceDetails"`
+}
+
 const Component = "keboola.sandboxes"
 
 const (
@@ -137,4 +160,13 @@ func Delete(
 	}
 
 	return nil
+}
+
+func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
+	sandbox := &Sandbox{}
+	request := newRequest().
+		WithResult(sandbox).
+		WithGet("{sandboxId}").
+		AndPathParam("sandboxId", sandboxId.String())
+	return client.NewAPIRequest(sandbox, request)
 }
