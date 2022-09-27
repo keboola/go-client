@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/keboola/go-client/pkg/client"
@@ -164,14 +163,16 @@ func Delete(
 }
 
 func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
-	sandbox := &Sandbox{}
-	data := ""
+	result := &Sandbox{}
 	request := newRequest().
-		WithResult(&data).
+		WithResult(&result).
 		WithGet("{sandboxId}").
-		AndPathParam("sandboxId", sandboxId.String()).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
-			return json.Unmarshal([]byte(data), sandbox)
-		})
-	return client.NewAPIRequest(sandbox, request)
+		AndPathParam("sandboxId", sandboxId.String())
+	return client.NewAPIRequest(result, request)
+}
+
+func ListRequest() client.APIRequest[*[]*Sandbox] {
+	result := make([]*Sandbox, 0)
+	request := newRequest().WithResult(&result)
+	return client.NewAPIRequest(&result, request)
 }

@@ -51,9 +51,16 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		configId, sandboxId = config.ID, id
 
 		// Get sandbox
-		s, err := sandbox.GetRequest(sandboxId).Send(ctx, sandboxClient)
+		instance, err := sandbox.GetRequest(sandboxId).Send(ctx, sandboxClient)
 		assert.NoError(t, err)
-		assert.NotNil(t, s)
+		assert.NotNil(t, instance)
+		assert.Equal(t, sandboxId, instance.ID)
+
+		// List sandboxes
+		instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
+		assert.NoError(t, err)
+		assert.Len(t, *instanceList, 1)
+		assert.Equal(t, *instance, (*instanceList)[0])
 
 		// List sandbox config
 		configs, err := sandbox.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
@@ -78,13 +85,6 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
-
-	/* data := `{"projectId":"9361","tokenId":"525443","lastAutosaveTimestamp":"2022-09-27T10:19:21+00:00","updatedTimestamp":"2022-09-27T10:19:21.736Z","persistentStorage":{"pvcName":null,"k8sManifest":null},"physicalId":"905768973","user":"user","configurationId":"905768948","shared":false,"url":"https://app.snowflake.com/us-west-2/keboola/worksheets","startTimestamp":"2022-09-27T10:19:18.636Z","active":true,"password":"password","host":"keboola.snowflakecomputing.com","id":"905768972","createdTimestamp":"2022-09-27T10:19:18.636Z","branchId":null,"type":"snowflake","workspaceDetails":{"connection":{"schema":"schema","warehouse":"warehouse","database":"database"}}}`
-	result := &sandbox.Sandbox{}
-	err := json.Unmarshal([]byte(data), result)
-	assert.NoError(t, err)
-	assert.Equal(t, "", result.ID) */
-
 	ctx := context.Background()
 	_, sapiClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
 
@@ -114,10 +114,16 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get sandbox
-	s, err := sandbox.GetRequest(sandboxId).Send(ctx, sandboxClient)
+	instance, err := sandbox.GetRequest(sandboxId).Send(ctx, sandboxClient)
 	assert.NoError(t, err)
-	assert.NotNil(t, s)
-	assert.Equal(t, sandboxId, s.ID)
+	assert.NotNil(t, instance)
+	assert.Equal(t, sandboxId, instance.ID)
+
+	// List sandboxes
+	instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
+	assert.NoError(t, err)
+	assert.Len(t, *instanceList, 1)
+	assert.Equal(t, *instance, (*instanceList)[0])
 
 	// Delete sandbox (both config and instance)
 	err = sandbox.Delete(
