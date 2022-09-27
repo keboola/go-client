@@ -7,11 +7,10 @@ import (
 
 // Error represents the structure of Storage API error.
 type Error struct {
-	Message     string `json:"messsage"`
-	ErrCode     string `json:"statusCode"`
-	ExceptionID string `json:"error"`
-	request     *http.Request
-	response    *http.Response
+	Message  string `json:"messsage"`
+	ErrCode  string `json:"statusCode"`
+	request  *http.Request
+	response *http.Response
 }
 
 func (e Error) Error() string {
@@ -25,9 +24,6 @@ func (e Error) Error() string {
 	if len(e.ErrCode) > 0 {
 		msg += fmt.Sprintf(`, errCode: "%s"`, e.ErrCode)
 	}
-	if len(e.ExceptionID) > 0 {
-		msg += fmt.Sprintf(`, exceptionId: "%s"`, e.ExceptionID)
-	}
 	return msg
 }
 
@@ -39,11 +35,6 @@ func (e Error) ErrorName() string {
 // ErrorUserMessage returns error message for end user.
 func (e Error) ErrorUserMessage() string {
 	return e.Message
-}
-
-// ErrorExceptionID returns exception ID to find details in logs.
-func (e Error) ErrorExceptionID() string {
-	return e.ExceptionID
 }
 
 // StatusCode returns HTTP status code.
