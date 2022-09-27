@@ -18,9 +18,6 @@ func (v SandboxID) String() string {
 }
 
 type Sandbox struct {
-	/* Created  Time      `json:"createdTimestamp"`
-	Updated  Time      `json:"updatedTimestamp"`
-	Start    Time      `json:"startTimestamp"` */
 	ID       SandboxID `json:"id"`
 	Type     string    `json:"type"`
 	Size     string    `json:"size"` // Only exists for container sandboxes (Python, R)
@@ -30,6 +27,9 @@ type Sandbox struct {
 	Host     string    `json:"host"`
 	Url      string    `json:"url"`
 	Password string    `json:"password"`
+	Created  Time      `json:"createdTimestamp"`
+	Updated  Time      `json:"updatedTimestamp"`
+	Start    Time      `json:"startTimestamp"`
 	// Workspace details - only exists for Snowflake sandboxes
 	Details *struct {
 		Connection struct {
