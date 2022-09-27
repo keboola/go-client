@@ -1,4 +1,4 @@
-package sandbox
+package sandboxapi
 
 import (
 	"context"

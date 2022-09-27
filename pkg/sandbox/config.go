@@ -1,4 +1,4 @@
-package sandbox
+package sandboxapi
 
 import (
 	"github.com/keboola/go-client/pkg/client"
