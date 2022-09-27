@@ -59,7 +59,6 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 		// List sandboxes
 		instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(*instanceList), 1, "Sandbox instance list was empty")
 		foundInstance := false
 		for _, v := range *instanceList {
 			if v.ID == instance.ID {
@@ -129,7 +128,6 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// List sandboxes
 	instanceList, err := sandbox.ListRequest().Send(ctx, sandboxClient)
 	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(*instanceList), 1, "Sandbox instance list was empty")
 	foundInstance := false
 	for _, v := range *instanceList {
 		if v.ID == instance.ID {
