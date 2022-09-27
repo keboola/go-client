@@ -31,13 +31,15 @@ type Sandbox struct {
 	Updated  Time      `json:"updatedTimestamp"`
 	Start    Time      `json:"startTimestamp"`
 	// Workspace details - only exists for Snowflake sandboxes
-	Details *struct {
-		Connection struct {
-			Database  string `json:"database"`
-			Schema    string `json:"schema"`
-			Warehouse string `json:"warehouse"`
-		} `json:"connection"`
-	} `json:"workspaceDetails"`
+	Details *Details `json:"workspaceDetails"`
+}
+
+type Details struct {
+	Connection struct {
+		Database  string `json:"database"`
+		Schema    string `json:"schema"`
+		Warehouse string `json:"warehouse"`
+	} `json:"connection"`
 }
 
 const Component = "keboola.sandboxes"
