@@ -1,13 +1,15 @@
 package storageapi
 
 import (
+	"context"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
 // Token https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
 type Token struct {
+	Token    string     // set manually from request
 	ID       string     `json:"id"`
-	Token    string     `json:"token"`
 	IsMaster bool       `json:"isMasterToken"`
 	Owner    TokenOwner `json:"owner"`
 }
@@ -35,6 +37,10 @@ func VerifyTokenRequest(token string) client.APIRequest[*Token] {
 	request := newRequest().
 		WithResult(result).
 		WithGet("tokens/verify").
-		AndHeader("X-StorageApi-Token", token)
+		AndHeader("X-StorageApi-Token", token).
+		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+			result.Token = token
+			return nil
+		})
 	return client.NewAPIRequest(result, request)
 }
