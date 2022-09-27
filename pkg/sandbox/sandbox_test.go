@@ -2,6 +2,7 @@ package sandbox_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -79,11 +80,11 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
 
-	/* data := `{"projectId":"9361","tokenId":"525443","lastAutosaveTimestamp":"2022-09-27T10:19:21+00:00","updatedTimestamp":"2022-09-27T10:19:21.736Z","persistentStorage":{"pvcName":null,"k8sManifest":null},"physicalId":"905768973","user":"user","configurationId":"905768948","shared":false,"url":"https://app.snowflake.com/us-west-2/keboola/worksheets","startTimestamp":"2022-09-27T10:19:18.636Z","active":true,"password":"password","host":"keboola.snowflakecomputing.com","id":"905768972","createdTimestamp":"2022-09-27T10:19:18.636Z","branchId":null,"type":"snowflake","workspaceDetails":{"connection":{"schema":"schema","warehouse":"warehouse","database":"database"}}}`
+	data := `{"projectId":"9361","tokenId":"525443","lastAutosaveTimestamp":"2022-09-27T10:19:21+00:00","updatedTimestamp":"2022-09-27T10:19:21.736Z","persistentStorage":{"pvcName":null,"k8sManifest":null},"physicalId":"905768973","user":"user","configurationId":"905768948","shared":false,"url":"https://app.snowflake.com/us-west-2/keboola/worksheets","startTimestamp":"2022-09-27T10:19:18.636Z","active":true,"password":"password","host":"keboola.snowflakecomputing.com","id":"905768972","createdTimestamp":"2022-09-27T10:19:18.636Z","branchId":null,"type":"snowflake","workspaceDetails":{"connection":{"schema":"schema","warehouse":"warehouse","database":"database"}}}`
 	result := &sandbox.Sandbox{}
 	err := json.Unmarshal([]byte(data), result)
 	assert.NoError(t, err)
-	assert.Equal(t, "", result) */
+	assert.Equal(t, "", result.ID)
 
 	ctx := context.Background()
 	_, sapiClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
