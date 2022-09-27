@@ -121,6 +121,27 @@ func TestJsonMapResult(t *testing.T) {
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
 
+func TestJsonMapResult_ContentTypeWithCharset(t *testing.T) {
+	t.Parallel()
+
+	// Mocked response
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder("GET", `https://example.com`, func(request *http.Request) (*http.Response, error) {
+		response := httpmock.NewBytesResponse(200, []byte(`{"foo":"bar"}`))
+		response.Header.Set("Content-Type", "application/json; charset=utf-8")
+		return response, nil
+	})
+
+	ctx := context.Background()
+	c := New().WithTransport(transport).WithRetry(TestingRetry())
+	resultDef := make(map[string]any)
+	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&resultDef).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Same(t, &resultDef, result)
+	assert.Equal(t, &map[string]any{"foo": "bar"}, result)
+	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
+}
+
 func TestJsonStructResult(t *testing.T) {
 	t.Parallel()
 
