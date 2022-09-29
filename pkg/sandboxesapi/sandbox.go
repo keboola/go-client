@@ -49,6 +49,14 @@ type SandboxWithConfig struct {
 	Config  *storageapi.Config
 }
 
+func (v SandboxWithConfig) String() string {
+	if SupportsSizes(v.Sandbox.Type) {
+		return fmt.Sprintf("ID: %s, Type: %s, Size: %s, Name: %s", v.Sandbox.ID, v.Sandbox.Type, v.Sandbox.Size, v.Config.Name)
+	} else {
+		return fmt.Sprintf("ID: %s, Type: %s, Name: %s", v.Sandbox.ID, v.Sandbox.Type, v.Config.Name)
+	}
+}
+
 const Component = "keboola.sandboxes"
 
 const (
