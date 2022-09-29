@@ -172,6 +172,7 @@ func TestMockListTablesRequest(t *testing.T) {
 	}
 
 	{
+		lastChangeDate := parseDate("2022-02-15T16:50:49+0100")
 		expected := &[]*Table{
 			{
 				ID:             "in.c-keboola-ex-http-6336016.tmp1",
@@ -214,7 +215,7 @@ func TestMockListTablesRequest(t *testing.T) {
 					Stage:          BucketStageIn,
 					Description:    "",
 					Created:        parseDate("2021-10-15T11:29:09+0200"),
-					LastChangeDate: parseDate("2022-02-15T16:50:49+0100"),
+					LastChangeDate: &lastChangeDate,
 					IsReadOnly:     false,
 					DataSizeBytes:  1536,
 					RowsCount:      6,
