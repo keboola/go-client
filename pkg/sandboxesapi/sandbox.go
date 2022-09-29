@@ -3,7 +3,9 @@ package sandboxesapi
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
@@ -40,6 +42,11 @@ type Details struct {
 		Schema    string `json:"schema"`
 		Warehouse string `json:"warehouse"`
 	} `json:"connection"`
+}
+
+type SandboxWithConfig struct {
+	Sandbox *Sandbox
+	Config  *storageapi.Config
 }
 
 const Component = "keboola.sandboxes"
@@ -112,11 +119,12 @@ func Create(
 	ctx context.Context,
 	sapiClient client.Sender,
 	queueClient client.Sender,
+	sandboxClient client.Sender,
 	branchId BranchID,
 	sandboxName string,
 	sandboxType string,
 	opts ...Option,
-) (*storageapi.Config, error) {
+) (*SandboxWithConfig, error) {
 	// Create sandbox config
 	emptyConfig, err := CreateConfigRequest(branchId, sandboxName).Send(ctx, sapiClient)
 	if err != nil {
@@ -129,16 +137,13 @@ func Create(
 		return nil, err
 	}
 
-	// Get sandbox config
-	// The initial config does not have the sandbox id, because the sandbox has not been created yet,
-	// so we need to fetch the sandbox config after the sandbox create job finishes.
-	// The sandbox id is separate from the sandbox config id, and we need both to delete the sandbox.
-	config, err := GetConfigRequest(branchId, emptyConfig.ID).Send(ctx, sapiClient)
+	// Get sandbox
+	sandbox, err := Get(ctx, sapiClient, sandboxClient, branchId, emptyConfig.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return sandbox, nil
 }
 
 func Delete(
@@ -164,7 +169,103 @@ func Delete(
 	return nil
 }
 
-func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
+func Get(
+	ctx context.Context,
+	sapiClient client.Sender,
+	sandboxClient client.Sender,
+	branchId BranchID,
+	configId ConfigID,
+) (*SandboxWithConfig, error) {
+	config, err := GetConfigRequest(branchId, configId).Send(ctx, sapiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	sandboxId, err := GetSandboxID(config)
+	if err != nil {
+		return nil, err
+	}
+
+	sandbox, err := GetInstanceRequest(sandboxId).Send(ctx, sandboxClient)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &SandboxWithConfig{
+		Sandbox: sandbox,
+		Config:  config,
+	}
+	return out, nil
+}
+
+func List(
+	ctx context.Context,
+	sapiClient client.Sender,
+	sandboxClient client.Sender,
+	branchId BranchID,
+) ([]*SandboxWithConfig, error) {
+	// List configs and instances in parallel
+	var configs []*storageapi.Config
+	var instances map[string]*Sandbox
+	errors := make(chan error, 2)
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		data, err := ListConfigRequest(branchId).Send(ctx, sapiClient)
+		if err != nil {
+			errors <- err
+			return
+		}
+		configs = *data
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		data, err := ListInstancesRequest().Send(ctx, sandboxClient)
+		if err != nil {
+			errors <- err
+			return
+		}
+		m := make(map[string]*Sandbox, 0)
+		for _, sandbox := range *data {
+			m[sandbox.ID.String()] = sandbox
+		}
+		instances = m
+	}()
+
+	wg.Wait()
+
+	// Collect errors
+	close(errors)
+	var err error
+	for e := range errors {
+		err = multierror.Append(err, e)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine config and instance lists
+	out := make([]*SandboxWithConfig, len(configs))
+	for _, config := range configs {
+		sandboxId, err := GetSandboxID(config)
+		if err != nil {
+			// invalid configurations are ignored
+			continue
+		}
+		out = append(out, &SandboxWithConfig{
+			Sandbox: instances[sandboxId.String()],
+			Config:  config,
+		})
+	}
+	return out, nil
+
+}
+
+func GetInstanceRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
 	result := &Sandbox{}
 	request := newRequest().
 		WithResult(&result).
@@ -173,7 +274,7 @@ func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
 	return client.NewAPIRequest(result, request)
 }
 
-func ListRequest() client.APIRequest[*[]*Sandbox] {
+func ListInstancesRequest() client.APIRequest[*[]*Sandbox] {
 	result := make([]*Sandbox, 0)
 	request := newRequest().
 		WithResult(&result).

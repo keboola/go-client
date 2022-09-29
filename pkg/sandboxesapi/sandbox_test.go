@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateAndDeleteSandbox(t *testing.T) {
+func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, sapiClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
@@ -23,70 +23,46 @@ func TestCreateAndDeleteSandbox(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
-	var configId sandboxesapi.ConfigID
-	var sandboxId sandboxesapi.SandboxID
-
 	ctx, cancelFn := context.WithTimeout(ctx, time.Minute*10)
 	defer cancelFn()
 
 	// Create sandbox
-	{
-		// Create python sandbox
-		config, err := sandboxesapi.Create(
-			ctx,
-			sapiClient,
-			queueClient,
-			branch.ID,
-			"test",
-			sandboxesapi.TypePython,
-			sandboxesapi.WithExpireAfterHours(1),
-			sandboxesapi.WithSize(sandboxesapi.SizeMedium),
-		)
-		assert.NoError(t, err)
-		assert.NotNil(t, config)
+	sandbox, err := sandboxesapi.Create(
+		ctx,
+		sapiClient,
+		queueClient,
+		sandboxClient,
+		branch.ID,
+		"test",
+		sandboxesapi.TypePython,
+		sandboxesapi.WithExpireAfterHours(1),
+		sandboxesapi.WithSize(sandboxesapi.SizeMedium),
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, sandbox)
 
-		id, err := sandboxesapi.GetSandboxID(config)
-		assert.NoError(t, err)
-
-		configId, sandboxId = config.ID, id
-
-		// Get sandbox
-		instance, err := sandboxesapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
-		assert.NoError(t, err)
-		assert.NotNil(t, instance)
-		assert.Equal(t, sandboxId, instance.ID)
-
-		// List sandboxes
-		instanceList, err := sandboxesapi.ListRequest().Send(ctx, sandboxClient)
-		assert.NoError(t, err)
-		foundInstance := false
-		for _, v := range *instanceList {
-			if v.ID == instance.ID {
-				foundInstance = true
-				break
-			}
+	// List sandboxes - try to find the one we just created
+	sandboxes, err := sandboxesapi.List(ctx, sapiClient, sandboxClient, branch.ID)
+	assert.NoError(t, err)
+	foundInstance := false
+	for _, v := range sandboxes {
+		if sandbox.Sandbox.ID == v.Sandbox.ID {
+			foundInstance = true
+			break
 		}
-		assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
-
-		// List sandbox config
-		configs, err := sandboxesapi.ListConfigRequest(branch.ID).Send(ctx, sapiClient)
-		assert.NoError(t, err)
-		assert.Len(t, *configs, 1)
-		assert.Equal(t, config, (*configs)[0])
 	}
+	assert.True(t, foundInstance, "Sandbox list did not find created sandbox")
 
 	// Delete sandbox
-	{
-		err := sandboxesapi.Delete(
-			ctx,
-			sapiClient,
-			queueClient,
-			branch.ID,
-			configId,
-			sandboxId,
-		)
-		assert.NoError(t, err)
-	}
+	err = sandboxesapi.Delete(
+		ctx,
+		sapiClient,
+		queueClient,
+		branch.ID,
+		sandbox.Config.ID,
+		sandbox.Sandbox.ID,
+	)
+	assert.NoError(t, err)
 }
 
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
@@ -102,49 +78,40 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	ctx, cancelFn := context.WithTimeout(ctx, time.Minute*10)
 	defer cancelFn()
 
-	// Create sandbox (both config and instance)
-	config, err := sandboxesapi.Create(
+	// Create sandbox
+	sandbox, err := sandboxesapi.Create(
 		ctx,
 		sapiClient,
 		queueClient,
+		sandboxClient,
 		branch.ID,
 		"test-snowflake",
 		sandboxesapi.TypeSnowflake,
 		sandboxesapi.WithExpireAfterHours(1),
 	)
 	assert.NoError(t, err)
-	assert.NotNil(t, config)
+	assert.NotNil(t, sandbox)
 
-	configId := config.ID
-	sandboxId, err := sandboxesapi.GetSandboxID(config)
-	assert.NoError(t, err)
-
-	// Get sandbox
-	instance, err := sandboxesapi.GetRequest(sandboxId).Send(ctx, sandboxClient)
-	assert.NoError(t, err)
-	assert.NotNil(t, instance)
-	assert.Equal(t, sandboxId, instance.ID)
-
-	// List sandboxes
-	instanceList, err := sandboxesapi.ListRequest().Send(ctx, sandboxClient)
+	// List sandboxes - try to find the one we just created
+	sandboxes, err := sandboxesapi.List(ctx, sapiClient, sandboxClient, branch.ID)
 	assert.NoError(t, err)
 	foundInstance := false
-	for _, v := range *instanceList {
-		if v.ID == instance.ID {
+	for _, v := range sandboxes {
+		if sandbox.Sandbox.ID == v.Sandbox.ID {
 			foundInstance = true
 			break
 		}
 	}
-	assert.True(t, foundInstance, "Sandbox instance list did not contain created instance")
+	assert.True(t, foundInstance, "Sandbox list did not find created sandbox")
 
-	// Delete sandbox (both config and instance)
+	// Delete sandbox
 	err = sandboxesapi.Delete(
 		ctx,
 		sapiClient,
 		queueClient,
 		branch.ID,
-		configId,
-		sandboxId,
+		sandbox.Config.ID,
+		sandbox.Sandbox.ID,
 	)
 	assert.NoError(t, err)
 }
