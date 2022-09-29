@@ -189,7 +189,7 @@ func List(
 			errors <- err
 			return
 		}
-		m := make(map[string]*Sandbox, 0)
+		m := make(map[string]*Sandbox, len(*data))
 		for _, sandbox := range *data {
 			m[sandbox.ID.String()] = sandbox
 		}
