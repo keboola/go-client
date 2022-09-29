@@ -209,13 +209,14 @@ func List(
 	}
 
 	// Combine config and instance lists
-	out := make([]*SandboxWithConfig, len(configs))
+	out := make([]*SandboxWithConfig, 0)
 	for _, config := range configs {
 		sandboxId, err := GetSandboxID(config)
 		if err != nil {
 			// invalid configurations are ignored
 			continue
 		}
+
 		out = append(out, &SandboxWithConfig{
 			Sandbox: instances[sandboxId.String()],
 			Config:  config,
