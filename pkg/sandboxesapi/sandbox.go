@@ -3,7 +3,9 @@ package sandboxesapi
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
@@ -11,35 +13,17 @@ import (
 type BranchID = storageapi.BranchID
 type ConfigID = storageapi.ConfigID
 
-type SandboxID string
-
-func (v SandboxID) String() string {
-	return string(v)
+type SandboxWithConfig struct {
+	Sandbox *Sandbox
+	Config  *storageapi.Config
 }
 
-type Sandbox struct {
-	ID       SandboxID `json:"id"`
-	Type     string    `json:"type"`
-	Size     string    `json:"size"` // Only exists for container sandboxes (Python, R)
-	Active   bool      `json:"active"`
-	Shared   bool      `json:"shared"`
-	User     string    `json:"user"`
-	Host     string    `json:"host"`
-	Url      string    `json:"url"`
-	Password string    `json:"password"`
-	Created  Time      `json:"createdTimestamp"`
-	Updated  Time      `json:"updatedTimestamp"`
-	Start    Time      `json:"startTimestamp"`
-	// Workspace details - only exists for Snowflake sandboxes
-	Details *Details `json:"workspaceDetails"`
-}
-
-type Details struct {
-	Connection struct {
-		Database  string `json:"database"`
-		Schema    string `json:"schema"`
-		Warehouse string `json:"warehouse"`
-	} `json:"connection"`
+func (v SandboxWithConfig) String() string {
+	if SupportsSizes(v.Sandbox.Type) {
+		return fmt.Sprintf("ID: %s, Type: %s, Size: %s, Name: %s", v.Sandbox.ID, v.Sandbox.Type, v.Sandbox.Size, v.Config.Name)
+	} else {
+		return fmt.Sprintf("ID: %s, Type: %s, Name: %s", v.Sandbox.ID, v.Sandbox.Type, v.Config.Name)
+	}
 }
 
 const Component = "keboola.sandboxes"
@@ -91,34 +75,18 @@ func SupportsSizes(typ string) bool {
 	}
 }
 
-func GetSandboxID(c *storageapi.Config) (SandboxID, error) {
-	id, found, err := c.Content.GetNested("parameters.id")
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		return "", fmt.Errorf("config is missing sandboxId")
-	}
-
-	out, ok := id.(string)
-	if !ok {
-		return "", fmt.Errorf("config.parameters.id is not a string")
-	}
-
-	return SandboxID(out), nil
-}
-
 func Create(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	queueClient client.Sender,
+	sandboxClient client.Sender,
 	branchId BranchID,
 	sandboxName string,
 	sandboxType string,
 	opts ...Option,
-) (*storageapi.Config, error) {
+) (*SandboxWithConfig, error) {
 	// Create sandbox config
-	emptyConfig, err := CreateConfigRequest(branchId, sandboxName).Send(ctx, sapiClient)
+	emptyConfig, err := CreateConfigRequest(branchId, sandboxName).Send(ctx, storageClient)
 	if err != nil {
 		return nil, err
 	}
@@ -129,21 +97,18 @@ func Create(
 		return nil, err
 	}
 
-	// Get sandbox config
-	// The initial config does not have the sandbox id, because the sandbox has not been created yet,
-	// so we need to fetch the sandbox config after the sandbox create job finishes.
-	// The sandbox id is separate from the sandbox config id, and we need both to delete the sandbox.
-	config, err := GetConfigRequest(branchId, emptyConfig.ID).Send(ctx, sapiClient)
+	// Get sandbox
+	sandbox, err := Get(ctx, storageClient, sandboxClient, branchId, emptyConfig.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return sandbox, nil
 }
 
 func Delete(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	queueClient client.Sender,
 	branchId BranchID,
 	configId ConfigID,
@@ -156,7 +121,7 @@ func Delete(
 	}
 
 	// Delete sandbox config (so it is no longer visible in UI)
-	_, err = DeleteConfigRequest(branchId, configId).Send(ctx, sapiClient)
+	_, err = DeleteConfigRequest(branchId, configId).Send(ctx, storageClient)
 	if err != nil {
 		return err
 	}
@@ -164,19 +129,98 @@ func Delete(
 	return nil
 }
 
-func GetRequest(sandboxId SandboxID) client.APIRequest[*Sandbox] {
-	result := &Sandbox{}
-	request := newRequest().
-		WithResult(&result).
-		WithGet("sandboxes/{sandboxId}").
-		AndPathParam("sandboxId", sandboxId.String())
-	return client.NewAPIRequest(result, request)
+func Get(
+	ctx context.Context,
+	storageClient client.Sender,
+	sandboxClient client.Sender,
+	branchId BranchID,
+	configId ConfigID,
+) (*SandboxWithConfig, error) {
+	config, err := GetConfigRequest(branchId, configId).Send(ctx, storageClient)
+	if err != nil {
+		return nil, err
+	}
+
+	sandboxId, err := GetSandboxID(config)
+	if err != nil {
+		return nil, err
+	}
+
+	sandbox, err := GetInstanceRequest(sandboxId).Send(ctx, sandboxClient)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &SandboxWithConfig{
+		Sandbox: sandbox,
+		Config:  config,
+	}
+	return out, nil
 }
 
-func ListRequest() client.APIRequest[*[]*Sandbox] {
-	result := make([]*Sandbox, 0)
-	request := newRequest().
-		WithResult(&result).
-		WithGet("sandboxes")
-	return client.NewAPIRequest(&result, request)
+func List(
+	ctx context.Context,
+	storageClient client.Sender,
+	sandboxClient client.Sender,
+	branchId BranchID,
+) ([]*SandboxWithConfig, error) {
+	// List configs and instances in parallel
+	var configs []*storageapi.Config
+	var instances map[string]*Sandbox
+	errors := make(chan error, 2)
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		data, err := ListConfigRequest(branchId).Send(ctx, storageClient)
+		if err != nil {
+			errors <- err
+			return
+		}
+		configs = *data
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		data, err := ListInstancesRequest().Send(ctx, sandboxClient)
+		if err != nil {
+			errors <- err
+			return
+		}
+		m := make(map[string]*Sandbox, len(*data))
+		for _, sandbox := range *data {
+			m[sandbox.ID.String()] = sandbox
+		}
+		instances = m
+	}()
+
+	wg.Wait()
+
+	// Collect errors
+	close(errors)
+	var err error
+	for e := range errors {
+		err = multierror.Append(err, e)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine config and instance lists
+	out := make([]*SandboxWithConfig, 0)
+	for _, config := range configs {
+		sandboxId, err := GetSandboxID(config)
+		if err != nil {
+			// invalid configurations are ignored
+			continue
+		}
+
+		out = append(out, &SandboxWithConfig{
+			Sandbox: instances[sandboxId.String()],
+			Config:  config,
+		})
+	}
+	return out, nil
 }
