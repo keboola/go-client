@@ -135,9 +135,9 @@ func TestListTablesRequest(t *testing.T) {
 	ctx := context.Background()
 	_, c := clientForAnEmptyProject(t)
 
-	_, err := ListTablesRequest().Send(ctx, c)
+	tables, err := ListTablesRequest().Send(ctx, c)
 	assert.NoError(t, err)
-	// assert.Len(t, *tables, 0) - sometimes returns non-zero because we don't clean tables
+	assert.Len(t, *tables, 0)
 }
 
 func TestMockListTablesRequest(t *testing.T) {
