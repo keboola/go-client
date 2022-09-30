@@ -102,7 +102,7 @@ func DeleteBucketRequest(bucketID BucketID, opts ...DeleteBucketOption) client.A
 		WithDelete("buckets/{bucketId}").
 		AndPathParam("bucketId", string(bucketID))
 	if c.force {
-		request.AndQueryParam("force", "true")
+		request = request.AndQueryParam("force", "true")
 	}
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
