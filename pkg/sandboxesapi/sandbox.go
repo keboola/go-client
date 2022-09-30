@@ -77,7 +77,7 @@ func SupportsSizes(typ string) bool {
 
 func Create(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	queueClient client.Sender,
 	sandboxClient client.Sender,
 	branchId BranchID,
@@ -86,7 +86,7 @@ func Create(
 	opts ...Option,
 ) (*SandboxWithConfig, error) {
 	// Create sandbox config
-	emptyConfig, err := CreateConfigRequest(branchId, sandboxName).Send(ctx, sapiClient)
+	emptyConfig, err := CreateConfigRequest(branchId, sandboxName).Send(ctx, storageClient)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func Create(
 	}
 
 	// Get sandbox
-	sandbox, err := Get(ctx, sapiClient, sandboxClient, branchId, emptyConfig.ID)
+	sandbox, err := Get(ctx, storageClient, sandboxClient, branchId, emptyConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func Create(
 
 func Delete(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	queueClient client.Sender,
 	branchId BranchID,
 	configId ConfigID,
@@ -121,7 +121,7 @@ func Delete(
 	}
 
 	// Delete sandbox config (so it is no longer visible in UI)
-	_, err = DeleteConfigRequest(branchId, configId).Send(ctx, sapiClient)
+	_, err = DeleteConfigRequest(branchId, configId).Send(ctx, storageClient)
 	if err != nil {
 		return err
 	}
@@ -131,12 +131,12 @@ func Delete(
 
 func Get(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	sandboxClient client.Sender,
 	branchId BranchID,
 	configId ConfigID,
 ) (*SandboxWithConfig, error) {
-	config, err := GetConfigRequest(branchId, configId).Send(ctx, sapiClient)
+	config, err := GetConfigRequest(branchId, configId).Send(ctx, storageClient)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func Get(
 
 func List(
 	ctx context.Context,
-	sapiClient client.Sender,
+	storageClient client.Sender,
 	sandboxClient client.Sender,
 	branchId BranchID,
 ) ([]*SandboxWithConfig, error) {
@@ -173,7 +173,7 @@ func List(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		data, err := ListConfigRequest(branchId).Send(ctx, sapiClient)
+		data, err := ListConfigRequest(branchId).Send(ctx, storageClient)
 		if err != nil {
 			errors <- err
 			return

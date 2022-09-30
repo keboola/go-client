@@ -16,10 +16,10 @@ import (
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, sapiClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	_, storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, sapiClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -29,7 +29,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	// Create sandbox
 	sandbox, err := sandboxesapi.Create(
 		ctx,
-		sapiClient,
+		storageClient,
 		queueClient,
 		sandboxClient,
 		branch.ID,
@@ -42,7 +42,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	assert.NotNil(t, sandbox)
 
 	// List sandboxes - try to find the one we just created
-	sandboxes, err := sandboxesapi.List(ctx, sapiClient, sandboxClient, branch.ID)
+	sandboxes, err := sandboxesapi.List(ctx, storageClient, sandboxClient, branch.ID)
 	assert.NoError(t, err)
 	foundInstance := false
 	for _, v := range sandboxes {
@@ -56,7 +56,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	// Delete sandbox
 	err = sandboxesapi.Delete(
 		ctx,
-		sapiClient,
+		storageClient,
 		queueClient,
 		branch.ID,
 		sandbox.Config.ID,
@@ -68,10 +68,10 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, sapiClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	_, storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, sapiClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -81,7 +81,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// Create sandbox
 	sandbox, err := sandboxesapi.Create(
 		ctx,
-		sapiClient,
+		storageClient,
 		queueClient,
 		sandboxClient,
 		branch.ID,
@@ -93,7 +93,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.NotNil(t, sandbox)
 
 	// List sandboxes - try to find the one we just created
-	sandboxes, err := sandboxesapi.List(ctx, sapiClient, sandboxClient, branch.ID)
+	sandboxes, err := sandboxesapi.List(ctx, storageClient, sandboxClient, branch.ID)
 	assert.NoError(t, err)
 	foundInstance := false
 	for _, v := range sandboxes {
@@ -107,7 +107,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// Delete sandbox
 	err = sandboxesapi.Delete(
 		ctx,
-		sapiClient,
+		storageClient,
 		queueClient,
 		branch.ID,
 		sandbox.Config.ID,
