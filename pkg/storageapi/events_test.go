@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/keboola/go-client/pkg/storageapi"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestSendEvent(t *testing.T) {

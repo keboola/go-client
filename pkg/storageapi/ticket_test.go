@@ -5,8 +5,9 @@ import (
 	"sort"
 	"testing"
 
-	. "github.com/keboola/go-client/pkg/storageapi"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestGenerateNewId(t *testing.T) {

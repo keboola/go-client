@@ -11,9 +11,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/jarcoal/httpmock"
-	. "github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/keboola/go-client/pkg/client"
 )
 
 func TestTrace(t *testing.T) {

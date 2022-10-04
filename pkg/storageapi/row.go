@@ -1,8 +1,9 @@
 package storageapi
 
 import (
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/orderedmap"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 // RowID is id of configuration row.

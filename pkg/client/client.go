@@ -287,7 +287,6 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		}
 		*v = bodyBytes
 		return v, nil, nil
-
 	} else if v, ok := resultDef.(*string); ok {
 		// Load response body as string
 		bodyBytes, err := io.ReadAll(decodedBody)
@@ -296,7 +295,6 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		}
 		*v = string(bodyBytes)
 		return v, nil, nil
-
 	} else if v, ok := resultDef.(io.WriteCloser); ok {
 		// Stream response to io.WriteCloser
 		if _, err := io.Copy(v, decodedBody); err != nil {
@@ -318,22 +316,24 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 				return nil, nil, fmt.Errorf(`cannot decode JSON result: %w`, err)
 			}
 			return resultDef, nil, nil
-
 		} else if r.StatusCode > 399 && errDef != nil {
 			// Map JSON response to defined error
 			if err := json.NewDecoder(decodedBody).Decode(errDef); err != nil {
 				return nil, nil, fmt.Errorf(`cannot decode JSON error: %w`, err)
 			}
 			// Set HTTP request
-			if v, ok := errDef.(errorWithRequest); ok {
-				v.SetRequest(r.Request)
+			var errWithReq errorWithRequest
+			if errors.As(errDef, &errWithReq) {
+				errWithReq.SetRequest(r.Request)
+				errDef = errWithReq
 			}
 			// Set HTTP response
-			if v, ok := errDef.(errorWithResponse); ok {
-				v.SetResponse(r)
+			var errWithRes errorWithResponse
+			if errors.As(errDef, &errWithRes) {
+				errWithRes.SetResponse(r)
+				errDef = errWithRes
 			}
 			return nil, errDef, nil
-
 		}
 	}
 	return nil, nil, nil

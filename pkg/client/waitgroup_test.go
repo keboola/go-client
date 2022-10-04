@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 func TestWaitGroup(t *testing.T) {

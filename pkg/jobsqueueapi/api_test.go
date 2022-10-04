@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/jobsqueueapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestJobsQueueApiCalls(t *testing.T) {
@@ -110,6 +111,8 @@ HTTP_REQUEST[0003] BODY  GET "https://example.com/jobs/1234" | %s
 }
 
 func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
+	t.Helper()
+
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// TimeFormat used in Storage API
+// TimeFormat used in Storage API.
 const TimeFormat = "2006-01-02T15:04:05-07:00"
 
 // Time is encoded/decoded in TimeFormat used in Storage API.

@@ -5,8 +5,9 @@ import (
 	"net/url"
 	"testing"
 
-	. "github.com/keboola/go-client/pkg/storageapi"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestErrorMsg1(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
@@ -34,12 +35,14 @@ const (
 	SizeLarge  = "large"
 )
 
+//nolint:gochecknoglobals
 var SizesOrdered = []string{
 	SizeSmall,
 	SizeMedium,
 	SizeLarge,
 }
 
+//nolint:gochecknoglobals
 var SizesMap = map[string]bool{
 	SizeSmall:  true,
 	SizeMedium: true,
@@ -52,12 +55,14 @@ const (
 	TypeR         = "r"
 )
 
+//nolint:gochecknoglobals
 var TypesOrdered = []string{
 	TypeSnowflake,
 	TypePython,
 	TypeR,
 }
 
+//nolint:gochecknoglobals
 var TypesMap = map[string]bool{
 	TypeSnowflake: true,
 	TypePython:    true,

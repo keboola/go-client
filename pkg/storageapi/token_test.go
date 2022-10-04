@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	. "github.com/keboola/go-client/pkg/storageapi"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestVerifyToken(t *testing.T) {

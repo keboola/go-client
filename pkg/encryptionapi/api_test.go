@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/encryptionapi"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEncryptRequest(t *testing.T) {

@@ -15,7 +15,7 @@ import (
 func TestConfigApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForAnEmptyProject(t)
+	c := clientForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := GetDefaultBranchRequest().Send(ctx, c)

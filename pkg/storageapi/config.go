@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/orderedmap"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 // ConfigID represents an ID of a configuration in Storage API.
