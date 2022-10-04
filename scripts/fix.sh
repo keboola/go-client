@@ -7,29 +7,22 @@ set -o pipefail         # Use last non-zero exit code in a pipeline
 #set -o xtrace          # Trace the execution of the script (debug)
 
 # Check the most important problems first
-echo "Running go vet ..."
 if ! go vet ./pkg/...; then
-    echo "Please fix ^^^ errors. You can try run \"make fix\"."
+    echo "Please fix ^^^ errors."
     echo
     exit 1
 fi
 
-# Check modules
-echo "Running go mod tidy/verify ..."
+# Fix modules
 go mod tidy
-git diff --exit-code -- go.mod go.sum
-go mod verify
-echo "Ok. go.mod and go.sum are valid."
-echo
+go mod vendor
 
-
-# Run linters
-echo "Running golangci-lint ..."
-if golangci-lint run --timeout=2m0s -c "./build/ci/golangci.yml"; then
+# Fix linters
+if golangci-lint run --fix -c "./build/ci/golangci.yml"; then
     echo "Ok. The code looks good."
     echo
 else
-    echo "Please fix ^^^ errors. You can try run \"make fix\"."
+    echo "Some errors ^^^ cannot be fixed. Please fix them manually."
     echo
     exit 1
 fi
