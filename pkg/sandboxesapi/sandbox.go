@@ -11,8 +11,10 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
-type BranchID = storageapi.BranchID
-type ConfigID = storageapi.ConfigID
+type (
+	BranchID = storageapi.BranchID
+	ConfigID = storageapi.ConfigID
+)
 
 type SandboxWithConfig struct {
 	Sandbox *Sandbox
