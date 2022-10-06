@@ -37,18 +37,20 @@ const (
 	SizeLarge  = "large"
 )
 
-//nolint:gochecknoglobals
-var SizesOrdered = []string{
-	SizeSmall,
-	SizeMedium,
-	SizeLarge,
+func SizesOrdered() []string {
+	return []string{
+		SizeSmall,
+		SizeMedium,
+		SizeLarge,
+	}
 }
 
-//nolint:gochecknoglobals
-var SizesMap = map[string]bool{
-	SizeSmall:  true,
-	SizeMedium: true,
-	SizeLarge:  true,
+func SizesMap() map[string]bool {
+	return map[string]bool{
+		SizeSmall:  true,
+		SizeMedium: true,
+		SizeLarge:  true,
+	}
 }
 
 const (
@@ -57,18 +59,20 @@ const (
 	TypeR         = "r"
 )
 
-//nolint:gochecknoglobals
-var TypesOrdered = []string{
-	TypeSnowflake,
-	TypePython,
-	TypeR,
+func TypesOrdered() []string {
+	return []string{
+		TypeSnowflake,
+		TypePython,
+		TypeR,
+	}
 }
 
-//nolint:gochecknoglobals
-var TypesMap = map[string]bool{
-	TypeSnowflake: true,
-	TypePython:    true,
-	TypeR:         true,
+func TypesMap() map[string]bool {
+	return map[string]bool{
+		TypeSnowflake: true,
+		TypePython:    true,
+		TypeR:         true,
+	}
 }
 
 func SupportsSizes(typ string) bool {
