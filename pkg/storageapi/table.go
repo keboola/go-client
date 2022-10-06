@@ -1,6 +1,7 @@
 package storageapi
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -70,6 +71,7 @@ func WithColumnMetadata() Option {
 	}
 }
 
+// ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
@@ -83,4 +85,21 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 		AndQueryParam("include", config.includeString())
 
 	return client.NewAPIRequest(&result, request)
+}
+
+// CreateTableRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
+func CreateTableRequest(table *Table) client.APIRequest[*Table] {
+	params := map[string]string{
+		"name": table.Name,
+	}
+	if len(table.PrimaryKey) > 0 {
+		params["primaryKey"] = strings.Join(table.PrimaryKey, ",")
+	}
+
+	request := newRequest().
+		WithResult(table).
+		WithPost(fmt.Sprintf("buckets/%s/tables", table.Bucket.ID)).
+		WithMultipartBody(params, []byte(strings.Join(table.Columns, ",")))
+
+	return client.NewAPIRequest(table, request)
 }

@@ -2,6 +2,8 @@ package storageapi_test
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -227,4 +229,36 @@ func TestMockListTablesRequest(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
+}
+
+func TestTableApiCalls(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := clientForAnEmptyProject(t)
+
+	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	tableName := fmt.Sprintf("test_%d", rand.Int())
+
+	bucket := &Bucket{
+		Name:  bucketName,
+		Stage: "in",
+	}
+
+	// Create bucket
+	resCreate, err := CreateBucketRequest(bucket).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resCreate)
+
+	table := &Table{
+		ID:         TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName)),
+		Bucket:     bucket,
+		Name:       tableName,
+		Columns:    []string{"first", "second", "third", "fourth"},
+		PrimaryKey: []string{"first", "fourth"},
+	}
+
+	// Create table
+	res, err := CreateTableRequest(table).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, nil, res)
 }
