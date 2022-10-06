@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/orderedmap"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 // ConfigID represents an ID of a configuration in Storage API.
@@ -170,14 +171,13 @@ func UpdateConfigRequest(config *Config, changedFields []string) client.APIReque
 	}
 
 	// Update config
-	request :=
-		newRequest().
-			WithResult(config).
-			WithPut("branch/{branchId}/components/{componentId}/configs/{configId}").
-			AndPathParam("branchId", config.BranchID.String()).
-			AndPathParam("componentId", string(config.ComponentID)).
-			AndPathParam("configId", string(config.ID)).
-			WithFormBody(client.ToFormBody(client.StructToMap(config, changedFields)))
+	request := newRequest().
+		WithResult(config).
+		WithPut("branch/{branchId}/components/{componentId}/configs/{configId}").
+		AndPathParam("branchId", config.BranchID.String()).
+		AndPathParam("componentId", string(config.ComponentID)).
+		AndPathParam("configId", string(config.ID)).
+		WithFormBody(client.ToFormBody(client.StructToMap(config, changedFields)))
 	return client.NewAPIRequest(config, request)
 }
 

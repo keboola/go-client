@@ -224,7 +224,7 @@ func DumpTracer(wr io.Writer) TraceFactory {
 
 func (t *dumpTrace) dump(body string) {
 	body = strings.TrimSpace(body)
-	if len(body) > dumpTraceMaxLength && os.Getenv("HTTP_DUMP_TRACE_FULL") != "true" {
+	if len(body) > dumpTraceMaxLength && os.Getenv("HTTP_DUMP_TRACE_FULL") != "true" { //nolint:forbidigo
 		t.log(body[:dumpTraceMaxLength])
 		t.log("... (set env HTTP_DUMP_TRACE_FULL=true to see full output)")
 	} else {

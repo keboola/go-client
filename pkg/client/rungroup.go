@@ -55,7 +55,7 @@ func (g *RunGroup) Add(request Sendable) {
 		// Limit number of concurrent requests
 		if err := g.sem.Acquire(g.ctx, 1); err != nil {
 			// Ctx is done, return
-			return nil
+			return err
 		}
 		defer g.sem.Release(1)
 

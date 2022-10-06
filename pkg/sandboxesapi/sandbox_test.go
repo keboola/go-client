@@ -5,18 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/keboola/go-utils/pkg/testproject"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/storageapi"
-	"github.com/keboola/go-utils/pkg/testproject"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
@@ -68,7 +69,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
@@ -116,7 +117,9 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender, client.Sender) {
+func clientsForAnEmptyProject(t *testing.T) (client.Sender, client.Sender, client.Sender) {
+	t.Helper()
+
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 
@@ -143,5 +146,5 @@ func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender
 	// Get Sandbox client
 	sandboxApiClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxHost.String(), project.StorageAPIToken())
 
-	return project, storageApiClient, jobsQueueApiClient, sandboxApiClient
+	return storageApiClient, jobsQueueApiClient, sandboxApiClient
 }

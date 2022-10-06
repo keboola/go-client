@@ -8,7 +8,7 @@ import (
 	"github.com/keboola/go-utils/pkg/orderedmap"
 )
 
-// Component constants
+// Component constants.
 const (
 	VariablesComponentID     = ComponentID(`keboola.variables`)
 	SchedulerComponentID     = ComponentID("keboola.scheduler")

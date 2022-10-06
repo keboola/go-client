@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/schedulerapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/schedulerapi"
+	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestSchedulerApiCalls(t *testing.T) {
@@ -125,6 +126,8 @@ func TestSchedulerApiCalls(t *testing.T) {
 }
 
 func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
+	t.Helper()
+
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 

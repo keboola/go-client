@@ -31,7 +31,7 @@ type Sender interface {
 	// Type of the return value "result" must be the same as type of the HTTPRequest.ResultDef(), otherwise panic will occur.
 	//   In Go, this rule cannot be written using generic types yet, methods cannot have generic types.
 	//   Send[R Result](ctx context.Context, request HTTPRequest[R]) (rawResponse *http.Response, result R, error error)
-	Send(ctx context.Context, request HTTPRequest) (rawResponse *http.Response, result any, error error)
+	Send(ctx context.Context, request HTTPRequest) (rawResponse *http.Response, result any, err error)
 }
 
 type httpRequestReadOnly interface {

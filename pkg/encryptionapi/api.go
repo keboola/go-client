@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/spf13/cast"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
-	"github.com/spf13/cast"
 )
 
 // ComponentID is id of a Keboola component.

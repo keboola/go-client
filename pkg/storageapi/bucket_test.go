@@ -6,14 +6,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestBucketApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForAnEmptyProject(t)
+	c := clientForAnEmptyProject(t)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 

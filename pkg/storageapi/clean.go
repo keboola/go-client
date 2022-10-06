@@ -3,8 +3,9 @@ package storageapi
 import (
 	"context"
 
-	"github.com/keboola/go-client/pkg/client"
 	"golang.org/x/sync/semaphore"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 const mainBranchDescription = ""

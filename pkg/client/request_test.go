@@ -6,8 +6,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 type error1 struct {

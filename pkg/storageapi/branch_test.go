@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/keboola/go-client/pkg/storageapi"
-	"github.com/keboola/go-utils/pkg/wildcards"
 )
 
 func TestBranchApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForAnEmptyProject(t)
+	c := clientForAnEmptyProject(t)
 
 	// Get default branch
 	defaultBranch, err := GetDefaultBranchRequest().Send(ctx, c)

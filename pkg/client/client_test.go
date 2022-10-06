@@ -200,8 +200,7 @@ func TestRequestContext(t *testing.T) {
 		assert.Equal(t, "testValue", request.Context().Value("testKey"))
 		return httpmock.NewStringResponse(200, "test"), nil
 	})
-	//lint:ignore SA1029 it is ok to use "testKey" without custom type in this test
-	ctx := context.WithValue(context.Background(), "testKey", "testValue")
+	ctx := context.WithValue(context.Background(), "testKey", "testValue") //nolint:staticcheck
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
 	assert.NoError(t, err)

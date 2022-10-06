@@ -4,9 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"golang.org/x/sync/semaphore"
-
 	"github.com/hashicorp/go-multierror"
+	"golang.org/x/sync/semaphore"
 )
 
 // WaitGroupConcurrencyLimit is the  maximum number of concurrent requests in one WaitGroup.

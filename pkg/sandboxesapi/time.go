@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// TimeFormat used in Sandbox API
+// TimeFormat used in Sandbox API.
 const TimeFormat = "2006-01-02T15:04:05Z"
 
 // Time is encoded/decoded in TimeFormat used in Sandbox API.

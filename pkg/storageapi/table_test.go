@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jarcoal/httpmock"
 	"github.com/keboola/go-client/pkg/client"
 	. "github.com/keboola/go-client/pkg/storageapi"
 )
@@ -133,7 +133,7 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	_, c := clientForAnEmptyProject(t)
+	c := clientForAnEmptyProject(t)
 
 	tables, err := ListTablesRequest().Send(ctx, c)
 	assert.NoError(t, err)

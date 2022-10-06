@@ -51,16 +51,19 @@ func WithBuckets() Option {
 		c.include["buckets"] = true
 	}
 }
+
 func WithColumns() Option {
 	return func(c *listTablesConfig) {
 		c.include["columns"] = true
 	}
 }
+
 func WithMetadata() Option {
 	return func(c *listTablesConfig) {
 		c.include["metadata"] = true
 	}
 }
+
 func WithColumnMetadata() Option {
 	return func(c *listTablesConfig) {
 		c.include["columnMetadata"] = true

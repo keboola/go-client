@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/keboola/go-client/pkg/client"
 	. "github.com/keboola/go-client/pkg/storageapi"
 )
 

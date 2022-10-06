@@ -6,12 +6,15 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
-type BranchID = storageapi.BranchID
-type ConfigID = storageapi.ConfigID
+type (
+	BranchID = storageapi.BranchID
+	ConfigID = storageapi.ConfigID
+)
 
 type SandboxWithConfig struct {
 	Sandbox *Sandbox
@@ -34,16 +37,20 @@ const (
 	SizeLarge  = "large"
 )
 
-var SizesOrdered = []string{
-	SizeSmall,
-	SizeMedium,
-	SizeLarge,
+func SizesOrdered() []string {
+	return []string{
+		SizeSmall,
+		SizeMedium,
+		SizeLarge,
+	}
 }
 
-var SizesMap = map[string]bool{
-	SizeSmall:  true,
-	SizeMedium: true,
-	SizeLarge:  true,
+func SizesMap() map[string]bool {
+	return map[string]bool{
+		SizeSmall:  true,
+		SizeMedium: true,
+		SizeLarge:  true,
+	}
 }
 
 const (
@@ -52,16 +59,20 @@ const (
 	TypeR         = "r"
 )
 
-var TypesOrdered = []string{
-	TypeSnowflake,
-	TypePython,
-	TypeR,
+func TypesOrdered() []string {
+	return []string{
+		TypeSnowflake,
+		TypePython,
+		TypeR,
+	}
 }
 
-var TypesMap = map[string]bool{
-	TypeSnowflake: true,
-	TypePython:    true,
-	TypeR:         true,
+func TypesMap() map[string]bool {
+	return map[string]bool{
+		TypeSnowflake: true,
+		TypePython:    true,
+		TypeR:         true,
+	}
 }
 
 func SupportsSizes(typ string) bool {
