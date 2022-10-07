@@ -345,7 +345,7 @@ func (r httpRequest) WithMultipartBody(params map[string]string, csvData []byte)
 		h := make(textproto.MIMEHeader)
 		h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
 		h.Set("Content-Type", "text/csv")
-		wr, err := mp.CreateFormField("data")
+		wr, err := mp.CreatePart(h)
 		if err != nil {
 			panic(fmt.Errorf(`could not add binary to multipart: %w`, err))
 		}
