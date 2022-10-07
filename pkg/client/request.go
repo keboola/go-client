@@ -175,7 +175,6 @@ type httpRequest struct {
 	header      http.Header
 	queryParams url.Values
 	pathParams  map[string]string
-	formData    url.Values
 	body        any
 	resultDef   any
 	errorDef    error
@@ -233,9 +232,6 @@ func (r httpRequest) PathParams() map[string]string {
 }
 
 func (r httpRequest) RequestBody() any {
-	if r.formData != nil {
-		return r.formData.Encode()
-	}
 	return r.body
 }
 
@@ -321,15 +317,15 @@ func (r httpRequest) WithPathParams(params map[string]string) HTTPRequest {
 }
 
 func (r httpRequest) WithFormBody(form map[string]string) HTTPRequest {
-	r.formData = make(url.Values)
+	formData := make(url.Values)
 	for k, v := range form {
-		r.formData.Set(k, v)
+		formData.Set(k, v)
 	}
+	r.body = formData.Encode()
 	return r.AndHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 
 func (r httpRequest) WithJSONBody(body any) HTTPRequest {
-	r.formData = nil
 	r.body = body
 	return r.AndHeader("Content-Type", "application/json")
 }
@@ -337,6 +333,7 @@ func (r httpRequest) WithJSONBody(body any) HTTPRequest {
 func (r httpRequest) WithMultipartBody(params map[string]string, csvData []byte) HTTPRequest {
 	body := bytes.NewBufferString("")
 	mp := multipart.NewWriter(body)
+
 	for key, value := range params {
 		err := mp.WriteField(key, value)
 		if err != nil {
@@ -363,8 +360,8 @@ func (r httpRequest) WithMultipartBody(params map[string]string, csvData []byte)
 	if err != nil {
 		panic(fmt.Errorf(`could not close multipart: %w`, err))
 	}
-	r.formData = nil
 	r.body = body
+
 	return r.AndHeader("Content-Type", contentType)
 }
 
