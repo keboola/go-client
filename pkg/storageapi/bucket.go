@@ -77,21 +77,9 @@ func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	return client.NewAPIRequest(bucket, request)
 }
 
-type DeleteBucketOption func(c *deleteBucketsConfig)
-
-type deleteBucketsConfig struct {
-	force bool
-}
-
-func WithForce() DeleteBucketOption {
-	return func(c *deleteBucketsConfig) {
-		c.force = true
-	}
-}
-
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func DeleteBucketRequest(bucketID BucketID, opts ...DeleteBucketOption) client.APIRequest[client.NoResult] {
-	c := &deleteBucketsConfig{
+func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+	c := &deleteConfig{
 		force: false,
 	}
 	for _, opt := range opts {

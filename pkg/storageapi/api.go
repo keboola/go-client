@@ -129,3 +129,16 @@ func (v MetadataDetails) ToMap() Metadata {
 	}
 	return out
 }
+
+// DeleteOption for requests to delete bucket or table.
+type DeleteOption func(c *deleteConfig)
+
+type deleteConfig struct {
+	force bool
+}
+
+func WithForce() DeleteOption {
+	return func(c *deleteConfig) {
+		c.force = true
+	}
+}

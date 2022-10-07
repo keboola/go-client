@@ -247,9 +247,9 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create bucket
-	resCreate, err := CreateBucketRequest(bucket).Send(ctx, c)
+	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.Equal(t, bucket, resCreate)
+	assert.Equal(t, bucket, resBucket)
 
 	table := &Table{
 		ID:         TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName)),
@@ -260,7 +260,33 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create table
-	res, err := CreateTableRequest(table).Send(ctx, c)
+	resTable, err := CreateTableRequest(table).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.Equal(t, nil, res)
+	assert.Equal(t, table, resTable)
+
+	// List tables
+	resList, err := ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	tableFound := false
+	for _, t := range *resList {
+		if t.ID == table.ID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+
+	// Delete table
+	_, err = DeleteTableRequest(table.ID, WithForce()).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// List tables again - without the deleted table
+	resList, err = ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	tableFound = false
+	for _, t := range *resList {
+		if t.ID == table.ID {
+			tableFound = true
+		}
+	}
+	assert.False(t, tableFound)
 }

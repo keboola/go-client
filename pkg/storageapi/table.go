@@ -103,3 +103,21 @@ func CreateTableRequest(table *Table) client.APIRequest[*Table] {
 
 	return client.NewAPIRequest(table, request)
 }
+
+// DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
+func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+	c := &deleteConfig{
+		force: false,
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	request := newRequest().
+		WithDelete("tables/{tableId}").
+		AndPathParam("tableId", string(tableID))
+	if c.force {
+		request = request.AndQueryParam("force", "true")
+	}
+	return client.NewAPIRequest(client.NoResult{}, request)
+}
