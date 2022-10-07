@@ -23,7 +23,7 @@ type Table struct {
 	PrimaryKey     []string                  `json:"primaryKey"`
 	Created        Time                      `json:"created"`
 	LastImportDate Time                      `json:"lastImportDate"`
-	LastChangeDate Time                      `json:"lastChangeDate"`
+	LastChangeDate *Time                     `json:"lastChangeDate"`
 	RowsCount      uint64                    `json:"rowsCount"`
 	DataSizeBytes  uint64                    `json:"dataSizeBytes"`
 	Columns        []string                  `json:"columns"`

@@ -149,6 +149,7 @@ func TestMockListTablesRequest(t *testing.T) {
 	c := listTablesMock()
 
 	{
+		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
 			{
 				ID:             "in.c-keboola-ex-http-6336016.tmp1",
@@ -158,7 +159,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				PrimaryKey:     []string{},
 				Created:        parseDate("2021-10-15T13:38:11+0200"),
 				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
-				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: &lastChangedDate,
 				RowsCount:      6,
 				DataSizeBytes:  1536,
 				Columns:        nil,
@@ -175,6 +176,7 @@ func TestMockListTablesRequest(t *testing.T) {
 
 	{
 		lastChangeDate := parseDate("2022-02-15T16:50:49+0100")
+		lastChangeDateTable := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
 			{
 				ID:             "in.c-keboola-ex-http-6336016.tmp1",
@@ -184,7 +186,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				PrimaryKey:     []string{},
 				Created:        parseDate("2021-10-15T13:38:11+0200"),
 				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
-				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: &lastChangeDateTable,
 				RowsCount:      6,
 				DataSizeBytes:  1536,
 				Columns:        nil,
