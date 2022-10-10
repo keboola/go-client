@@ -234,9 +234,6 @@ func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 	if v, ok := body.(string); ok {
 		return io.NopCloser(strings.NewReader(v)), nil
 	}
-	if v, ok := body.(*bytes.Buffer); ok {
-		return io.NopCloser(bytes.NewReader(v.Bytes())), nil
-	}
 	if v, ok := body.([]byte); ok {
 		return io.NopCloser(bytes.NewReader(v)), nil
 	}
