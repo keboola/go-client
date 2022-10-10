@@ -1,14 +1,11 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	jsonlib "encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"reflect"
 	"strings"
@@ -106,8 +103,8 @@ type HTTPRequest interface {
 	WithFormBody(form map[string]string) HTTPRequest
 	// WithJSONBody method sets request body to the JSON value and Content-Type header to "application/json".
 	WithJSONBody(body any) HTTPRequest
-	// WithMultipartBody method sets parameters and binaries to a multipart body and Content-Type header to "multipart/form-data".
-	WithMultipartBody(params map[string]string, csvData []byte) HTTPRequest
+	// WithBody method sets request body and custom content type.
+	WithBody(body any, contentType string) HTTPRequest
 	// WithError method registers the request `Error` value for automatic mapping.
 	WithError(err error) HTTPRequest
 	// WithResult method registers the request `Result` value for automatic mapping.
@@ -330,38 +327,8 @@ func (r httpRequest) WithJSONBody(body any) HTTPRequest {
 	return r.AndHeader("Content-Type", "application/json")
 }
 
-func (r httpRequest) WithMultipartBody(params map[string]string, csvData []byte) HTTPRequest {
-	body := bytes.NewBufferString("")
-	mp := multipart.NewWriter(body)
-
-	for key, value := range params {
-		err := mp.WriteField(key, value)
-		if err != nil {
-			panic(fmt.Errorf(`could not add param "%s" with value "%s" to multipart: %w`, key, value, err))
-		}
-	}
-
-	if csvData != nil {
-		h := make(textproto.MIMEHeader)
-		h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
-		h.Set("Content-Type", "text/csv")
-		wr, err := mp.CreatePart(h)
-		if err != nil {
-			panic(fmt.Errorf(`could not add binary to multipart: %w`, err))
-		}
-		_, err = io.Copy(wr, bytes.NewBuffer(csvData))
-		if err != nil {
-			panic(fmt.Errorf(`could not write binary to multipart: %w`, err))
-		}
-	}
-
-	contentType := fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())
-	err := mp.Close()
-	if err != nil {
-		panic(fmt.Errorf(`could not close multipart: %w`, err))
-	}
+func (r httpRequest) WithBody(body any, contentType string) HTTPRequest {
 	r.body = body
-
 	return r.AndHeader("Content-Type", contentType)
 }
 

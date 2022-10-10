@@ -1,7 +1,11 @@
 package storageapi
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/textproto"
 	"sort"
 	"strings"
 
@@ -89,17 +93,45 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 
 // CreateTableRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
 func CreateTableRequest(table *Table) client.APIRequest[*Table] {
-	params := map[string]string{
-		"name": table.Name,
+	body := bytes.NewBufferString("")
+	mp := multipart.NewWriter(body)
+
+	err := mp.WriteField("name", table.Name)
+	if err != nil {
+		panic(fmt.Errorf(`could not add param "name" with value "%s" to multipart: %w`, table.Name, err))
 	}
 	if len(table.PrimaryKey) > 0 {
-		params["primaryKey"] = strings.Join(table.PrimaryKey, ",")
+		primaryKeyColumns := strings.Join(table.PrimaryKey, ",")
+		err := mp.WriteField("primaryKey", primaryKeyColumns)
+		if err != nil {
+			panic(fmt.Errorf(`could not add param "primaryKey" with value "%s" to multipart: %w`, primaryKeyColumns, err))
+		}
+	}
+
+	// Add csv file with columns definition
+	csvData := []byte(strings.Join(table.Columns, ","))
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
+	h.Set("Content-Type", "text/csv")
+	wr, err := mp.CreatePart(h)
+	if err != nil {
+		panic(fmt.Errorf(`could not add binary to multipart: %w`, err))
+	}
+	_, err = io.Copy(wr, bytes.NewBuffer(csvData))
+	if err != nil {
+		panic(fmt.Errorf(`could not write binary to multipart: %w`, err))
+	}
+
+	contentType := fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())
+	err = mp.Close()
+	if err != nil {
+		panic(fmt.Errorf(`could not close multipart: %w`, err))
 	}
 
 	request := newRequest().
 		WithResult(table).
 		WithPost(fmt.Sprintf("buckets/%s/tables", table.Bucket.ID)).
-		WithMultipartBody(params, []byte(strings.Join(table.Columns, ",")))
+		WithBody(body, contentType)
 
 	return client.NewAPIRequest(table, request)
 }
