@@ -131,7 +131,8 @@ func CreateTableRequest(table *Table) client.APIRequest[*Table] {
 	request := newRequest().
 		WithResult(table).
 		WithPost(fmt.Sprintf("buckets/%s/tables", table.Bucket.ID)).
-		WithBody(bytes.NewReader(body.Bytes()), contentType)
+		WithBody(bytes.NewReader(body.Bytes())).
+		WithContentType(contentType)
 
 	return client.NewAPIRequest(table, request)
 }

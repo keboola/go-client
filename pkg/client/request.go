@@ -103,8 +103,10 @@ type HTTPRequest interface {
 	WithFormBody(form map[string]string) HTTPRequest
 	// WithJSONBody method sets request body to the JSON value and Content-Type header to "application/json".
 	WithJSONBody(body any) HTTPRequest
-	// WithBody method sets request body and custom content type.
-	WithBody(body any, contentType string) HTTPRequest
+	// WithBody method sets request body.
+	WithBody(body any) HTTPRequest
+	// WithContentType method sets custom content type.
+	WithContentType(contentType string) HTTPRequest
 	// WithError method registers the request `Error` value for automatic mapping.
 	WithError(err error) HTTPRequest
 	// WithResult method registers the request `Result` value for automatic mapping.
@@ -327,8 +329,12 @@ func (r httpRequest) WithJSONBody(body any) HTTPRequest {
 	return r.AndHeader("Content-Type", "application/json")
 }
 
-func (r httpRequest) WithBody(body any, contentType string) HTTPRequest {
+func (r httpRequest) WithBody(body any) HTTPRequest {
 	r.body = body
+	return r
+}
+
+func (r httpRequest) WithContentType(contentType string) HTTPRequest {
 	return r.AndHeader("Content-Type", contentType)
 }
 
