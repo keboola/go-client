@@ -2,6 +2,8 @@ package storageapi_test
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -147,6 +149,7 @@ func TestMockListTablesRequest(t *testing.T) {
 	c := listTablesMock()
 
 	{
+		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
 			{
 				ID:             "in.c-keboola-ex-http-6336016.tmp1",
@@ -156,7 +159,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				PrimaryKey:     []string{},
 				Created:        parseDate("2021-10-15T13:38:11+0200"),
 				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
-				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: &lastChangedDate,
 				RowsCount:      6,
 				DataSizeBytes:  1536,
 				Columns:        nil,
@@ -173,6 +176,7 @@ func TestMockListTablesRequest(t *testing.T) {
 
 	{
 		lastChangeDate := parseDate("2022-02-15T16:50:49+0100")
+		lastChangeDateTable := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
 			{
 				ID:             "in.c-keboola-ex-http-6336016.tmp1",
@@ -182,7 +186,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				PrimaryKey:     []string{},
 				Created:        parseDate("2021-10-15T13:38:11+0200"),
 				LastImportDate: parseDate("2021-10-15T13:41:59+0200"),
-				LastChangeDate: parseDate("2021-10-15T13:41:59+0200"),
+				LastChangeDate: &lastChangeDateTable,
 				RowsCount:      6,
 				DataSizeBytes:  1536,
 				Columns:        nil,
@@ -227,4 +231,62 @@ func TestMockListTablesRequest(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
+}
+
+func TestTableApiCalls(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := clientForAnEmptyProject(t)
+
+	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	tableName := fmt.Sprintf("test_%d", rand.Int())
+
+	bucket := &Bucket{
+		Name:  bucketName,
+		Stage: "in",
+	}
+
+	// Create bucket
+	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	table := &Table{
+		ID:         TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName)),
+		Bucket:     bucket,
+		Name:       tableName,
+		Columns:    []string{"first", "second", "third", "fourth"},
+		PrimaryKey: []string{"first", "fourth"},
+	}
+
+	// Create table
+	resTable, err := CreateTableRequest(table).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, table, resTable)
+
+	// List tables
+	resList, err := ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	tableFound := false
+	for _, t := range *resList {
+		if t.ID == table.ID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+
+	// Delete table
+	_, err = DeleteTableRequest(table.ID, WithForce()).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// List tables again - without the deleted table
+	resList, err = ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	tableFound = false
+	for _, t := range *resList {
+		if t.ID == table.ID {
+			tableFound = true
+		}
+	}
+	assert.False(t, tableFound)
 }

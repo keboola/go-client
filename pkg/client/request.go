@@ -103,6 +103,10 @@ type HTTPRequest interface {
 	WithFormBody(form map[string]string) HTTPRequest
 	// WithJSONBody method sets request body to the JSON value and Content-Type header to "application/json".
 	WithJSONBody(body any) HTTPRequest
+	// WithBody method sets request body.
+	WithBody(body any) HTTPRequest
+	// WithContentType method sets custom content type.
+	WithContentType(contentType string) HTTPRequest
 	// WithError method registers the request `Error` value for automatic mapping.
 	WithError(err error) HTTPRequest
 	// WithResult method registers the request `Result` value for automatic mapping.
@@ -170,7 +174,6 @@ type httpRequest struct {
 	header      http.Header
 	queryParams url.Values
 	pathParams  map[string]string
-	formData    url.Values
 	body        any
 	resultDef   any
 	errorDef    error
@@ -228,9 +231,6 @@ func (r httpRequest) PathParams() map[string]string {
 }
 
 func (r httpRequest) RequestBody() any {
-	if r.formData != nil {
-		return r.formData.Encode()
-	}
 	return r.body
 }
 
@@ -316,17 +316,26 @@ func (r httpRequest) WithPathParams(params map[string]string) HTTPRequest {
 }
 
 func (r httpRequest) WithFormBody(form map[string]string) HTTPRequest {
-	r.formData = make(url.Values)
+	formData := make(url.Values)
 	for k, v := range form {
-		r.formData.Set(k, v)
+		formData.Set(k, v)
 	}
+	r.body = formData.Encode()
 	return r.AndHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 
 func (r httpRequest) WithJSONBody(body any) HTTPRequest {
-	r.formData = nil
 	r.body = body
 	return r.AndHeader("Content-Type", "application/json")
+}
+
+func (r httpRequest) WithBody(body any) HTTPRequest {
+	r.body = body
+	return r
+}
+
+func (r httpRequest) WithContentType(contentType string) HTTPRequest {
+	return r.AndHeader("Content-Type", contentType)
 }
 
 func (r httpRequest) WithError(err error) HTTPRequest {
