@@ -228,8 +228,13 @@ func List(
 			continue
 		}
 
+		instance, found := instances[sandboxId.String()]
+		if !found {
+			continue
+		}
+
 		out = append(out, &SandboxWithConfig{
-			Sandbox: instances[sandboxId.String()],
+			Sandbox: instance,
 			Config:  config,
 		})
 	}
