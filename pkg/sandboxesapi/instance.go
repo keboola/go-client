@@ -1,6 +1,10 @@
 package sandboxesapi
 
-import "github.com/keboola/go-client/pkg/client"
+import (
+	"context"
+
+	"github.com/keboola/go-client/pkg/client"
+)
 
 type SandboxID string
 
@@ -48,4 +52,23 @@ func ListInstancesRequest() client.APIRequest[*[]*Sandbox] {
 		WithResult(&result).
 		WithGet("sandboxes")
 	return client.NewAPIRequest(&result, request)
+}
+
+func DeleteInstanceRequest(sandboxId SandboxID) client.APIRequest[client.NoResult] {
+	request := newRequest().
+		WithDelete("sandboxes/{sandboxId}").
+		AndPathParam("sandboxId", sandboxId.String())
+	return client.NewAPIRequest(client.NoResult{}, request)
+}
+
+func CleanInstancesRequest() client.APIRequest[client.NoResult] {
+	request := ListInstancesRequest().
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Sandbox) error {
+			wg := client.NewWaitGroup(ctx, sender)
+			for _, s := range *result {
+				wg.Send(DeleteInstanceRequest(s.ID))
+			}
+			return wg.Wait()
+		})
+	return client.NewAPIRequest(client.NoResult{}, request)
 }
