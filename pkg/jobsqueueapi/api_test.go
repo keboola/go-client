@@ -23,7 +23,7 @@ import (
 
 func TestJobsQueueApiCalls(t *testing.T) {
 	t.Parallel()
-	ctx, _, c := depsForAnEmptyProject(t)
+	ctx, c := depsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, c.StorageClient)
@@ -119,7 +119,7 @@ type testClients struct {
 	QueueClient     client.Sender
 }
 
-func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project, *testClients) {
+func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -153,5 +153,5 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project,
 		QueueClient:     queueClient,
 	}
 
-	return ctx, project, clients
+	return ctx, clients
 }

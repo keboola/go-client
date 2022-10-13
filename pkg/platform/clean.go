@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"

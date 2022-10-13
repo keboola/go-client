@@ -4,14 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/keboola/go-utils/pkg/testproject"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
 	"github.com/keboola/go-client/pkg/storageapi"
-	"github.com/keboola/go-utils/pkg/testproject"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCleanProject(t *testing.T) {

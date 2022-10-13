@@ -18,7 +18,7 @@ import (
 
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	t.Parallel()
-	ctx, _, clients := depsForAnEmptyProject(t)
+	ctx, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
@@ -69,7 +69,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
-	ctx, _, clients := depsForAnEmptyProject(t)
+	ctx, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
 	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
@@ -124,7 +124,7 @@ type testClients struct {
 	Queue    client.Sender
 }
 
-func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project, *testClients) {
+func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -158,5 +158,5 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project,
 		Queue:    queueClient,
 	}
 
-	return ctx, project, clients
+	return ctx, clients
 }
