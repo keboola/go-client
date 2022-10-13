@@ -9,17 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/platform"
+	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestSchedulerApiCalls(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	_, storageClient, schedulerClient := clientsForAnEmptyProject(t)
+	ctx, _, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -43,7 +45,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = storageapi.CreateConfigRequest(targetConfig).Send(ctx, storageClient)
+	_, err = storageapi.CreateConfigRequest(targetConfig).Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 
 	// Create scheduler config
@@ -76,82 +78,95 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = storageapi.CreateConfigRequest(schedulerConfig).Send(ctx, storageClient)
+	_, err = storageapi.CreateConfigRequest(schedulerConfig).Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 
 	// List should return no schedule
-	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
+	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 
 	// Activate
-	schedule, err := schedulerapi.ActivateScheduleRequest(schedulerConfig.ID, "").Send(ctx, schedulerClient)
+	schedule, err := schedulerapi.ActivateScheduleRequest(schedulerConfig.ID, "").Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.NotNil(t, schedule)
 	assert.NotEmpty(t, schedule.ID)
 
 	// List should return one schedule
-	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
+	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 1)
 
 	// Delete
-	_, err = schedulerapi.DeleteScheduleRequest(schedule.ScheduleKey).Send(ctx, schedulerClient)
+	_, err = schedulerapi.DeleteScheduleRequest(schedule.ScheduleKey).Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 
 	// List should return no scheduleW
-	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
+	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 
 	// Activate again
-	schedule, err = schedulerapi.ActivateScheduleRequest(schedulerConfig.ID, "").Send(ctx, schedulerClient)
+	schedule, err = schedulerapi.ActivateScheduleRequest(schedulerConfig.ID, "").Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.NotNil(t, schedule)
 	assert.NotEmpty(t, schedule.ID)
 
 	// List should return one schedule
-	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
+	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 1)
 
 	// Delete for configuration
-	_, err = schedulerapi.DeleteSchedulesForConfigurationRequest(schedulerConfig.ID).Send(ctx, schedulerClient)
+	_, err = schedulerapi.DeleteSchedulesForConfigurationRequest(schedulerConfig.ID).Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 
 	// List should return no schedule
-	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, schedulerClient)
+	schedules, err = schedulerapi.ListSchedulesRequest().Send(ctx, clients.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 }
 
-func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
+type testClients struct {
+	Storage  client.Sender
+	Schedule client.Sender
+	Sandbox  client.Sender
+	Queue    client.Sender
+}
+
+func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 
-	// Get Storage API client
-	storageApiClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	// Clean project
-	if _, err := storageapi.CleanProjectRequest().Send(ctx, storageApiClient); err != nil {
+	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	assert.NoError(t, err)
+
+	services := index.AllServices()
+	schedulerApiHost, found := services.URLByID("scheduler")
+	assert.True(t, found)
+	sandboxesApiHost, found := services.URLByID("sandboxes")
+	assert.True(t, found)
+	jobsQueueHost, found := services.URLByID("queue")
+	assert.True(t, found)
+
+	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
+	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
+
+	if err := platform.CleanProject(ctx, storageClient, schedulerClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
-	// Get Scheduler API host
-	index, err := storageapi.IndexRequest().Send(ctx, storageApiClient)
-	assert.NoError(t, err)
-	schedulerHost, found := index.AllServices().URLByID("scheduler")
-	assert.True(t, found)
-
-	// Get scheduler client
-	schedulerApiClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerHost.String(), project.StorageAPIToken())
-
-	// Clean schedules
-	if _, err := schedulerapi.CleanAllSchedulesRequest().Send(ctx, schedulerApiClient); err != nil {
-		t.Fatalf(`cannot clean schedules "%d": %s`, project.ID(), err)
+	clients := &testClients{
+		Storage:  storageClient,
+		Schedule: schedulerClient,
+		Sandbox:  sandboxesClient,
+		Queue:    queueClient,
 	}
 
-	return project, storageApiClient, schedulerApiClient
+	return ctx, project, clients
 }

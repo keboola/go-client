@@ -10,17 +10,18 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
+	"github.com/keboola/go-client/pkg/schedulerapi"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	ctx, _, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -30,9 +31,9 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	// Create sandbox
 	sandbox, err := sandboxesapi.Create(
 		ctx,
-		storageClient,
-		queueClient,
-		sandboxClient,
+		clients.Storage,
+		clients.Queue,
+		clients.Sandbox,
 		branch.ID,
 		"test",
 		sandboxesapi.TypePython,
@@ -43,7 +44,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	assert.NotNil(t, sandbox)
 
 	// List sandboxes - try to find the one we just created
-	sandboxes, err := sandboxesapi.List(ctx, storageClient, sandboxClient, branch.ID)
+	sandboxes, err := sandboxesapi.List(ctx, clients.Storage, clients.Sandbox, branch.ID)
 	assert.NoError(t, err)
 	foundInstance := false
 	for _, v := range sandboxes {
@@ -57,8 +58,8 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	// Delete sandbox
 	err = sandboxesapi.Delete(
 		ctx,
-		storageClient,
-		queueClient,
+		clients.Storage,
+		clients.Queue,
 		branch.ID,
 		sandbox.Config.ID,
 		sandbox.Sandbox.ID,
@@ -68,11 +69,10 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 
 func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	storageClient, queueClient, sandboxClient := clientsForAnEmptyProject(t)
+	ctx, _, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -82,9 +82,9 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// Create sandbox
 	sandbox, err := sandboxesapi.Create(
 		ctx,
-		storageClient,
-		queueClient,
-		sandboxClient,
+		clients.Storage,
+		clients.Queue,
+		clients.Sandbox,
 		branch.ID,
 		"test-snowflake",
 		sandboxesapi.TypeSnowflake,
@@ -94,7 +94,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.NotNil(t, sandbox)
 
 	// List sandboxes - try to find the one we just created
-	sandboxes, err := sandboxesapi.List(ctx, storageClient, sandboxClient, branch.ID)
+	sandboxes, err := sandboxesapi.List(ctx, clients.Storage, clients.Sandbox, branch.ID)
 	assert.NoError(t, err)
 	foundInstance := false
 	for _, v := range sandboxes {
@@ -108,8 +108,8 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	// Delete sandbox
 	err = sandboxesapi.Delete(
 		ctx,
-		storageClient,
-		queueClient,
+		clients.Storage,
+		clients.Queue,
 		branch.ID,
 		sandbox.Config.ID,
 		sandbox.Sandbox.ID,
@@ -117,34 +117,46 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func clientsForAnEmptyProject(t *testing.T) (client.Sender, client.Sender, client.Sender) {
+type testClients struct {
+	Storage  client.Sender
+	Schedule client.Sender
+	Sandbox  client.Sender
+	Queue    client.Sender
+}
+
+func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 
-	// Get Storage API client
-	storageApiClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	// Clean project
-	if _, err := storageapi.CleanProjectRequest().Send(ctx, storageApiClient); err != nil {
+	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	assert.NoError(t, err)
+
+	services := index.AllServices()
+	schedulerApiHost, found := services.URLByID("scheduler")
+	assert.True(t, found)
+	sandboxesApiHost, found := services.URLByID("sandboxes")
+	assert.True(t, found)
+	jobsQueueHost, found := services.URLByID("queue")
+	assert.True(t, found)
+
+	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
+	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
+
+	if err := platform.CleanProject(ctx, storageClient, schedulerClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
-	// Get Queue API and Sandboxes API hosts
-	index, err := storageapi.IndexRequest().Send(ctx, storageApiClient)
-	assert.NoError(t, err)
-	services := index.AllServices()
-	jobsQueueHost, found := services.URLByID("queue")
-	assert.True(t, found)
-	sandboxHost, found := services.URLByID("sandboxes")
-	assert.True(t, found)
+	clients := &testClients{
+		Storage:  storageClient,
+		Schedule: schedulerClient,
+		Sandbox:  sandboxesClient,
+		Queue:    queueClient,
+	}
 
-	// Get Queue client
-	jobsQueueApiClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
-
-	// Get Sandbox client
-	sandboxApiClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxHost.String(), project.StorageAPIToken())
-
-	return storageApiClient, jobsQueueApiClient, sandboxApiClient
+	return ctx, project, clients
 }

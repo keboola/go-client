@@ -15,21 +15,23 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/platform"
+	"github.com/keboola/go-client/pkg/sandboxesapi"
+	"github.com/keboola/go-client/pkg/schedulerapi"
 	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestJobsQueueApiCalls(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	_, storageClient, jobsQueueClient := clientsForAnEmptyProject(t)
+	ctx, _, c := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, storageClient)
+	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, c.StorageClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
 	// List - no component/config
-	components, err := storageapi.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, storageClient)
+	components, err := storageapi.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, c.StorageClient)
 	assert.NoError(t, err)
 	assert.Empty(t, components)
 
@@ -49,20 +51,20 @@ func TestJobsQueueApiCalls(t *testing.T) {
 		},
 		Rows: []*storageapi.ConfigRow{},
 	}
-	resConfig, err := storageapi.CreateConfigRequest(config).Send(ctx, storageClient)
+	resConfig, err := storageapi.CreateConfigRequest(config).Send(ctx, c.StorageClient)
 	assert.NoError(t, err)
 	assert.Same(t, config, resConfig)
 	assert.NotEmpty(t, config.ID)
 
 	// Run a job on the config
-	resJob, err := jobsqueueapi.CreateJobRequest("ex-generic-v2", config.ID).Send(ctx, jobsQueueClient)
+	resJob, err := jobsqueueapi.CreateJobRequest("ex-generic-v2", config.ID).Send(ctx, c.QueueClient)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resJob.ID)
 
 	// Wait for the job
 	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancelFn()
-	err = jobsqueueapi.WaitForJob(timeoutCtx, jobsQueueClient, resJob)
+	err = jobsqueueapi.WaitForJob(timeoutCtx, c.QueueClient, resJob)
 	// The job payload is malformed, so it fails. We are checking just that it finished.
 	assert.ErrorContains(t, err, "Unrecognized option \"foo\" under \"container\"")
 }
@@ -110,28 +112,46 @@ HTTP_REQUEST[0003] BODY  GET "https://example.com/jobs/1234" | %s
 `), trace.String())
 }
 
-func clientsForAnEmptyProject(t *testing.T) (*testproject.Project, client.Sender, client.Sender) {
+type testClients struct {
+	StorageClient   client.Sender
+	SchedulerClient client.Sender
+	SandboxClient   client.Sender
+	QueueClient     client.Sender
+}
+
+func depsForAnEmptyProject(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
 	project := testproject.GetTestProject(t)
 
-	// Get Storage API client
-	storageApiClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	// Clean project
-	if _, err := storageapi.CleanProjectRequest().Send(ctx, storageApiClient); err != nil {
+	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	assert.NoError(t, err)
+
+	services := index.AllServices()
+	schedulerApiHost, found := services.URLByID("scheduler")
+	assert.True(t, found)
+	sandboxesApiHost, found := services.URLByID("sandboxes")
+	assert.True(t, found)
+	jobsQueueHost, found := services.URLByID("queue")
+	assert.True(t, found)
+
+	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
+	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
+
+	if err := platform.CleanProject(ctx, storageClient, schedulerClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
-	// Get Queue API host
-	index, err := storageapi.IndexRequest().Send(ctx, storageApiClient)
-	assert.NoError(t, err)
-	jobsQueueHost, found := index.AllServices().URLByID("queue")
-	assert.True(t, found)
+	clients := &testClients{
+		StorageClient:   storageClient,
+		SchedulerClient: schedulerClient,
+		SandboxClient:   sandboxesClient,
+		QueueClient:     queueClient,
+	}
 
-	// Get Queue client
-	jobsQueueApiClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
-
-	return project, storageApiClient, jobsQueueApiClient
+	return ctx, project, clients
 }
