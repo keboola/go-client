@@ -38,12 +38,13 @@ type ConfigRow struct {
 }
 
 // GetConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/row-detail
-func GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
+func (a *Api) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
 	row := &ConfigRow{}
 	row.BranchID = key.BranchID
 	row.ComponentID = key.ComponentID
 	row.ConfigID = key.ConfigID
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(row).
 		WithGet("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
 		AndPathParam("branchId", key.BranchID.String()).
@@ -54,9 +55,10 @@ func GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
 }
 
 // CreateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/create-development-branch-configuration-row
-func CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
+func (a *Api) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
 	// Create request
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(row).
 		WithPost("branch/{branchId}/components/{componentId}/configs/{configId}/rows").
 		AndPathParam("branchId", row.BranchID.String()).
@@ -67,14 +69,15 @@ func CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
 }
 
 // UpdateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row-for-development-branch
-func UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRequest[*ConfigRow] {
+func (a *Api) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRequest[*ConfigRow] {
 	// ID is required
 	if row.ID == "" {
 		panic("config row id must be set")
 	}
 
 	// Create request
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(row).
 		WithPut("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
 		AndPathParam("branchId", row.BranchID.String()).
@@ -86,8 +89,9 @@ func UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRe
 }
 
 // DeleteConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row
-func DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult] {
-	request := newRequest().
+func (a *Api) DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult] {
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
 		AndPathParam("branchId", key.BranchID.String()).
 		AndPathParam("componentId", string(key.ComponentID)).

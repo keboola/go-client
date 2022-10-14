@@ -22,7 +22,7 @@ type NoResult struct{}
 
 // Sendable is HTTPRequest or APIRequest.
 type Sendable interface {
-	SendOrErr(ctx context.Context, sender Sender) error
+	SendOrErr(ctx context.Context) error
 }
 
 // Sender represents an HTTP client, the Client is a default implementation using the standard net/http package.
@@ -112,14 +112,14 @@ type HTTPRequest interface {
 	// WithResult method registers the request `Result` value for automatic mapping.
 	WithResult(result any) HTTPRequest
 	// WithOnComplete method registers callback to be executed when the request is completed.
-	WithOnComplete(func(ctx context.Context, sender Sender, response HTTPResponse, err error) error) HTTPRequest
+	WithOnComplete(func(ctx context.Context, response HTTPResponse, err error) error) HTTPRequest
 	// WithOnSuccess method registers callback to be executed when the request is completed and `code >= 200 and <= 299`.
-	WithOnSuccess(func(ctx context.Context, sender Sender, response HTTPResponse) error) HTTPRequest
+	WithOnSuccess(func(ctx context.Context, response HTTPResponse) error) HTTPRequest
 	// WithOnError method registers callback to be executed when the request is completed and `code >= 400`.
-	WithOnError(func(ctx context.Context, sender Sender, response HTTPResponse, err error) error) HTTPRequest
+	WithOnError(func(ctx context.Context, response HTTPResponse, err error) error) HTTPRequest
 	// Send method sends defined request and returns response, mapped result and error.
-	Send(ctx context.Context, sender Sender) (response HTTPResponse, result any, err error)
-	SendOrErr(ctx context.Context, sender Sender) error
+	Send(ctx context.Context) (response HTTPResponse, result any, err error)
+	SendOrErr(ctx context.Context) error
 }
 
 // HTTPResponse with response mapped to the Result() value.
@@ -134,21 +134,21 @@ type HTTPResponse interface {
 type APIRequest[R Result] interface {
 	// WithBefore method registers callback to be executed before the request.
 	// If an error is returned, the request is not sent.
-	WithBefore(func(ctx context.Context, sender Sender) error) APIRequest[R]
+	WithBefore(func(ctx context.Context) error) APIRequest[R]
 	// WithOnComplete method registers callback to be executed when the request is completed.
-	WithOnComplete(func(ctx context.Context, sender Sender, result R, err error) error) APIRequest[R]
+	WithOnComplete(func(ctx context.Context, result R, err error) error) APIRequest[R]
 	// WithOnSuccess method registers callback to be executed when the request is completed and `code >= 200 and <= 299`.
-	WithOnSuccess(func(ctx context.Context, sender Sender, result R) error) APIRequest[R]
+	WithOnSuccess(func(ctx context.Context, result R) error) APIRequest[R]
 	// WithOnError method registers callback to be executed when the request is completed and `code >= 400`.
-	WithOnError(func(ctx context.Context, sender Sender, err error) error) APIRequest[R]
+	WithOnError(func(ctx context.Context, err error) error) APIRequest[R]
 	// Send sends the request by the sender.
-	Send(ctx context.Context, sender Sender) (result R, err error)
-	SendOrErr(ctx context.Context, sender Sender) error
+	Send(ctx context.Context) (result R, err error)
+	SendOrErr(ctx context.Context) error
 }
 
 // NewHTTPRequest creates immutable HTTP request.
-func NewHTTPRequest() HTTPRequest {
-	return httpRequest{header: make(http.Header)}
+func NewHTTPRequest(sender Sender) HTTPRequest {
+	return httpRequest{sender: sender, header: make(http.Header)}
 }
 
 // NewAPIRequest creates an API request with the result mapped to the R type.
@@ -168,6 +168,7 @@ func NewNoOperationAPIRequest[R Result](result R) APIRequest[R] {
 
 // httpRequest implements HTTPRequest interface.
 type httpRequest struct {
+	sender      Sender
 	method      string
 	baseURL     *url.URL
 	url         *url.URL
@@ -177,7 +178,7 @@ type httpRequest struct {
 	body        any
 	resultDef   any
 	errorDef    error
-	listeners   []func(ctx context.Context, sender Sender, response HTTPResponse, err error) error
+	listeners   []func(ctx context.Context, response HTTPResponse, err error) error
 }
 
 // httpResponse implements HTTPResponse interface.
@@ -191,8 +192,8 @@ type httpResponse struct {
 // apiRequest implements generic APIRequest interface.
 type apiRequest[R Result] struct {
 	requests []Sendable
-	before   []func(ctx context.Context, sender Sender) error
-	after    []func(ctx context.Context, sender Sender, result R, err error) error
+	before   []func(ctx context.Context) error
+	after    []func(ctx context.Context, result R, err error) error
 	result   R
 }
 
@@ -356,39 +357,39 @@ func (r httpRequest) WithResult(result any) HTTPRequest {
 	return r
 }
 
-func (r httpRequest) WithOnComplete(fn func(ctx context.Context, sender Sender, response HTTPResponse, err error) error) HTTPRequest {
+func (r httpRequest) WithOnComplete(fn func(ctx context.Context, response HTTPResponse, err error) error) HTTPRequest {
 	r.listeners = append(r.listeners, fn)
 	return r
 }
 
-func (r httpRequest) WithOnSuccess(fn func(ctx context.Context, sender Sender, response HTTPResponse) error) HTTPRequest {
-	r.listeners = append(r.listeners, func(ctx context.Context, sender Sender, response HTTPResponse, err error) error {
+func (r httpRequest) WithOnSuccess(fn func(ctx context.Context, response HTTPResponse) error) HTTPRequest {
+	r.listeners = append(r.listeners, func(ctx context.Context, response HTTPResponse, err error) error {
 		if err == nil {
-			return fn(ctx, sender, response)
+			return fn(ctx, response)
 		}
 		return err
 	})
 	return r
 }
 
-func (r httpRequest) WithOnError(fn func(ctx context.Context, sender Sender, response HTTPResponse, err error) error) HTTPRequest {
-	r.listeners = append(r.listeners, func(ctx context.Context, sender Sender, response HTTPResponse, err error) error {
+func (r httpRequest) WithOnError(fn func(ctx context.Context, response HTTPResponse, err error) error) HTTPRequest {
+	r.listeners = append(r.listeners, func(ctx context.Context, response HTTPResponse, err error) error {
 		if err != nil {
-			return fn(ctx, sender, response, err)
+			return fn(ctx, response, err)
 		}
 		return err
 	})
 	return r
 }
 
-func (r httpRequest) Send(ctx context.Context, sender Sender) (HTTPResponse, any, error) {
+func (r httpRequest) Send(ctx context.Context) (HTTPResponse, any, error) {
 	// Stop if context has been cancelled
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
 
 	// Send request
-	rawResponse, result, err := sender.Send(ctx, r)
+	rawResponse, result, err := r.sender.Send(ctx, r)
 	out := &httpResponse{httpRequest: r, rawResponse: rawResponse, result: result, err: err}
 
 	// Invoke listeners
@@ -397,14 +398,14 @@ func (r httpRequest) Send(ctx context.Context, sender Sender) (HTTPResponse, any
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
 		}
-		out.err = fn(ctx, sender, out, out.err)
+		out.err = fn(ctx, out, out.err)
 	}
 
 	return out, out.result, out.err
 }
 
-func (r httpRequest) SendOrErr(ctx context.Context, sender Sender) error {
-	_, _, err := r.Send(ctx, sender)
+func (r httpRequest) SendOrErr(ctx context.Context) error {
+	_, _, err := r.Send(ctx)
 	return err
 }
 
@@ -436,37 +437,37 @@ func (r httpResponse) Error() error {
 	return r.err
 }
 
-func (r apiRequest[R]) WithBefore(fn func(ctx context.Context, sender Sender) error) APIRequest[R] {
+func (r apiRequest[R]) WithBefore(fn func(ctx context.Context) error) APIRequest[R] {
 	r.before = append(r.before, fn)
 	return r
 }
 
-func (r apiRequest[R]) WithOnComplete(fn func(ctx context.Context, sender Sender, result R, err error) error) APIRequest[R] {
+func (r apiRequest[R]) WithOnComplete(fn func(ctx context.Context, result R, err error) error) APIRequest[R] {
 	r.after = append(r.after, fn)
 	return r
 }
 
-func (r apiRequest[R]) WithOnSuccess(fn func(ctx context.Context, sender Sender, result R) error) APIRequest[R] {
-	r.after = append(r.after, func(ctx context.Context, sender Sender, result R, err error) error {
+func (r apiRequest[R]) WithOnSuccess(fn func(ctx context.Context, result R) error) APIRequest[R] {
+	r.after = append(r.after, func(ctx context.Context, result R, err error) error {
 		if err == nil {
-			err = fn(ctx, sender, result)
+			err = fn(ctx, result)
 		}
 		return err
 	})
 	return r
 }
 
-func (r apiRequest[R]) WithOnError(fn func(ctx context.Context, sender Sender, err error) error) APIRequest[R] {
-	r.after = append(r.after, func(ctx context.Context, sender Sender, result R, err error) error {
+func (r apiRequest[R]) WithOnError(fn func(ctx context.Context, err error) error) APIRequest[R] {
+	r.after = append(r.after, func(ctx context.Context, result R, err error) error {
 		if err != nil {
-			err = fn(ctx, sender, err)
+			err = fn(ctx, err)
 		}
 		return err
 	})
 	return r
 }
 
-func (r apiRequest[R]) Send(ctx context.Context, sender Sender) (result R, err error) {
+func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 	// Stop if context has been cancelled
 	if err := ctx.Err(); err != nil {
 		return r.result, err
@@ -474,7 +475,7 @@ func (r apiRequest[R]) Send(ctx context.Context, sender Sender) (result R, err e
 
 	// Invoke "before" listeners
 	for _, fn := range r.before {
-		if err := fn(ctx, sender); err != nil {
+		if err := fn(ctx); err != nil {
 			return r.result, err
 		}
 	}
@@ -485,7 +486,7 @@ func (r apiRequest[R]) Send(ctx context.Context, sender Sender) (result R, err e
 	}
 
 	// Send requests in parallel
-	wg := NewWaitGroup(ctx, sender)
+	wg := NewWaitGroup(ctx)
 	for _, request := range r.requests {
 		wg.Send(request)
 	}
@@ -499,14 +500,14 @@ func (r apiRequest[R]) Send(ctx context.Context, sender Sender) (result R, err e
 		if err := ctx.Err(); err != nil {
 			return r.result, err
 		}
-		err = fn(ctx, sender, r.result, err)
+		err = fn(ctx, r.result, err)
 	}
 
 	return r.result, err
 }
 
-func (r apiRequest[R]) SendOrErr(ctx context.Context, sender Sender) error {
-	_, err := r.Send(ctx, sender)
+func (r apiRequest[R]) SendOrErr(ctx context.Context) error {
+	_, err := r.Send(ctx)
 	return err
 }
 

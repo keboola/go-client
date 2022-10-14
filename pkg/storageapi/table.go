@@ -76,14 +76,15 @@ func WithColumnMetadata() Option {
 }
 
 // ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
-func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
+func (a *Api) ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
 	result := make([]*Table, 0)
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("tables").
 		AndQueryParam("include", config.includeString())
@@ -92,7 +93,7 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 }
 
 // CreateTableRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
-func CreateTableRequest(table *Table) client.APIRequest[*Table] {
+func (a *Api) CreateTableRequest(table *Table) client.APIRequest[*Table] {
 	body := bytes.NewBufferString("")
 	mp := multipart.NewWriter(body)
 
@@ -128,7 +129,8 @@ func CreateTableRequest(table *Table) client.APIRequest[*Table] {
 		panic(fmt.Errorf(`could not close multipart: %w`, err))
 	}
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(table).
 		WithPost(fmt.Sprintf("buckets/%s/tables", table.Bucket.ID)).
 		WithBody(bytes.NewReader(body.Bytes())).
@@ -138,7 +140,7 @@ func CreateTableRequest(table *Table) client.APIRequest[*Table] {
 }
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
-func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *Api) DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -146,7 +148,8 @@ func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest
 		opt(c)
 	}
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("tables/{tableId}").
 		AndPathParam("tableId", string(tableID))
 	if c.force {

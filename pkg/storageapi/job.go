@@ -37,12 +37,12 @@ type Job struct {
 }
 
 // GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
-func GetJobRequest(key JobKey) client.APIRequest[*Job] {
+func (a *Api) GetJobRequest(key JobKey) client.APIRequest[*Job] {
 	return getJobRequest(&Job{JobKey: key})
 }
 
 func getJobRequest(job *Job) client.APIRequest[*Job] {
-	request := newRequest().
+	request := a.newStorageAPIRequest().
 		WithResult(job).
 		WithGet("jobs/{jobId}").
 		AndPathParam("jobId", job.ID.String())

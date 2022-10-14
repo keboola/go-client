@@ -32,9 +32,10 @@ func (t *Token) ProjectName() string {
 }
 
 // VerifyTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
-func VerifyTokenRequest(token string) client.APIRequest[*Token] {
+func (a *Api) VerifyTokenRequest(token string) client.APIRequest[*Token] {
 	result := &Token{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithGet("tokens/verify").
 		AndHeader("X-StorageApi-Token", token).

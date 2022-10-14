@@ -48,14 +48,15 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
+func (a *Api) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
 	config := listBucketsConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
 	result := make([]*Bucket, 0)
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("buckets").
 		AndQueryParam("include", config.includeString())
@@ -64,13 +65,14 @@ func ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket]
 }
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
-func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
+func (a *Api) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	// Create config
 	params := client.StructToMap(bucket, []string{"name", "stage", "description", "displayName"})
 	if params["displayName"] == "" {
 		delete(params, "displayName")
 	}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(bucket).
 		WithPost("buckets").
 		WithFormBody(client.ToFormBody(params))
@@ -78,7 +80,7 @@ func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *Api) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -86,7 +88,8 @@ func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequ
 		opt(c)
 	}
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("buckets/{bucketId}").
 		AndPathParam("bucketId", string(bucketID))
 	if c.force {

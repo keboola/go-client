@@ -14,9 +14,10 @@ type Ticket struct {
 }
 
 // GenerateIDRequest https://keboola.docs.apiary.io/#reference/tickets/generate-unique-id/generate-new-id
-func GenerateIDRequest() client.APIRequest[*Ticket] {
+func (a *Api) GenerateIDRequest() client.APIRequest[*Ticket] {
 	result := &Ticket{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tickets")
 	return client.NewAPIRequest(result, request)
@@ -24,6 +25,7 @@ func GenerateIDRequest() client.APIRequest[*Ticket] {
 
 // TicketProvider generates new IDs and GUARANTEES that the IDs will be returned with the same order as the Request method was called.
 type TicketProvider struct {
+	api       *Api
 	group     *client.RunGroup
 	callbacks []func(ticket *Ticket)
 	lock      *sync.Mutex
@@ -38,7 +40,8 @@ func NewTicketProvider(ctx context.Context, sender client.Sender) *TicketProvide
 // Request queues ID generation requests and registers callback.
 func (t *TicketProvider) Request(onSuccess func(ticket *Ticket)) {
 	t.callbacks = append(t.callbacks, onSuccess)
-	t.group.Add(GenerateIDRequest().
+	t.group.Add(t.api.
+		GenerateIDRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, ticket *Ticket) error {
 			t.lock.Lock()
 			defer t.lock.Unlock()
