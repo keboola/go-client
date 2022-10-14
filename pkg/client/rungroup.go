@@ -59,7 +59,7 @@ func (g *RunGroup) Add(request Sendable) {
 		}
 		defer g.sem.Release(1)
 
-		return request.SendOrErr(g.ctx, g.sender)
+		return request.SendOrErr(g.ctx)
 	})
 }
 

@@ -25,8 +25,9 @@ type Event struct {
 }
 
 // CreatEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
-func CreatEventRequest(event *Event) client.APIRequest[*Event] {
-	request := newRequest().
+func (a *Api) CreatEventRequest(event *Event) client.APIRequest[*Event] {
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(event).
 		WithPost("events").
 		WithFormBody(client.ToFormBody(client.StructToMap(event, nil)))

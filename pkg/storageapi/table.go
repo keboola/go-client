@@ -89,14 +89,15 @@ func WithColumnMetadata() Option {
 }
 
 // ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
-func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
+func (a *Api) ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
 	result := make([]*Table, 0)
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("tables").
 		AndQueryParam("include", config.includeString())
@@ -139,9 +140,9 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 }
 
 // CreateTable creates an empty table with given columns.
-func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
+func (a *Api) CreateTable(ctx context.Context, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
 	// Create file resource
-	file, err := CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx, sender)
+	file, err := CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating file failed: %w", err)
 	}
@@ -152,7 +153,7 @@ func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, col
 	}
 
 	// Create the table from the header file
-	return CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx, sender)
+	return a.CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx)
 }
 
 // loadDataFromFileConfig contains common params to load data from file resource.
@@ -206,7 +207,7 @@ func WithPrimaryKey(pk []string) primaryKeyOption {
 }
 
 // CreateTableDeprecatedSyncRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
-func CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
+func (a *Api) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
@@ -240,14 +241,15 @@ func CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ..
 	}
 
 	table := &Table{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(table).
 		WithPost("buckets/{bucketId}/tables").
 		AndPathParam("bucketId", tableID.BucketID.String()).
 		WithBody(bytes.NewReader(body.Bytes())).
 		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
-			if result, err := GetTableRequest(table.ID).Send(ctx, sender); err == nil {
+			if result, err := a.GetTableRequest(table.ID).Send(ctx); err == nil {
 				*table = *result
 				return nil
 			} else {
@@ -258,7 +260,7 @@ func CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ..
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Table] {
+func (a *Api) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Table] {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
@@ -270,18 +272,19 @@ func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateT
 
 	job := &Job{}
 	table := &Table{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(job).
 		WithPost("buckets/{bucketId}/tables-async").
 		AndPathParam("bucketId", tableID.BucketID.String()).
 		WithFormBody(client.ToFormBody(params)).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, _ client.HTTPResponse) error {
+		WithOnSuccess(func(ctx context.Context, _ client.HTTPResponse) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 			defer waitCancelFn()
-			return WaitForJob(waitCtx, sender, job)
+			return a.WaitForJob(waitCtx, job)
 		}).
-		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
 			bytes, err := jsonLib.Marshal(job.Results)
 			if err != nil {
 				return fmt.Errorf(`cannot encode create table results: %w`, err)
@@ -363,7 +366,7 @@ func WithoutHeader(h bool) withoutHeaderOption {
 }
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
+func (a *Api) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
 	c := &loadDataConfig{}
 	for _, o := range opts {
 		o.applyLoadDataOption(c)
@@ -373,7 +376,8 @@ func LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOp
 	params["dataFileId"] = dataFileID
 
 	job := &Job{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(job).
 		WithPost("tables/{tableId}/import-async").
 		AndPathParam("tableId", tableID.String()).
@@ -383,9 +387,10 @@ func LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOp
 }
 
 // GetTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/table-detail
-func GetTableRequest(tableID TableID) client.APIRequest[*Table] {
+func (a *Api) GetTableRequest(tableID TableID) client.APIRequest[*Table] {
 	table := &Table{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(table).
 		WithGet("tables/{tableId}").
 		AndPathParam("tableId", tableID.String())
@@ -393,7 +398,7 @@ func GetTableRequest(tableID TableID) client.APIRequest[*Table] {
 }
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
-func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *Api) DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -401,7 +406,8 @@ func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest
 		opt(c)
 	}
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("tables/{tableId}").
 		WithOnError(ignoreResourceNotFoundError()).
 		AndPathParam("tableId", tableID.String())

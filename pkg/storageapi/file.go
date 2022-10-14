@@ -50,9 +50,10 @@ type Slice struct {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
+func (a *Api) CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 	file.FederationToken = true
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(file).
 		WithPost("files/prepare").
 		WithFormBody(client.ToFormBody(client.StructToMap(file, nil)))
@@ -60,13 +61,14 @@ func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 }
 
 // ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
-func ListFilesRequest() client.APIRequest[*[]*File] {
+func (a *Api) ListFilesRequest() client.APIRequest[*[]*File] {
 	var files []*File
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&files).
 		WithGet("files").
 		AndQueryParam("limit", "200").
-		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
 			sort.Slice(files, func(i, j int) bool {
 				return files[i].ID < files[j].ID
 			})
@@ -76,9 +78,10 @@ func ListFilesRequest() client.APIRequest[*[]*File] {
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func GetFileRequest(id int) client.APIRequest[*File] {
+func (a *Api) GetFileRequest(id int) client.APIRequest[*File] {
 	file := &File{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(file).
 		WithGet("files/{fileId}").
 		AndPathParam("fileId", strconv.Itoa(id))
@@ -86,10 +89,11 @@ func GetFileRequest(id int) client.APIRequest[*File] {
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
-	request := newRequest().
+func (a *Api) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("files/{fileId}").
-		WithOnError(func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+		WithOnError(func(ctx context.Context, response client.HTTPResponse, err error) error {
 			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
 			if response.StatusCode() == http.StatusNotFound {
 				return nil

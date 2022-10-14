@@ -60,12 +60,13 @@ type JobError struct {
 }
 
 // GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
-func GetJobRequest(key JobKey) client.APIRequest[*Job] {
-	return getJobRequest(&Job{JobKey: key})
+func (a *Api) GetJobRequest(key JobKey) client.APIRequest[*Job] {
+	return a.getJobRequest(&Job{JobKey: key})
 }
 
-func getJobRequest(job *Job) client.APIRequest[*Job] {
-	request := newRequest().
+func (a *Api) getJobRequest(job *Job) client.APIRequest[*Job] {
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(job).
 		WithGet("jobs/{jobId}").
 		AndPathParam("jobId", job.ID.String())
@@ -73,7 +74,7 @@ func getJobRequest(job *Job) client.APIRequest[*Job] {
 }
 
 // WaitForJob pulls job status until it is completed.
-func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
+func (a *Api) WaitForJob(ctx context.Context, job *Job) error {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")
@@ -82,7 +83,7 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 	retry := newJobBackoff()
 	for {
 		// Get job status
-		if err := getJobRequest(job).SendOrErr(ctx, sender); err != nil {
+		if err := a.getJobRequest(job).SendOrErr(ctx); err != nil {
 			return err
 		}
 

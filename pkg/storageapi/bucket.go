@@ -37,25 +37,27 @@ func (v listBucketsConfig) includeString() string {
 
 type ListBucketsOption func(c *listBucketsConfig)
 
-// GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
+// GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
+func (a *Api) GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
 	result := Bucket{ID: bucketID}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("buckets/{bucketId}").
 		AndPathParam("bucketId", bucketID.String())
 	return client.NewAPIRequest(&result, request)
 }
 
-// ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
-func ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
+// ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
+func (a *Api) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
 	config := listBucketsConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
 	result := make([]*Bucket, 0)
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("buckets").
 		AndQueryParam("include", config.includeString())
@@ -64,21 +66,23 @@ func ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket]
 }
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
-func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
+func (a *Api) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	// Create config
 	params := client.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
 		delete(params, "displayName")
 	}
+
 	params["stage"] = bucket.ID.Stage
 	params["name"] = bucket.ID.BucketName
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(bucket).
 		WithPost("buckets").
 		WithFormBody(client.ToFormBody(params)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
-			if result, err := GetBucketRequest(bucket.ID).Send(ctx, sender); err == nil {
+			if result, err := a.GetBucketRequest(bucket.ID).Send(ctx); err == nil {
 				*bucket = *result
 				return nil
 			} else {
@@ -89,7 +93,7 @@ func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *Api) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -97,7 +101,8 @@ func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequ
 		opt(c)
 	}
 
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithDelete("buckets/{bucketId}").
 		AndPathParam("bucketId", bucketID.String()).
 		WithOnError(ignoreResourceNotFoundError())

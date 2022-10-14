@@ -12,7 +12,7 @@ const mainBranchDescription = ""
 
 // CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
 // Useful for E2E tests. Result is default branch.
-func CleanProjectRequest() client.APIRequest[*Branch] {
+func (a *Api) CleanProjectRequest() client.APIRequest[*Branch] {
 	// Only one delete branch request can run simultaneously.
 	// Branch deletion is performed via Storage Job, which uses locks.
 	// If we ran multiple requests, then only one job would run and the other jobs would wait.
@@ -22,9 +22,10 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 	// For each branch
 	defaultBranch := &Branch{}
 
-	cleanBranchesReq := ListBranchesRequest().
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Branch) error {
-			wg := client.NewWaitGroup(ctx, sender)
+	cleanBranchesReq := a.
+		ListBranchesRequest().
+		WithOnSuccess(func(ctx context.Context, result *[]*Branch) error {
+			wg := client.NewWaitGroup(ctx)
 			for _, branch := range *result {
 				branch := branch
 				// Clear branch
@@ -33,28 +34,39 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 					// Reset description
 					if branch.Description != mainBranchDescription {
 						branch.Description = mainBranchDescription
-						wg.Send(UpdateBranchRequest(branch, []string{"description"}))
+						wg.Send(a.UpdateBranchRequest(branch, []string{"description"}))
 					}
 					// Store default branch
 					*defaultBranch = *branch
 					// Clear configs
-					wg.Send(DeleteConfigsInBranchRequest(branch.BranchKey))
+					wg.Send(a.DeleteConfigsInBranchRequest(branch.BranchKey))
 					// Clear metadata
-					wg.Send(ListBranchMetadataRequest(branch.BranchKey).
-						WithOnSuccess(func(ctx context.Context, sender client.Sender, result *MetadataDetails) error {
-							wgMetadata := client.NewWaitGroup(ctx, sender)
+					wg.Send(a.
+						ListBranchMetadataRequest(branch.BranchKey).
+						WithOnSuccess(func(ctx context.Context, result *MetadataDetails) error {
+							wgMetadata := client.NewWaitGroup(ctx)
 							for _, item := range *result {
-								wgMetadata.Send(DeleteBranchMetadataRequest(branch.BranchKey, item.ID))
+								wgMetadata.Send(a.DeleteBranchMetadataRequest(branch.BranchKey, item.ID))
 							}
 							return wgMetadata.Wait()
 						}))
+					// Clear buckets
+					wg.Send(a.ListBucketsRequest().
+						WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
+							wgBuckets := client.NewWaitGroup(ctx)
+							for _, item := range *result {
+								wgBuckets.Send(a.DeleteBucketRequest(item.ID, WithForce()))
+							}
+							return wgBuckets.Wait()
+						}))
 				} else {
 					// If it is not default branch -> delete branch.
-					wg.Send(DeleteBranchRequest(branch.BranchKey).
-						WithBefore(func(ctx context.Context, _ client.Sender) error {
+					wg.Send(a.
+						DeleteBranchRequest(branch.BranchKey).
+						WithBefore(func(ctx context.Context) error {
 							return deleteBranchSem.Acquire(ctx, 1)
 						}).
-						WithOnComplete(func(_ context.Context, _ client.Sender, _ client.NoResult, err error) error {
+						WithOnComplete(func(_ context.Context, _ client.NoResult, err error) error {
 							deleteBranchSem.Release(1)
 							return err
 						}),
@@ -64,30 +76,32 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	cleanBucketsReq := ListBucketsRequest().
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Bucket) error {
-			wg := client.NewWaitGroup(ctx, sender)
+	cleanBucketsReq := a.
+		ListBucketsRequest().
+		WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
+			wg := client.NewWaitGroup(ctx)
 			for _, bucket := range *result {
-				wg.Send(DeleteBucketRequest(bucket.ID, WithForce()))
+				wg.Send(a.DeleteBucketRequest(bucket.ID, WithForce()))
 			}
 			return wg.Wait()
 		})
 
-	cleanFilesReq := ListFilesRequest().
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*File) error {
-			wg := client.NewWaitGroup(ctx, sender)
+	cleanFilesReq := a.
+		ListFilesRequest().
+		WithOnSuccess(func(ctx context.Context, result *[]*File) error {
+			wg := client.NewWaitGroup(ctx)
 			for _, file := range *result {
-				wg.Send(DeleteFileRequest(file.ID))
+				wg.Send(a.DeleteFileRequest(file.ID))
 			}
 			return wg.Wait()
 		})
 
-	cleanTokensReq := ListTokensRequest().
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Token) error {
-			wg := client.NewWaitGroup(ctx, sender)
+	cleanTokensReq := a.ListTokensRequest().
+		WithOnSuccess(func(ctx context.Context, result *[]*Token) error {
+			wg := client.NewWaitGroup(ctx)
 			for _, token := range *result {
 				if !token.IsMaster {
-					wg.Send(DeleteTokenRequest(token.ID))
+					wg.Send(a.DeleteTokenRequest(token.ID))
 				}
 			}
 			return wg.Wait()

@@ -126,13 +126,14 @@ func WithExpiresIn(expiresIn time.Duration) CreateTokenOption {
 }
 
 // VerifyTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
-func VerifyTokenRequest(token string) client.APIRequest[*Token] {
+func (a *Api) VerifyTokenRequest(token string) client.APIRequest[*Token] {
 	result := &Token{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithGet("tokens/verify").
 		AndHeader("X-StorageApi-Token", token).
-		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
 			result.Token = token
 			return nil
 		})
@@ -140,14 +141,15 @@ func VerifyTokenRequest(token string) client.APIRequest[*Token] {
 }
 
 // CreateTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/create-token
-func CreateTokenRequest(opts ...CreateTokenOption) client.APIRequest[*Token] {
+func (a *Api) CreateTokenRequest(opts ...CreateTokenOption) client.APIRequest[*Token] {
 	options := &createTokenOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
 	result := &Token{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tokens").
 		WithFormBody(client.ToFormBody(client.StructToMap(options, nil)))
@@ -155,18 +157,20 @@ func CreateTokenRequest(opts ...CreateTokenOption) client.APIRequest[*Token] {
 }
 
 // ListTokensRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/list-all-tokens
-func ListTokensRequest() client.APIRequest[*[]*Token] {
+func (a *Api) ListTokensRequest() client.APIRequest[*[]*Token] {
 	var result []*Token
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("tokens")
 	return client.NewAPIRequest(&result, request)
 }
 
 // DeleteTokenRequest (no documentation).
-func DeleteTokenRequest(tokenID string) client.APIRequest[*Token] {
+func (a *Api) DeleteTokenRequest(tokenID string) client.APIRequest[*Token] {
 	result := &Token{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithDelete("tokens/{tokenId}").
 		AndPathParam("tokenId", tokenID)
@@ -174,9 +178,10 @@ func DeleteTokenRequest(tokenID string) client.APIRequest[*Token] {
 }
 
 // RefreshTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/share-token/refresh-token
-func RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
+func (a *Api) RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
 	result := &Token{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tokens/{tokenId}/refresh").
 		AndPathParam("tokenId", tokenID)

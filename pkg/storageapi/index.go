@@ -52,9 +52,10 @@ type Service struct {
 }
 
 // IndexRequest returns index of Storage API without components definitions.
-func IndexRequest() client.APIRequest[*Index] {
+func (a *Api) IndexRequest() client.APIRequest[*Index] {
 	index := &Index{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(index).
 		WithGet("").
 		AndQueryParam("exclude", "components")
@@ -62,9 +63,10 @@ func IndexRequest() client.APIRequest[*Index] {
 }
 
 // IndexComponentsRequest returns index of Storage API with components definitions.
-func IndexComponentsRequest() client.APIRequest[*IndexComponents] {
+func (a *Api) IndexComponentsRequest() client.APIRequest[*IndexComponents] {
 	result := &IndexComponents{}
-	request := newRequest().
+	request := a.
+		newRequest(StorageAPI).
 		WithResult(result).
 		WithGet("")
 	return client.NewAPIRequest(result, request)
