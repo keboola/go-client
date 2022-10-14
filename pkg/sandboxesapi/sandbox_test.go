@@ -147,7 +147,7 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
-	if err := platform.CleanProject(ctx, storageClient, schedulerClient, sandboxesClient); err != nil {
+	if err := platform.CleanProject(ctx, storageClient, schedulerClient, queueClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 

@@ -2,7 +2,9 @@ package sandboxesapi
 
 import (
 	"context"
+	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/keboola/go-client/pkg/client"
 )
 
@@ -54,21 +56,37 @@ func ListInstancesRequest() client.APIRequest[*[]*Sandbox] {
 	return client.NewAPIRequest(&result, request)
 }
 
-func DeleteInstanceRequest(sandboxId SandboxID) client.APIRequest[client.NoResult] {
-	request := newRequest().
-		WithDelete("sandboxes/{sandboxId}").
-		AndPathParam("sandboxId", sandboxId.String())
-	return client.NewAPIRequest(client.NoResult{}, request)
-}
+func CleanInstances(
+	ctx context.Context,
+	queueClient client.Sender,
+	sandboxClient client.Sender,
+) error {
+	instances, err := ListInstancesRequest().Send(ctx, sandboxClient)
+	if err != nil {
+		return err
+	}
 
-func CleanInstancesRequest() client.APIRequest[client.NoResult] {
-	request := ListInstancesRequest().
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Sandbox) error {
-			wg := client.NewWaitGroup(ctx, sender)
-			for _, s := range *result {
-				wg.Send(DeleteInstanceRequest(s.ID))
+	wg := &sync.WaitGroup{}
+	errors := make(chan error)
+	for _, s := range *instances {
+		s := s
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := DeleteJobRequest(s.ID).Send(ctx, queueClient); err != nil {
+				errors <- err
 			}
-			return wg.Wait()
-		})
-	return client.NewAPIRequest(client.NoResult{}, request)
+		}()
+	}
+	wg.Wait()
+
+	close(errors)
+	for e := range errors {
+		err = multierror.Append(err, e)
+	}
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -153,18 +153,18 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	jobsQueueHost, found := services.URLByID("queue")
 	assert.True(t, found)
 
-	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
-	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
+	scheduleClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	sandboxClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
-	if err := platform.CleanProject(ctx, storageClient, schedulerClient, sandboxesClient); err != nil {
+	if err := platform.CleanProject(ctx, storageClient, scheduleClient, queueClient, sandboxClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
 	clients := &testClients{
 		Storage:  storageClient,
-		Schedule: schedulerClient,
-		Sandbox:  sandboxesClient,
+		Schedule: scheduleClient,
+		Sandbox:  sandboxClient,
 		Queue:    queueClient,
 	}
 

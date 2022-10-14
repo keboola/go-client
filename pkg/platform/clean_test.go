@@ -21,49 +21,49 @@ func TestCleanProject(t *testing.T) {
 	ctx, project, c := deps(t)
 
 	// Clean project
-	if err := platform.CleanProject(ctx, c.StorageClient, c.ScheduleClient, c.SandboxClient); err != nil {
+	if err := platform.CleanProject(ctx, c.Storage, c.Schedule, c.Queue, c.Sandbox); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
 	// Assert that project is clean
 
 	// Only default branch exists
-	branches, err := storageapi.ListBranchesRequest().Send(ctx, c.StorageClient)
+	branches, err := storageapi.ListBranchesRequest().Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *branches, 1)
 	defaultBranch := (*branches)[0].BranchKey
 
 	// Default branch has no metadata
-	metadata, err := storageapi.ListBranchMetadataRequest(defaultBranch).Send(ctx, c.StorageClient)
+	metadata, err := storageapi.ListBranchMetadataRequest(defaultBranch).Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *metadata, 0)
 
 	// No configs - implies no rows or config metadata
-	configs, err := storageapi.ListConfigsAndRowsFrom(defaultBranch).Send(ctx, c.StorageClient)
+	configs, err := storageapi.ListConfigsAndRowsFrom(defaultBranch).Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *configs, 0)
 
 	// No buckets - implies no tables
-	buckets, err := storageapi.ListBucketsRequest().Send(ctx, c.StorageClient)
+	buckets, err := storageapi.ListBucketsRequest().Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *buckets, 0)
 
 	// No schedules
-	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, c.ScheduleClient)
+	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, c.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 
 	// No sandbox instances
-	instances, err := sandboxesapi.ListInstancesRequest().Send(ctx, c.SandboxClient)
+	instances, err := sandboxesapi.ListInstancesRequest().Send(ctx, c.Sandbox)
 	assert.NoError(t, err)
 	assert.Len(t, *instances, 0)
 }
 
 type testClients struct {
-	StorageClient  client.Sender
-	ScheduleClient client.Sender
-	SandboxClient  client.Sender
-	QueueClient    client.Sender
+	Storage  client.Sender
+	Schedule client.Sender
+	Sandbox  client.Sender
+	Queue    client.Sender
 }
 
 func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
@@ -90,10 +90,10 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
 	clients := &testClients{
-		StorageClient:  storageClient,
-		ScheduleClient: scheduleClient,
-		SandboxClient:  sandboxClient,
-		QueueClient:    queueClient,
+		Storage:  storageClient,
+		Schedule: scheduleClient,
+		Sandbox:  sandboxClient,
+		Queue:    queueClient,
 	}
 
 	return ctx, project, clients

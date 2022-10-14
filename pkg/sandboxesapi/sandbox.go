@@ -126,7 +126,7 @@ func Delete(
 	sandboxId SandboxID,
 ) error {
 	// Delete sandbox (this stops the instance and deletes it)
-	_, err := DeleteJobRequest(configId, sandboxId).Send(ctx, queueClient)
+	_, err := DeleteJobRequest(sandboxId).Send(ctx, queueClient)
 	if err != nil {
 		return err
 	}

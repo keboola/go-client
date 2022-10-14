@@ -16,6 +16,7 @@ func CleanProject(
 	ctx context.Context,
 	storageClient client.Sender,
 	schedulerClient client.Sender,
+	queueClient client.Sender,
 	sandboxClient client.Sender,
 ) error {
 	wg := &sync.WaitGroup{}
@@ -40,7 +41,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := sandboxesapi.CleanInstancesRequest().SendOrErr(ctx, sandboxClient); err != nil {
+		if err := sandboxesapi.CleanInstances(ctx, queueClient, sandboxClient); err != nil {
 			errors <- err
 		}
 	}()
