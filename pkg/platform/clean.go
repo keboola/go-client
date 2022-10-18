@@ -28,8 +28,8 @@ func CleanProject(
 		defer wg.Done()
 		if e := storageapi.CleanProjectRequest().SendOrErr(ctx, storageClient); e != nil {
 			m.Lock()
+			defer m.Unlock()
 			err = multierror.Append(err, e)
-			m.Unlock()
 		}
 	}()
 
@@ -38,8 +38,8 @@ func CleanProject(
 		defer wg.Done()
 		if e := schedulerapi.CleanAllSchedulesRequest().SendOrErr(ctx, schedulerClient); e != nil {
 			m.Lock()
+			defer m.Unlock()
 			err = multierror.Append(err, e)
-			m.Unlock()
 		}
 	}()
 
@@ -48,8 +48,8 @@ func CleanProject(
 		defer wg.Done()
 		if e := sandboxesapi.CleanInstances(ctx, queueClient, sandboxClient); e != nil {
 			m.Lock()
+			defer m.Unlock()
 			err = multierror.Append(err, e)
-			m.Unlock()
 		}
 	}()
 

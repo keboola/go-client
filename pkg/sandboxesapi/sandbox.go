@@ -188,8 +188,8 @@ func List(
 		data, e := ListConfigRequest(branchId).Send(ctx, storageClient)
 		if e != nil {
 			m.Lock()
+			defer m.Unlock()
 			err = multierror.Append(err, e)
-			m.Unlock()
 			return
 		}
 		configs = *data
@@ -201,8 +201,8 @@ func List(
 		data, e := ListInstancesRequest().Send(ctx, sandboxClient)
 		if e != nil {
 			m.Lock()
+			defer m.Unlock()
 			err = multierror.Append(err, e)
-			m.Unlock()
 			return
 		}
 		m := make(map[string]*Sandbox, len(*data))

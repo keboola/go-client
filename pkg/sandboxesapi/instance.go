@@ -77,8 +77,8 @@ func CleanInstances(
 			defer wg.Done()
 			if e := DeleteJobRequest(s.ID).SendOrErr(ctx, queueClient); e != nil {
 				m.Lock()
+				defer m.Unlock()
 				err = multierror.Append(err, e)
-				m.Unlock()
 			}
 		}()
 	}
