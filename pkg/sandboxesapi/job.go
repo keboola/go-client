@@ -71,7 +71,7 @@ func CreateJobRequest(configId ConfigID, sandboxType string, opts ...Option) cli
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
 
-func DeleteJobRequest(configId ConfigID, sandboxId SandboxID) client.APIRequest[client.NoResult] {
+func DeleteJobRequest(sandboxId SandboxID) client.APIRequest[client.NoResult] {
 	configData := map[string]any{
 		"parameters": map[string]any{
 			"task": "delete",
@@ -79,7 +79,7 @@ func DeleteJobRequest(configId ConfigID, sandboxId SandboxID) client.APIRequest[
 		},
 	}
 	request := jobsqueueapi.
-		CreateJobConfigDataRequest(Component, configId, configData).
+		CreateJobConfigDataRequest(Component, "", configData).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
 			return jobsqueueapi.WaitForJob(ctx, sender, result)
 		})

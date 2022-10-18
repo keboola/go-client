@@ -1,6 +1,13 @@
 package sandboxesapi
 
-import "github.com/keboola/go-client/pkg/client"
+import (
+	"context"
+	"sync"
+
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/keboola/go-client/pkg/client"
+)
 
 type SandboxID string
 
@@ -48,4 +55,39 @@ func ListInstancesRequest() client.APIRequest[*[]*Sandbox] {
 		WithResult(&result).
 		WithGet("sandboxes")
 	return client.NewAPIRequest(&result, request)
+}
+
+func CleanInstances(
+	ctx context.Context,
+	queueClient client.Sender,
+	sandboxClient client.Sender,
+) error {
+	instances, err := ListInstancesRequest().Send(ctx, sandboxClient)
+	if err != nil {
+		return err
+	}
+
+	wg := &sync.WaitGroup{}
+	errors := make(chan error)
+	for _, s := range *instances {
+		s := s
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := DeleteJobRequest(s.ID).Send(ctx, queueClient); err != nil {
+				errors <- err
+			}
+		}()
+	}
+	wg.Wait()
+
+	close(errors)
+	for e := range errors {
+		err = multierror.Append(err, e)
+	}
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
