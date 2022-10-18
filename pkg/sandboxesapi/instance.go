@@ -68,23 +68,22 @@ func CleanInstances(
 	}
 
 	wg := &sync.WaitGroup{}
-	errors := make(chan error)
+	m := &sync.Mutex{}
+
 	for _, s := range *instances {
 		s := s
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := DeleteJobRequest(s.ID).Send(ctx, queueClient); err != nil {
-				errors <- err
+			if e := DeleteJobRequest(s.ID).SendOrErr(ctx, queueClient); e != nil {
+				m.Lock()
+				err = multierror.Append(err, e)
+				m.Unlock()
 			}
 		}()
 	}
-	wg.Wait()
 
-	close(errors)
-	for e := range errors {
-		err = multierror.Append(err, e)
-	}
+	wg.Wait()
 	if err != nil {
 		return err
 	}
