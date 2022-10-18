@@ -20,39 +20,40 @@ func CleanProject(
 	sandboxClient client.Sender,
 ) error {
 	wg := &sync.WaitGroup{}
-	errors := make(chan error)
+	m := &sync.Mutex{}
+	var err error
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := storageapi.CleanProjectRequest().SendOrErr(ctx, storageClient); err != nil {
-			errors <- err
+		if e := storageapi.CleanProjectRequest().SendOrErr(ctx, storageClient); e != nil {
+			m.Lock()
+			defer m.Unlock()
+			err = multierror.Append(err, e)
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := schedulerapi.CleanAllSchedulesRequest().SendOrErr(ctx, schedulerClient); err != nil {
-			errors <- err
+		if e := schedulerapi.CleanAllSchedulesRequest().SendOrErr(ctx, schedulerClient); e != nil {
+			m.Lock()
+			defer m.Unlock()
+			err = multierror.Append(err, e)
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := sandboxesapi.CleanInstances(ctx, queueClient, sandboxClient); err != nil {
-			errors <- err
+		if e := sandboxesapi.CleanInstances(ctx, queueClient, sandboxClient); e != nil {
+			m.Lock()
+			defer m.Unlock()
+			err = multierror.Append(err, e)
 		}
 	}()
 
 	wg.Wait()
-	close(errors)
-
-	var err error
-	for e := range errors {
-		err = multierror.Append(err, e)
-	}
 	if err != nil {
 		return err
 	}

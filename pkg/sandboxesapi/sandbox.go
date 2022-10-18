@@ -178,15 +178,18 @@ func List(
 	// List configs and instances in parallel
 	var configs []*storageapi.Config
 	var instances map[string]*Sandbox
-	errors := make(chan error, 2)
 	wg := &sync.WaitGroup{}
+	m := &sync.Mutex{}
+	var err error
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		data, err := ListConfigRequest(branchId).Send(ctx, storageClient)
-		if err != nil {
-			errors <- err
+		data, e := ListConfigRequest(branchId).Send(ctx, storageClient)
+		if e != nil {
+			m.Lock()
+			defer m.Unlock()
+			err = multierror.Append(err, e)
 			return
 		}
 		configs = *data
@@ -195,9 +198,11 @@ func List(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		data, err := ListInstancesRequest().Send(ctx, sandboxClient)
-		if err != nil {
-			errors <- err
+		data, e := ListInstancesRequest().Send(ctx, sandboxClient)
+		if e != nil {
+			m.Lock()
+			defer m.Unlock()
+			err = multierror.Append(err, e)
 			return
 		}
 		m := make(map[string]*Sandbox, len(*data))
@@ -208,13 +213,6 @@ func List(
 	}()
 
 	wg.Wait()
-
-	// Collect errors
-	close(errors)
-	var err error
-	for e := range errors {
-		err = multierror.Append(err, e)
-	}
 	if err != nil {
 		return nil, err
 	}
