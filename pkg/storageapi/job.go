@@ -62,7 +62,7 @@ func waitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		if job.Status == "success" {
 			return nil
 		} else if job.Status == "error" {
-			return fmt.Errorf("job failed: %v", job.Results)
+			return fmt.Errorf(`job "%s" failed: %v`, job.ID, job.Results)
 		}
 
 		// Wait and check again
