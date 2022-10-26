@@ -21,6 +21,7 @@ func TestVerifyToken(t *testing.T) {
 	assert.NotEmpty(t, token.Owner.Features)
 	if token.IsMaster {
 		assert.NotNil(t, token.Admin)
+		assert.NotEmpty(t, token.Description)
 	} else {
 		assert.Nil(t, token.Admin)
 	}
