@@ -123,8 +123,12 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	t.Cleanup(func() {
+		cancel()
+	})
 
+	project := testproject.GetTestProject(t)
 	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
 	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
