@@ -19,6 +19,11 @@ func TestVerifyToken(t *testing.T) {
 	assert.Equal(t, project.ID(), token.ProjectID())
 	assert.NotEmpty(t, token.ProjectName())
 	assert.NotEmpty(t, token.Owner.Features)
+	if token.IsMaster {
+		assert.NotNil(t, token.Admin)
+	} else {
+		assert.Nil(t, token.Admin)
+	}
 }
 
 func TestVerifyTokenEmpty(t *testing.T) {
