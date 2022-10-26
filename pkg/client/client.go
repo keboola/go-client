@@ -32,8 +32,6 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
-const ContentTypeApplicationJson = "application/json"
-
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
@@ -308,7 +306,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
-	} else if contentType == ContentTypeApplicationJson {
+	} else if isJsonContentType(contentType) {
 		// Map JSON response
 		if r.StatusCode > 199 && r.StatusCode < 300 && resultDef != nil {
 			// Map JSON response to defined result
