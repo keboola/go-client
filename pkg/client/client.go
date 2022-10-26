@@ -249,7 +249,7 @@ func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 		}
 		return io.NopCloser(v), nil
 	}
-	if body != nil && contentType == ContentTypeApplicationJson {
+	if body != nil && isJsonContentType(contentType) {
 		// Json body
 		c, err := json.Marshal(body)
 		if err != nil {
