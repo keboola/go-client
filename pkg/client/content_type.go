@@ -12,8 +12,5 @@ const (
 var jsonContentTypeRegexp = regexp.MustCompile(ContentTypeApplicationJsonRegexp)
 
 func isJsonContentType(contentType string) bool {
-	if contentType == ContentTypeApplicationJson {
-		return true
-	}
 	return jsonContentTypeRegexp.MatchString(contentType)
 }
