@@ -8,11 +8,12 @@ import (
 
 // Token https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
 type Token struct {
-	Token    string      // set manually from request
-	ID       string      `json:"id"`
-	IsMaster bool        `json:"isMasterToken"`
-	Owner    TokenOwner  `json:"owner"`
-	Admin    *AdminToken `json:"admin,omitempty"`
+	Token       string      // set manually from request
+	ID          string      `json:"id"`
+	Description string      `json:"description"`
+	IsMaster    bool        `json:"isMasterToken"`
+	Owner       TokenOwner  `json:"owner"`
+	Admin       *AdminToken `json:"admin,omitempty"`
 }
 
 // AdminToken - admin part of the token that should exists if the token is a master token.
