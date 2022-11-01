@@ -1,15 +1,17 @@
 package storageapi
 
 import (
+	"github.com/relvacode/iso8601"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
 //nolint:tagliatelle
 type S3UploadParamsCredentials struct {
-	AccessKeyId     string      `json:"AccessKeyId"`
-	SecretAccessKey string      `json:"SecretAccessKey"`
-	SessionToken    string      `json:"SessionToken"`
-	Expiration      client.Time `json:"Expiration"`
+	AccessKeyId     string       `json:"AccessKeyId"`
+	SecretAccessKey string       `json:"SecretAccessKey"`
+	SessionToken    string       `json:"SessionToken"`
+	Expiration      iso8601.Time `json:"Expiration"`
 }
 
 type S3UploadParams struct {
@@ -21,8 +23,8 @@ type S3UploadParams struct {
 
 //nolint:tagliatelle
 type ABSUploadParamsCredentials struct {
-	SASConnectionString string `json:"SASConnectionString"`
-	Expiration          Time   `json:"expiration"`
+	SASConnectionString string       `json:"SASConnectionString"`
+	Expiration          iso8601.Time `json:"expiration"`
 }
 
 type ABSUploadParams struct {
@@ -34,7 +36,7 @@ type ABSUploadParams struct {
 
 type File struct {
 	ID              int             `json:"id" readonly:"true"`
-	Created         Time            `json:"created" readonly:"true"`
+	Created         iso8601.Time    `json:"created" readonly:"true"`
 	IsPublic        bool            `json:"isPublic,omitempty"`
 	IsSliced        bool            `json:"sliced,omitempty"`
 	IsEncrypted     bool            `json:"isEncrypted,omitempty"`

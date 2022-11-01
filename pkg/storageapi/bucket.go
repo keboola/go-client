@@ -4,6 +4,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/relvacode/iso8601"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
@@ -19,17 +21,17 @@ const (
 )
 
 type Bucket struct {
-	ID             BucketID `json:"id"`
-	Uri            string   `json:"uri"`
-	Name           string   `json:"name"`
-	DisplayName    string   `json:"displayName"`
-	Stage          string   `json:"stage"`
-	Description    string   `json:"description"`
-	Created        Time     `json:"created"`
-	LastChangeDate *Time    `json:"lastChangeDate"`
-	IsReadOnly     bool     `json:"isReadOnly"`
-	DataSizeBytes  uint64   `json:"dataSizeBytes"`
-	RowsCount      uint64   `json:"rowsCount"`
+	ID             BucketID      `json:"id"`
+	Uri            string        `json:"uri"`
+	Name           string        `json:"name"`
+	DisplayName    string        `json:"displayName"`
+	Stage          string        `json:"stage"`
+	Description    string        `json:"description"`
+	Created        iso8601.Time  `json:"created"`
+	LastChangeDate *iso8601.Time `json:"lastChangeDate"`
+	IsReadOnly     bool          `json:"isReadOnly"`
+	DataSizeBytes  uint64        `json:"dataSizeBytes"`
+	RowsCount      uint64        `json:"rowsCount"`
 }
 
 type listBucketsConfig struct {

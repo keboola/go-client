@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
+	"github.com/relvacode/iso8601"
 
 	"github.com/keboola/go-client/pkg/client"
 )
@@ -35,7 +36,7 @@ type Config struct {
 	Description       string                 `json:"description"`
 	ChangeDescription string                 `json:"changeDescription"`
 	IsDeleted         bool                   `json:"isDeleted" readonly:"true"`
-	Created           Time                   `json:"created" readonly:"true"`
+	Created           iso8601.Time           `json:"created" readonly:"true"`
 	Version           int                    `json:"version" readonly:"true"`
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	IsDisabled        bool                   `json:"isDisabled"`

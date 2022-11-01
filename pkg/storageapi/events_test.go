@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/keboola/go-client/pkg/client"
 	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
@@ -20,7 +21,7 @@ func TestSendEvent(t *testing.T) {
 		Message:     "Test event",
 		Params:      map[string]any{"command": "bar1"},
 		Results:     map[string]any{"projectId": 123, "error": "err"},
-		Duration:    DurationSeconds(123456 * time.Millisecond),
+		Duration:    client.DurationSeconds(123456 * time.Millisecond),
 	}).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, event.ID)

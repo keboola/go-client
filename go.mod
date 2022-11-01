@@ -10,6 +10,7 @@ require (
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/keboola/go-utils v0.6.0
+	github.com/relvacode/iso8601 v1.1.0
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/net v0.1.0
