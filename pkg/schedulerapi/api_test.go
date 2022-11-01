@@ -138,7 +138,7 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	project, _ := testproject.GetTestProjectForTest(t)
 
 	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 

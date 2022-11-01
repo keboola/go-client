@@ -14,7 +14,7 @@ import (
 func TestIndexRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	project, _ := testproject.GetTestProjectForTest(t)
 	c := ClientWithHost(client.NewTestClient(), project.StorageAPIHost())
 	result, err := IndexRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -29,7 +29,7 @@ func TestIndexRequest(t *testing.T) {
 func TestIndexRequest_WithoutToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	project, _ := testproject.GetTestProjectForTest(t)
 	c := ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 	result, err := IndexRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -44,7 +44,7 @@ func TestIndexRequest_WithoutToken(t *testing.T) {
 func TestIndexComponents(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	project, _ := testproject.GetTestProjectForTest(t)
 	c := ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 	result, err := IndexComponentsRequest().Send(ctx, c)
 	assert.NoError(t, err)

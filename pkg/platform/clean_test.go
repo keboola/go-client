@@ -70,7 +70,7 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	t.Helper()
 
 	ctx := context.Background()
-	project := testproject.GetTestProject(t)
+	project, _ := testproject.GetTestProjectForTest(t)
 
 	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
