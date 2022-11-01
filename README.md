@@ -3,6 +3,8 @@
 - Supported Keboola APIs:
   - [Storage API](https://keboola.docs.apiary.io/#)
   - [Encryption API](https://keboolaencryption.docs.apiary.io/#)
+  - [Jobs Queue API](https://app.swaggerhub.com/apis-docs/keboola/job-queue-api)
+  - [Sandboxes API](https://sandboxes.keboola.com/documentation)
   - [Scheduler API](https://app.swaggerhub.com/apis/odinuv/scheduler)
 - Not all API requests are covered, clients are extended as needed.
 - The definitions are independent of client implementation, see `Sender` interface.
