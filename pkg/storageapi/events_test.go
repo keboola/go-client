@@ -14,7 +14,7 @@ import (
 func TestSendEvent(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForRandomProject(t)
+	_, c := ClientForRandomProject(t)
 	event, err := CreatEventRequest(&Event{
 		ComponentID: "keboola.keboola-as-code",
 		Type:        "info",

@@ -14,7 +14,7 @@ import (
 func TestBucketApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := clientForAnEmptyProject(t)
+	c := storageapi.ClientForAnEmptyProject(t)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 

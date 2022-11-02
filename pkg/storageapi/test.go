@@ -1,4 +1,4 @@
-package storageapi_test
+package storageapi
 
 import (
 	"context"
@@ -8,10 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
-	. "github.com/keboola/go-client/pkg/storageapi"
 )
 
-func clientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproject.Project, client.Client) {
+func ClientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproject.Project, client.Client) {
 	t.Helper()
 
 	project, err := testproject.GetTestProjectForTest(t, opts...)
@@ -20,10 +19,10 @@ func clientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproj
 	return project, c
 }
 
-func clientForAnEmptyProject(t *testing.T, opts ...testproject.Option) client.Sender {
+func ClientForAnEmptyProject(t *testing.T, opts ...testproject.Option) client.Sender {
 	t.Helper()
 
-	project, c := clientForRandomProject(t, opts...)
+	project, c := ClientForRandomProject(t, opts...)
 	_, err := CleanProjectRequest().Send(context.Background(), c)
 	if err != nil {
 		t.Fatalf(`cannot clear project "%d": %s`, project.ID(), err)

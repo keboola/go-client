@@ -12,7 +12,7 @@ import (
 func TestVerifyToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project, c := clientForRandomProject(t)
+	project, c := ClientForRandomProject(t)
 
 	token, err := VerifyTokenRequest(project.StorageAPIToken()).Send(ctx, c)
 	assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestVerifyToken(t *testing.T) {
 func TestVerifyTokenEmpty(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForRandomProject(t)
+	_, c := ClientForRandomProject(t)
 
 	token, err := VerifyTokenRequest("").Send(ctx, c)
 	assert.Error(t, err)
@@ -44,7 +44,7 @@ func TestVerifyTokenEmpty(t *testing.T) {
 func TestVerifyTokenInvalid(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForRandomProject(t)
+	_, c := ClientForRandomProject(t)
 
 	token, err := VerifyTokenRequest("mytoken").Send(ctx, c)
 	assert.Error(t, err)

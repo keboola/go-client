@@ -137,7 +137,7 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	c := clientForAnEmptyProject(t)
+	c := ClientForAnEmptyProject(t)
 
 	tables, err := ListTablesRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -238,7 +238,7 @@ func TestMockListTablesRequest(t *testing.T) {
 func TestTableApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := clientForAnEmptyProject(t)
+	c := ClientForAnEmptyProject(t)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())

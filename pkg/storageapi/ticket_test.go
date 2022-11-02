@@ -13,7 +13,7 @@ import (
 func TestGenerateNewId(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForRandomProject(t)
+	_, c := ClientForRandomProject(t)
 
 	ticket, err := GenerateIDRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -24,7 +24,7 @@ func TestGenerateNewId(t *testing.T) {
 func TestTicketProvider(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := clientForRandomProject(t)
+	_, c := ClientForRandomProject(t)
 
 	provider := NewTicketProvider(ctx, c)
 	tickets := make([]string, 0)
