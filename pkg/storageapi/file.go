@@ -1,7 +1,14 @@
 package storageapi
 
 import (
+	"compress/gzip"
+	"context"
+	"fmt"
+	"io"
+	"strconv"
+
 	"github.com/relvacode/iso8601"
+	"gocloud.dev/blob"
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi/abs"
@@ -38,4 +45,43 @@ func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 		WithPost("files/prepare").
 		WithFormBody(client.ToFormBody(client.StructToMap(file, nil)))
 	return client.NewAPIRequest(file, request)
+}
+
+// GetFileResourceRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
+func GetFileResourceRequest(id int) client.APIRequest[*File] {
+	file := &File{}
+	request := newRequest().
+		WithResult(file).
+		WithGet("files/{fileId}").
+		AndPathParam("fileId", strconv.Itoa(id))
+	return client.NewAPIRequest(file, request)
+}
+
+func gzReader(r io.Reader) io.Reader {
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		_, err := io.Copy(gzip.NewWriter(pw), r)
+		if err != nil {
+			panic(err)
+		}
+	}()
+	return pr
+}
+
+func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.Reader) error {
+	reader = gzReader(reader)
+
+	bw, err := bucket.NewWriter(ctx, key, nil)
+	if err != nil {
+		return fmt.Errorf(`opening blob "%s" failed: %w`, key, err)
+	}
+	defer bw.Close()
+
+	_, err = io.Copy(bw, reader)
+	if err != nil {
+		return fmt.Errorf(`writing blob "%s" failed: %w`, key, err)
+	}
+
+	return nil
 }

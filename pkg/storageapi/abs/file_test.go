@@ -7,16 +7,16 @@ import (
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/keboola/go-client/pkg/storageapi"
+	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestFileApiCreateFileResource(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t, testproject.WithStagingStorageABS())
+	c := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageABS())
 
 	// Create file
-	f := &File{
+	f := &storageapi.File{
 		IsPublic:    false,
 		IsSliced:    true,
 		IsEncrypted: true,
@@ -25,7 +25,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 		ContentType: "text/csv",
 	}
 
-	file, err := CreateFileResourceRequest(f).Send(ctx, c)
+	file, err := storageapi.CreateFileResourceRequest(f).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file.ID)
 	assert.NotEmpty(t, file.Url)
