@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
@@ -20,12 +20,14 @@ func newJsonResponder(status int, response string) httpmock.Responder {
 	return httpmock.ResponderFromResponse(r)
 }
 
-func parseDate(value string) Time {
-	t, err := time.Parse(TimeFormat, value)
+func parseDate(value string) iso8601.Time {
+	t, err := iso8601.ParseString(value)
 	if err != nil {
 		panic(err)
 	}
-	return Time(t)
+	return iso8601.Time{
+		Time: t,
+	}
 }
 
 func listTablesMock() client.Client {
@@ -135,7 +137,7 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	c := clientForAnEmptyProject(t)
+	c := ClientForAnEmptyProject(t)
 
 	tables, err := ListTablesRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -236,7 +238,7 @@ func TestMockListTablesRequest(t *testing.T) {
 func TestTableApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := clientForAnEmptyProject(t)
+	c := ClientForAnEmptyProject(t)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())

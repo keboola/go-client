@@ -2,6 +2,8 @@ package jobsqueueapi
 
 import (
 	jsonLib "encoding/json"
+
+	"github.com/relvacode/iso8601"
 )
 
 // JobID is an ID of a component job.
@@ -38,11 +40,11 @@ func (r *JobResult) UnmarshalJSON(data []byte) (err error) {
 // Job is a component job.
 type Job struct {
 	JobKey
-	Status     string    `json:"status"`
-	IsFinished bool      `json:"isFinished"`
-	URL        string    `json:"url"`
-	Result     JobResult `json:"result,omitempty"`
-	CreateTime Time      `json:"createdTime"`
-	StartTime  *Time     `json:"startTime"`
-	EndTime    *Time     `json:"endTime"`
+	Status     string        `json:"status"`
+	IsFinished bool          `json:"isFinished"`
+	URL        string        `json:"url"`
+	Result     JobResult     `json:"result,omitempty"`
+	CreateTime iso8601.Time  `json:"createdTime"`
+	StartTime  *iso8601.Time `json:"startTime"`
+	EndTime    *iso8601.Time `json:"endTime"`
 }

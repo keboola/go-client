@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/relvacode/iso8601"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
@@ -28,10 +30,10 @@ func (k BranchKey) ObjectId() any {
 // Branch https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches
 type Branch struct {
 	BranchKey
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Created     Time   `json:"created" readonly:"true"`
-	IsDefault   bool   `json:"isDefault" readonly:"true"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Created     iso8601.Time `json:"created" readonly:"true"`
+	IsDefault   bool         `json:"isDefault" readonly:"true"`
 }
 
 // ListBranchesRequest https://keboola.docs.apiary.io/#reference/development-branches/branches/list-branches

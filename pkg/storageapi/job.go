@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/relvacode/iso8601"
 
 	"github.com/keboola/go-client/pkg/client"
 )
@@ -31,9 +32,9 @@ type Job struct {
 	OperationName   string         `json:"operationName"`
 	OperationParams map[string]any `json:"operationParams"`
 	Results         map[string]any `json:"results"`
-	CreateTime      Time           `json:"createdTime"`
-	StartTime       *Time          `json:"startTime"`
-	EndTime         *Time          `json:"endTime"`
+	CreateTime      iso8601.Time   `json:"createdTime"`
+	StartTime       *iso8601.Time  `json:"startTime"`
+	EndTime         *iso8601.Time  `json:"endTime"`
 }
 
 // GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail

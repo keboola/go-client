@@ -514,7 +514,13 @@ func (r apiRequest[R]) SendOrErr(ctx context.Context, sender Sender) error {
 func ToFormBody(in map[string]any) (out map[string]string) {
 	out = make(map[string]string)
 	for k, v := range in {
-		out[k] = castToString(v)
+		if reflect.TypeOf(v).Kind() == reflect.Slice {
+			for i, s := range v.([]string) {
+				out[fmt.Sprintf("%s[%d]", k, i)] = castToString(s)
+			}
+		} else {
+			out[k] = castToString(v)
+		}
 	}
 	return out
 }

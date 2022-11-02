@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/relvacode/iso8601"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
@@ -25,9 +27,9 @@ type Table struct {
 	Name           string                    `json:"name"`
 	DisplayName    string                    `json:"displayName"`
 	PrimaryKey     []string                  `json:"primaryKey"`
-	Created        Time                      `json:"created"`
-	LastImportDate Time                      `json:"lastImportDate"`
-	LastChangeDate *Time                     `json:"lastChangeDate"`
+	Created        iso8601.Time              `json:"created"`
+	LastImportDate iso8601.Time              `json:"lastImportDate"`
+	LastChangeDate *iso8601.Time             `json:"lastChangeDate"`
 	RowsCount      uint64                    `json:"rowsCount"`
 	DataSizeBytes  uint64                    `json:"dataSizeBytes"`
 	Columns        []string                  `json:"columns"`
