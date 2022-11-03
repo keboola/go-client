@@ -42,7 +42,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.S3UploadParams.Credentials.SecretAccessKey)
 
 	// Connect S3 bucket
-	bucket, err := s3.OpenBucket(ctx, file.Region, file.S3UploadParams)
+	bucket, err := s3.OpenBucket(ctx, file.S3UploadParams, file.Region)
 	assert.NoError(t, err)
 
 	// Upload

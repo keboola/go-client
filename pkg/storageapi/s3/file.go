@@ -27,7 +27,7 @@ type UploadParams struct {
 	Credentials UploadParamsCredentials `json:"credentials"`
 }
 
-func OpenBucket(ctx context.Context, region string, uploadParams UploadParams) (*blob.Bucket, error) {
+func OpenBucket(ctx context.Context, uploadParams UploadParams, region string) (*blob.Bucket, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 		uploadParams.Credentials.AccessKeyId,
 		uploadParams.Credentials.SecretAccessKey,
