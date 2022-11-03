@@ -57,26 +57,25 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func gzReader(r io.Reader) io.Reader {
+func gzReader(r io.ReadCloser) (io.ReadCloser, error) {
 	pr, pw := io.Pipe()
-	go func() {
-		defer pw.Close()
-		_, err := io.Copy(gzip.NewWriter(pw), r)
-		if err != nil {
-			panic(err)
-		}
-	}()
-	return pr
+	defer pw.Close()
+	_, err := io.Copy(gzip.NewWriter(pw), r)
+	if err != nil {
+		return nil, err
+	}
+	return pr, nil
 }
 
-func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.Reader) error {
-	reader = gzReader(reader)
-
+func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.ReadCloser) error {
 	bw, err := bucket.NewWriter(ctx, key, nil)
 	if err != nil {
 		return fmt.Errorf(`opening blob "%s" failed: %w`, key, err)
 	}
 	defer bw.Close()
+
+	// reader = gzReader(reader)
+	defer reader.Close()
 
 	_, err = io.Copy(bw, reader)
 	if err != nil {

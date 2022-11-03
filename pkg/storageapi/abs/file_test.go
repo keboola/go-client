@@ -44,7 +44,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Upload
-	reader := strings.NewReader("sample,csv")
+	reader := io.NopCloser(strings.NewReader("sample,csv"))
 	err = storageapi.Upload(ctx, bucket, file.ABSUploadParams.BlobName, reader)
 	assert.NoError(t, err)
 
