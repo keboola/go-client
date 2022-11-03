@@ -67,12 +67,16 @@ func gzReader(r io.ReadCloser) (io.ReadCloser, error) {
 	return pr, nil
 }
 
-func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.ReadCloser) error {
+func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.ReadCloser) (err error) {
 	bw, err := bucket.NewWriter(ctx, key, nil)
 	if err != nil {
 		return fmt.Errorf(`opening blob "%s" failed: %w`, key, err)
 	}
-	defer bw.Close()
+	defer func() {
+		if closeErr := bw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
+		}
+	}()
 
 	// reader = gzReader(reader)
 	defer reader.Close()

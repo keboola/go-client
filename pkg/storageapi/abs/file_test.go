@@ -40,7 +40,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
 
 	// Connect ABS bucket
-	bucket, err := abs.OpenBucket(ctx, file.ABSUploadParams, file.Url)
+	bucket, err := abs.OpenBucket(ctx, file.ABSUploadParams)
 	assert.NoError(t, err)
 
 	// Upload
