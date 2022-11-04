@@ -1,8 +1,6 @@
 package storageapi
 
 import (
-	"compress/gzip"
-	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -57,34 +55,13 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func gzReader(r io.ReadCloser) (io.ReadCloser, error) {
-	pr, pw := io.Pipe()
-	defer pw.Close()
-	_, err := io.Copy(gzip.NewWriter(pw), r)
-	if err != nil {
-		return nil, err
-	}
-	return pr, nil
-}
-
-func Upload(ctx context.Context, bucket *blob.Bucket, key string, reader io.ReadCloser) (err error) {
-	bw, err := bucket.NewWriter(ctx, key, nil)
-	if err != nil {
-		return fmt.Errorf(`opening blob "%s" failed: %w`, key, err)
-	}
+func Upload(bw *blob.Writer, reader io.ReadCloser) (err error) {
 	defer func() {
 		if closeErr := bw.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
 		}
 	}()
 
-	// reader = gzReader(reader)
-	defer reader.Close()
-
 	_, err = io.Copy(bw, reader)
-	if err != nil {
-		return fmt.Errorf(`writing blob "%s" failed: %w`, key, err)
-	}
-
-	return nil
+	return err
 }

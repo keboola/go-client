@@ -2,10 +2,14 @@ package s3
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go/logging"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
@@ -25,24 +29,42 @@ type UploadParams struct {
 	Bucket      string                  `json:"bucket"`
 	Acl         string                  `json:"acl"`
 	Credentials UploadParamsCredentials `json:"credentials"`
+	Encryption  string                  `json:"x-amz-server-side-encryption"`
 }
 
-func OpenBucket(ctx context.Context, uploadParams UploadParams, region string) (*blob.Bucket, error) {
+func CreateBucketWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-		uploadParams.Credentials.AccessKeyId,
-		uploadParams.Credentials.SecretAccessKey,
-		uploadParams.Credentials.SessionToken,
+		params.Credentials.AccessKeyId,
+		params.Credentials.SecretAccessKey,
+		params.Credentials.SessionToken,
 	)))
+	cfg.Logger = logging.NewStandardLogger(os.Stdout)
 	cfg.Region = region
 	if err != nil {
 		return nil, err
 	}
 
 	client := s3.NewFromConfig(cfg)
-	b, err := s3blob.OpenBucketV2(ctx, client, uploadParams.Bucket, nil)
+	b, err := s3blob.OpenBucketV2(ctx, client, params.Bucket, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return b, nil
+	opts := &blob.WriterOptions{
+		BeforeWrite: func(as func(interface{}) bool) error {
+			var req *s3.PutObjectInput
+			if as(&req) {
+				if isEncrypted {
+					req.ServerSideEncryption = types.ServerSideEncryption(params.Encryption)
+				}
+			}
+			return nil
+		},
+	}
+	bw, err := b.NewWriter(ctx, params.Key, opts)
+	if err != nil {
+		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.Key, err)
+	}
+
+	return bw, nil
 }

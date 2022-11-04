@@ -56,8 +56,8 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 	return cs, nil
 }
 
-func OpenBucket(ctx context.Context, uploadParams UploadParams) (*blob.Bucket, error) {
-	cs, err := parseConnectionString(uploadParams.Credentials.SASConnectionString)
+func CreateBucketWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
+	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +67,15 @@ func OpenBucket(ctx context.Context, uploadParams UploadParams) (*blob.Bucket, e
 		return nil, err
 	}
 
-	b, err := azureblob.OpenBucket(ctx, client, uploadParams.Container, nil)
+	b, err := azureblob.OpenBucket(ctx, client, params.Container, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return b, nil
+	bw, err := b.NewWriter(ctx, params.BlobName, nil)
+	if err != nil {
+		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
+	}
+
+	return bw, nil
 }
