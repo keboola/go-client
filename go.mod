@@ -8,13 +8,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.15.15
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.10
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.27.2
-	github.com/aws/smithy-go v1.13.4
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/keboola/go-utils v0.6.1
+	github.com/klauspost/pgzip v1.2.5
 	github.com/relvacode/iso8601 v1.1.0
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
@@ -46,6 +46,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.10 // indirect
+	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
@@ -58,6 +59,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

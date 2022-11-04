@@ -3,13 +3,11 @@ package s3
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/smithy-go/logging"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
@@ -38,7 +36,6 @@ func CreateBucketWriter(ctx context.Context, params UploadParams, region string,
 		params.Credentials.SecretAccessKey,
 		params.Credentials.SessionToken,
 	)))
-	cfg.Logger = logging.NewStandardLogger(os.Stdout)
 	cfg.Region = region
 	if err != nil {
 		return nil, err

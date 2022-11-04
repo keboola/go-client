@@ -1,6 +1,7 @@
 package abs_test
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
@@ -44,7 +45,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Upload
-	reader := io.NopCloser(strings.NewReader("sample,csv"))
+	reader := io.NopCloser(strings.NewReader("col1,col2\nval1,val2\n"))
 	err = storageapi.Upload(writer, reader)
 	assert.NoError(t, err)
 
@@ -56,8 +57,9 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	resp, err := http.Get(file.Url) //nolint:noctx
 	assert.NoError(t, err)
 	defer resp.Body.Close()
-	buf := new(strings.Builder)
-	_, err = io.Copy(buf, resp.Body)
+	gr, err := gzip.NewReader(resp.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "sample,csv", buf.String())
+	o, err := io.ReadAll(gr)
+	assert.NoError(t, err)
+	assert.Equal(t, "col1,col2\nval1,val2\n", string(o))
 }

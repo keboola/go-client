@@ -5,6 +5,7 @@ import (
 	"io"
 	"strconv"
 
+	gzip "github.com/klauspost/pgzip"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 
@@ -55,13 +56,20 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func Upload(bw *blob.Writer, reader io.ReadCloser) (err error) {
+func Upload(bw *blob.Writer, fr io.ReadCloser) (err error) {
 	defer func() {
 		if closeErr := bw.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
 		}
 	}()
 
-	_, err = io.Copy(bw, reader)
+	gzw := gzip.NewWriter(bw)
+	defer func() {
+		if closeErr := gzw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("cannot close gzip writer: %w", closeErr)
+		}
+	}()
+
+	_, err = io.Copy(gzw, fr)
 	return err
 }
