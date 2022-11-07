@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/s3blob"
@@ -25,19 +25,22 @@ type Credentials struct {
 
 //nolint:tagliatelle
 type UploadParams struct {
-	Key         string      `json:"key"`
-	Bucket      string      `json:"bucket"`
-	Acl         string      `json:"acl"`
-	Credentials Credentials `json:"credentials"`
-	Encryption  string      `json:"x-amz-server-side-encryption"`
+	Key         string                       `json:"key"`
+	Bucket      string                       `json:"bucket"`
+	Credentials Credentials                  `json:"credentials"`
+	Acl         s3types.ObjectCannedACL      `json:"acl"`
+	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-		params.Credentials.AccessKeyId,
-		params.Credentials.SecretAccessKey,
-		params.Credentials.SessionToken,
-	)), config.WithRegion(region))
+func NewUploadWriter(ctx context.Context, params UploadParams, region string) (*blob.Writer, error) {
+	cred := config.WithCredentialsProvider(
+		credentials.NewStaticCredentialsProvider(
+			params.Credentials.AccessKeyId,
+			params.Credentials.SecretAccessKey,
+			params.Credentials.SessionToken,
+		),
+	)
+	cfg, err := config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +55,8 @@ func NewUploadWriter(ctx context.Context, params UploadParams, region string, is
 		BeforeWrite: func(as func(interface{}) bool) error {
 			var req *s3.PutObjectInput
 			if as(&req) {
-				if isEncrypted {
-					req.ServerSideEncryption = types.ServerSideEncryption(params.Encryption)
-				}
+				req.ACL = params.Acl
+				req.ServerSideEncryption = params.Encryption
 			}
 			return nil
 		},

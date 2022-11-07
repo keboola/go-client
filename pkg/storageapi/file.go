@@ -61,7 +61,7 @@ func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
 	case abs.Provider:
 		return abs.NewUploadWriter(ctx, file.ABSUploadParams)
 	case s3.Provider:
-		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
