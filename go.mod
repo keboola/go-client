@@ -1,6 +1,6 @@
 module github.com/keboola/go-client
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
