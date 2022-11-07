@@ -80,13 +80,15 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		assert.NotEmpty(t, file.ID)
 		assert.NotEmpty(t, file.Url)
 		assert.NotEmpty(t, file.Created)
+		assert.Equal(t, tc.Pernament, file.IsPermanent)
+		assert.Equal(t, tc.Sliced, file.IsSliced)
 		assert.Equal(t, []string{"tag1", "tag2"}, file.Tags)
 
 		// Assert provider specific fields
 		switch file.Provider {
 		case s3.Provider:
-			assert.Equal(t, tc.Pernament, file.IsPermanent)
-			assert.Equal(t, tc.Sliced, file.IsSliced)
+			assert.Equal(t, tc.Public, file.IsPublic)
+			assert.Equal(t, tc.Encrypted, file.IsEncrypted)
 			assert.NotEmpty(t, file.S3UploadParams)
 			assert.NotEmpty(t, file.S3UploadParams.Bucket)
 			assert.NotEmpty(t, file.S3UploadParams.Credentials.AccessKeyId)
