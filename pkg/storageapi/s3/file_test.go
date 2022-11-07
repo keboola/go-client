@@ -1,34 +1,34 @@
 package s3_test
 
 import (
-	"compress/gzip"
 	"context"
-	"io"
-	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
+	fileTest "github.com/keboola/go-client/pkg/storageapi/file"
 )
 
 func TestFileApiCreateFileResource(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-
 	c := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
 
-	// Create file
-	f := &storageapi.File{
-		IsPublic:    false,
-		IsSliced:    false,
-		IsEncrypted: true,
-		Name:        "test",
-		Tags:        []string{"tag1", "tag2"},
-		ContentType: "text/csv",
+	for _, tc := range fileTest.UploadTestCases() {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+			runUploadTest(t, c, tc.File)
+		})
 	}
+}
+
+func runUploadTest(t *testing.T, c client.Sender, f *storageapi.File) {
+	t.Helper()
+	ctx := context.Background()
 
 	file, err := storageapi.CreateFileResourceRequest(f).Send(ctx, c)
 	assert.NoError(t, err)
@@ -52,13 +52,7 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check uploaded file
-	resp, err := http.Get(file.Url) //nolint:noctx
+	res, err := fileTest.GetUploadedFile(t, file)
 	assert.NoError(t, err)
-	defer resp.Body.Close()
-	assert.NoError(t, err)
-	gr, err := gzip.NewReader(resp.Body)
-	assert.NoError(t, err)
-	o, err := io.ReadAll(gr)
-	assert.NoError(t, err)
-	assert.Equal(t, "col1,col2\nval1,val2\n", string(o))
+	assert.Equal(t, "col1,col2\nval1,val2\n", res)
 }
