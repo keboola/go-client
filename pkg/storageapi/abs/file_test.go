@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/storageapi"
-	"github.com/keboola/go-client/pkg/storageapi/abs"
 )
 
 func TestFileApiCreateFileResource(t *testing.T) {
@@ -40,13 +39,9 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.ABSUploadParams.BlobName)
 	assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
 
-	// Connect ABS bucket
-	writer, err := abs.NewWriter(ctx, file.ABSUploadParams)
-	assert.NoError(t, err)
-
 	// Upload
 	reader := strings.NewReader("col1,col2\nval1,val2\n")
-	written, err := storageapi.Upload(writer, reader)
+	written, err := storageapi.Upload(ctx, file, reader)
 	assert.NotEmpty(t, written)
 	assert.NoError(t, err)
 

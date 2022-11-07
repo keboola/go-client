@@ -1,6 +1,7 @@
 package storageapi
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -56,7 +57,20 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func Upload(bw *blob.Writer, fr io.Reader) (written int64, err error) {
+func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
+	var bw *blob.Writer
+	switch file.Provider {
+	case abs.Provider:
+		bw, err = abs.NewUploadWriter(ctx, file.ABSUploadParams)
+	case s3.Provider:
+		bw, err = s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
+	default:
+		return 0, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("cannot open bucket writer: %w", err)
+	}
+
 	defer func() {
 		if closeErr := bw.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)

@@ -13,6 +13,8 @@ import (
 	"gocloud.dev/blob/s3blob"
 )
 
+const Provider = "aws"
+
 //nolint:tagliatelle
 type Credentials struct {
 	AccessKeyId     string       `json:"AccessKeyId"`
@@ -30,7 +32,7 @@ type UploadParams struct {
 	Encryption  string      `json:"x-amz-server-side-encryption"`
 }
 
-func NewWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 		params.Credentials.AccessKeyId,
 		params.Credentials.SecretAccessKey,

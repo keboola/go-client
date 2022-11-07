@@ -11,6 +11,8 @@ import (
 	"gocloud.dev/blob/azureblob"
 )
 
+const Provider = "azure"
+
 //nolint:tagliatelle
 type Credentials struct {
 	SASConnectionString string       `json:"SASConnectionString"`
@@ -58,7 +60,7 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 	return cs, nil
 }
 
-func NewWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err

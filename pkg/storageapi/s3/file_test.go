@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/storageapi"
-	"github.com/keboola/go-client/pkg/storageapi/s3"
 )
 
 func TestFileApiCreateFileResource(t *testing.T) {
@@ -42,13 +41,9 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.S3UploadParams.Credentials.AccessKeyId)
 	assert.NotEmpty(t, file.S3UploadParams.Credentials.SecretAccessKey)
 
-	// Connect S3 bucket
-	writer, err := s3.NewWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
-	assert.NoError(t, err)
-
 	// Upload
 	reader := strings.NewReader("col1,col2\nval1,val2\n")
-	written, err := storageapi.Upload(writer, reader)
+	written, err := storageapi.Upload(ctx, file, reader)
 	assert.NotEmpty(t, written)
 	assert.NoError(t, err)
 
