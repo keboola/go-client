@@ -43,12 +43,13 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.S3UploadParams.Credentials.SecretAccessKey)
 
 	// Connect S3 bucket
-	writer, err := s3.CreateBucketWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
+	writer, err := s3.NewWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
 	assert.NoError(t, err)
 
 	// Upload
-	reader := io.NopCloser(strings.NewReader("col1,col2\nval1,val2\n"))
-	err = storageapi.Upload(writer, reader)
+	reader := strings.NewReader("col1,col2\nval1,val2\n")
+	written, err := storageapi.Upload(writer, reader)
+	assert.NotEmpty(t, written)
 	assert.NoError(t, err)
 
 	// Get file resource

@@ -41,12 +41,13 @@ func TestFileApiCreateFileResource(t *testing.T) {
 	assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
 
 	// Connect ABS bucket
-	writer, err := abs.CreateBucketWriter(ctx, file.ABSUploadParams)
+	writer, err := abs.NewWriter(ctx, file.ABSUploadParams)
 	assert.NoError(t, err)
 
 	// Upload
-	reader := io.NopCloser(strings.NewReader("col1,col2\nval1,val2\n"))
-	err = storageapi.Upload(writer, reader)
+	reader := strings.NewReader("col1,col2\nval1,val2\n")
+	written, err := storageapi.Upload(writer, reader)
+	assert.NotEmpty(t, written)
 	assert.NoError(t, err)
 
 	// Get file resource

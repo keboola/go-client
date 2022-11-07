@@ -14,7 +14,7 @@ import (
 )
 
 //nolint:tagliatelle
-type UploadParamsCredentials struct {
+type Credentials struct {
 	AccessKeyId     string       `json:"AccessKeyId"`
 	SecretAccessKey string       `json:"SecretAccessKey"`
 	SessionToken    string       `json:"SessionToken"`
@@ -23,20 +23,19 @@ type UploadParamsCredentials struct {
 
 //nolint:tagliatelle
 type UploadParams struct {
-	Key         string                  `json:"key"`
-	Bucket      string                  `json:"bucket"`
-	Acl         string                  `json:"acl"`
-	Credentials UploadParamsCredentials `json:"credentials"`
-	Encryption  string                  `json:"x-amz-server-side-encryption"`
+	Key         string      `json:"key"`
+	Bucket      string      `json:"bucket"`
+	Acl         string      `json:"acl"`
+	Credentials Credentials `json:"credentials"`
+	Encryption  string      `json:"x-amz-server-side-encryption"`
 }
 
-func CreateBucketWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
+func NewWriter(ctx context.Context, params UploadParams, region string, isEncrypted bool) (*blob.Writer, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 		params.Credentials.AccessKeyId,
 		params.Credentials.SecretAccessKey,
 		params.Credentials.SessionToken,
-	)))
-	cfg.Region = region
+	)), config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}

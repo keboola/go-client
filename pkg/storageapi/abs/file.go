@@ -12,16 +12,16 @@ import (
 )
 
 //nolint:tagliatelle
-type UploadParamsCredentials struct {
+type Credentials struct {
 	SASConnectionString string       `json:"SASConnectionString"`
 	Expiration          iso8601.Time `json:"expiration"`
 }
 
 type UploadParams struct {
-	BlobName    string                  `json:"blobName"`
-	AccountName string                  `json:"accountName"`
-	Container   string                  `json:"container"`
-	Credentials UploadParamsCredentials `json:"absCredentials"`
+	BlobName    string      `json:"blobName"`
+	AccountName string      `json:"accountName"`
+	Container   string      `json:"container"`
+	Credentials Credentials `json:"absCredentials"`
 }
 
 type ConnectionString struct {
@@ -36,9 +36,11 @@ func (cs *ConnectionString) ServiceURL() string {
 func parseConnectionString(str string) (*ConnectionString, error) {
 	csMap := make(map[string]string)
 	for _, item := range strings.Split(str, ";") {
-		itemKey := item[:strings.IndexByte(item, '=')]
-		itemVal := item[strings.IndexByte(item, '=')+1:]
-		csMap[itemKey] = itemVal
+		parts := strings.SplitN(item, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf(`connection string is malformed, it should contain key value pairs separated by semicolons`)
+		}
+		csMap[parts[0]] = parts[1]
 	}
 	cs := &ConnectionString{}
 	val, ok := csMap["BlobEndpoint"]
@@ -56,7 +58,7 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 	return cs, nil
 }
 
-func CreateBucketWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
+func NewWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err

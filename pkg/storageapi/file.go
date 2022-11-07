@@ -56,7 +56,7 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func Upload(bw *blob.Writer, fr io.ReadCloser) (err error) {
+func Upload(bw *blob.Writer, fr io.Reader) (written int64, err error) {
 	defer func() {
 		if closeErr := bw.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
@@ -70,6 +70,5 @@ func Upload(bw *blob.Writer, fr io.ReadCloser) (err error) {
 		}
 	}()
 
-	_, err = io.Copy(gzw, fr)
-	return err
+	return io.Copy(gzw, fr)
 }
