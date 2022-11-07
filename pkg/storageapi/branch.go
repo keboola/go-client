@@ -76,7 +76,7 @@ func CreateBranchRequest(branch *Branch) client.APIRequest[*Branch] {
 	request := CreateBranchAsyncRequest(branch).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, job *Job) error {
 			// Wait for storage job
-			if err := waitForJob(ctx, sender, job); err != nil {
+			if err := WaitForJob(ctx, sender, job); err != nil {
 				return err
 			}
 
@@ -143,7 +143,7 @@ func DeleteBranchRequest(key BranchKey) client.APIRequest[client.NoResult] {
 	request := DeleteBranchAsyncRequest(key).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, job *Job) error {
 			// Wait for storage job
-			return waitForJob(ctx, sender, job)
+			return WaitForJob(ctx, sender, job)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

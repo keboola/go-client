@@ -1,6 +1,7 @@
 package storageapi_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -291,4 +292,69 @@ func TestTableApiCalls(t *testing.T) {
 		}
 	}
 	assert.False(t, tableFound)
+}
+
+func TestTableCreateLoadDataFromFile(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := ClientForAnEmptyProject(t)
+
+	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	tableName := fmt.Sprintf("test_%d", rand.Int())
+
+	bucket := &Bucket{
+		Name:  bucketName,
+		Stage: "in",
+	}
+
+	// Create bucket
+	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// Create file
+	file := &File{
+		IsPublic:    false,
+		IsPermanent: false,
+		IsSliced:    false,
+		IsEncrypted: false,
+		Name:        tableName,
+	}
+	resFile, err := CreateFileResourceRequest(file).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resFile.ID)
+
+	// Upload file
+	content := []byte("col1,col2\nval1,val2\n")
+	written, err := Upload(ctx, file, bytes.NewReader(content))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(content)), written)
+
+	// Create table
+	job, err := CreateTableFromFileRequest(string(bucket.ID), tableName, resFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, WaitForJob(ctx, c, job))
+
+	// Create file
+	file = &File{
+		IsPublic:    false,
+		IsPermanent: false,
+		IsSliced:    false,
+		IsEncrypted: false,
+		Name:        tableName,
+	}
+	resFile, err = CreateFileResourceRequest(file).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resFile.ID)
+
+	// Upload file
+	content = []byte("val2,val3\nval3,val4\nval4,val5\n")
+	written, err = Upload(ctx, file, bytes.NewReader(content))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(content)), written)
+
+	// Load data to table
+	job, err = LoadDataFromFileRequest(fmt.Sprintf("%s.%s", bucket.ID, tableName), resFile.ID, WithColumnsHeaders([]string{"col2", "col1"})).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, WaitForJob(ctx, c, job))
 }

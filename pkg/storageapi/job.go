@@ -50,8 +50,8 @@ func getJobRequest(job *Job) client.APIRequest[*Job] {
 	return client.NewAPIRequest(job, request)
 }
 
-// waitForJob pulls job status until it is completed.
-func waitForJob(ctx context.Context, sender client.Sender, job *Job) error {
+// WaitForJob pulls job status until it is completed.
+func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 	retry := newJobBackoff()
 	for {
 		// Get job status
@@ -75,7 +75,7 @@ func waitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 	}
 }
 
-// newBackoff creates retry for waitForJob.
+// newBackoff creates retry for WaitForJob.
 func newJobBackoff() *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
 	b.RandomizationFactor = 0
