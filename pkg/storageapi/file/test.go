@@ -1,7 +1,6 @@
 package file
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -71,16 +70,23 @@ func GetUploadedFile(t *testing.T, file *storageapi.File) (string, error) {
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 	assert.NoError(t, err)
-	fileResponse, err := io.ReadAll(resp.Body)
+	fileRes, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	fileResponseStr := string(fileResponse)
-	if strings.HasPrefix(fileResponseStr, "<?xml") {
-		return "", fmt.Errorf("getting uploaded file on url %s failed with response: %s", file.Url, fileResponseStr)
+	fileResStr := string(fileRes)
+	if strings.HasPrefix(fileResStr, "<?xml") {
+		return "", fmt.Errorf("getting url responsed: %s", fileResStr)
 	}
+	return fileResStr, nil
+}
 
-	gr, err := gzip.NewReader(bytes.NewReader(fileResponse))
+func Decompress(t *testing.T, str string) string {
+	t.Helper()
+
+	sr := strings.NewReader(str)
+	gr, err := gzip.NewReader(sr)
 	assert.NoError(t, err)
+	defer gr.Close()
 	o, err := io.ReadAll(gr)
 	assert.NoError(t, err)
-	return string(o), nil
+	return string(o)
 }

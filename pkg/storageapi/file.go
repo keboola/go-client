@@ -6,7 +6,6 @@ import (
 	"io"
 	"strconv"
 
-	gzip "github.com/klauspost/pgzip"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 
@@ -57,16 +56,19 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
-	var bw *blob.Writer
+func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
 	switch file.Provider {
 	case abs.Provider:
-		bw, err = abs.NewUploadWriter(ctx, file.ABSUploadParams)
+		return abs.NewUploadWriter(ctx, file.ABSUploadParams)
 	case s3.Provider:
-		bw, err = s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, file.IsEncrypted)
 	default:
-		return 0, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
+		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
+}
+
+func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
+	bw, err := NewUploadWriter(ctx, file)
 	if err != nil {
 		return 0, fmt.Errorf("cannot open bucket writer: %w", err)
 	}
@@ -77,12 +79,5 @@ func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err e
 		}
 	}()
 
-	gzw := gzip.NewWriter(bw)
-	defer func() {
-		if closeErr := gzw.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("cannot close gzip writer: %w", closeErr)
-		}
-	}()
-
-	return io.Copy(gzw, fr)
+	return io.Copy(bw, fr)
 }

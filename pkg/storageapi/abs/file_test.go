@@ -32,13 +32,7 @@ func runUploadTest(t *testing.T, c client.Sender, f *storageapi.File) {
 
 	file, err := storageapi.CreateFileResourceRequest(f).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file.ID)
-	assert.NotEmpty(t, file.Url)
-	assert.NotEmpty(t, file.Created)
-	assert.Equal(t, []string{"tag1", "tag2"}, file.Tags)
-	assert.NotEmpty(t, file.ABSUploadParams)
-	assert.NotEmpty(t, file.ABSUploadParams.BlobName)
-	assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
+	assertFileResource(t, file)
 
 	// Upload
 	reader := strings.NewReader("col1,col2\nval1,val2\n")
@@ -54,4 +48,16 @@ func runUploadTest(t *testing.T, c client.Sender, f *storageapi.File) {
 	res, err := fileTest.GetUploadedFile(t, file)
 	assert.NoError(t, err)
 	assert.Equal(t, "col1,col2\nval1,val2\n", res)
+}
+
+func assertFileResource(t *testing.T, file *storageapi.File) {
+	t.Helper()
+
+	assert.NotEmpty(t, file.ID)
+	assert.NotEmpty(t, file.Url)
+	assert.NotEmpty(t, file.Created)
+	assert.Equal(t, []string{"tag1", "tag2"}, file.Tags)
+	assert.NotEmpty(t, file.ABSUploadParams)
+	assert.NotEmpty(t, file.ABSUploadParams.BlobName)
+	assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
 }
