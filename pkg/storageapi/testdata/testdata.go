@@ -25,22 +25,15 @@ type UploadTestCase struct {
 }
 
 func UploadTestCases() (out []UploadTestCase) {
-	for _, public := range []bool{true, false} {
-		for _, permanent := range []bool{true, false} {
-			for _, sliced := range []bool{true, false} {
-				for _, encrypted := range []bool{true, false} {
-					for _, gzipped := range []bool{true, false} {
-						out = append(out, UploadTestCase{
-							Public:    public,
-							Pernament: permanent,
-							Sliced:    sliced,
-							Encrypted: encrypted,
-							Gzipped:   gzipped,
-						})
-					}
-				}
-			}
-		}
+	// Test matrix, all combinations of attributes
+	for flags := 0b00000; flags <= 0b11111; flags++ {
+		out = append(out, UploadTestCase{
+			Public:    flags&0b00001 != 0,
+			Pernament: flags&0b00010 != 0,
+			Sliced:    flags&0b00100 != 0,
+			Encrypted: flags&0b01000 != 0,
+			Gzipped:   flags&0b10000 != 0,
+		})
 	}
 	return out
 }
