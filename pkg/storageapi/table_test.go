@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/relvacode/iso8601"
@@ -331,9 +332,11 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
+	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+	defer waitCancelFn()
 	job, err := CreateTableFromFileRequest(string(bucket.ID), tableName, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(ctx, c, job))
+	assert.NoError(t, WaitForJob(waitCtx, c, job))
 	tableID := TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName))
 
 	// Create file
@@ -360,9 +363,11 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Load data to table - added three rows
+	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*1)
+	defer waitCancelFn2()
 	job, err = LoadDataFromFileRequest(tableID, file.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(ctx, c, job))
+	assert.NoError(t, WaitForJob(waitCtx2, c, job))
 
 	// Check rows count
 	table, err = GetTableRequest(tableID).Send(ctx, c)
