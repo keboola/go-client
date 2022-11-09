@@ -125,6 +125,7 @@ func newJobBackoff() *backoff.ExponentialBackOff {
 	b.InitialInterval = 3 * time.Second
 	b.Multiplier = 2
 	b.MaxInterval = 5 * time.Second
+	b.MaxElapsedTime = 0 // no limit, run until context timeout
 	b.Reset()
 	return b
 }
