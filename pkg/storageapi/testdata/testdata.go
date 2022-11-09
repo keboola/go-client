@@ -117,10 +117,15 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 				bw, err = storageapi.NewUploadSliceWriter(ctx, file, "manifest")
 				assert.NoError(t, err)
 
-				gzw := gzip.NewWriter(bw)
-				written, err := gzw.Write(content)
+				manifest, err := storageapi.CreateSlicedFileManifest(file, []string{"slice1"})
 				assert.NoError(t, err)
-				assert.Equal(t, len(content), written)
+				marshaledManifest, err := json.Marshal(manifest)
+				assert.NoError(t, err)
+
+				gzw := gzip.NewWriter(bw)
+				written, err := gzw.Write(marshaledManifest)
+				assert.NoError(t, err)
+				assert.Equal(t, len(marshaledManifest), written)
 				assert.NoError(t, gzw.Close())
 				assert.NoError(t, bw.Close())
 			}
@@ -140,11 +145,11 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		}
 
 		// Get file resource
-		file, err = storageapi.GetFileResourceRequest(file.ID).Send(ctx, storageApiClient)
+		fileFromRequest, err := storageapi.GetFileResourceRequest(file.ID).Send(ctx, storageApiClient)
 		assert.NoError(t, err)
 
 		// Request file content
-		resp, err := http.Get(file.Url)
+		resp, err := http.Get(fileFromRequest.Url)
 		assert.NoError(t, err)
 		defer resp.Body.Close()
 

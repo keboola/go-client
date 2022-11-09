@@ -3,11 +3,11 @@ package storageapi_test
 import (
 	"testing"
 
-	"github.com/keboola/go-client/pkg/storageapi/abs"
-	"github.com/keboola/go-client/pkg/storageapi/s3"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/storageapi"
+	"github.com/keboola/go-client/pkg/storageapi/abs"
+	"github.com/keboola/go-client/pkg/storageapi/s3"
 )
 
 func TestCreateImportManifestOnABS(t *testing.T) {
