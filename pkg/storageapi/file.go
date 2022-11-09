@@ -24,9 +24,9 @@ type File struct {
 	Url             string           `json:"url" readonly:"true"`
 	Provider        string           `json:"provider" readonly:"true"`
 	Region          string           `json:"region" readonly:"true"`
-	SizeBytes       int              `json:"sizeBytes,omitempty"`
+	SizeBytes       uint64           `json:"sizeBytes,omitempty"`
 	Tags            []string         `json:"tags,omitempty"`
-	MaxAgeDays      int              `json:"maxAgeDays" readonly:"true"`
+	MaxAgeDays      uint             `json:"maxAgeDays" readonly:"true"`
 	S3UploadParams  s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
 	ABSUploadParams abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
 
@@ -56,6 +56,7 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
+// NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
 func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
 	switch file.Provider {
 	case abs.Provider:
@@ -67,6 +68,8 @@ func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
 	}
 }
 
+// Upload instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes there
+// content of the reader.
 func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
 	bw, err := NewUploadWriter(ctx, file)
 	if err != nil {

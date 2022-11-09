@@ -27,7 +27,7 @@ func TestJobBackoff(t *testing.T) {
 
 	// Get all delays without sleep
 	var delays []time.Duration
-	for {
+	for i := 0; i < 10; i++ {
 		delay := backoff.NextBackOff()
 		if delay == backoff.Stop {
 			break
@@ -44,20 +44,6 @@ func TestJobBackoff(t *testing.T) {
 		400 * time.Millisecond,
 		800 * time.Millisecond,
 		1600 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
-		3000 * time.Millisecond,
 		3000 * time.Millisecond,
 		3000 * time.Millisecond,
 		3000 * time.Millisecond,

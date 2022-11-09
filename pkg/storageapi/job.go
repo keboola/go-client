@@ -50,8 +50,13 @@ func getJobRequest(job *Job) client.APIRequest[*Job] {
 	return client.NewAPIRequest(job, request)
 }
 
-// waitForJob pulls job status until it is completed.
-func waitForJob(ctx context.Context, sender client.Sender, job *Job) error {
+// WaitForJob pulls job status until it is completed.
+func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
+	_, ok := ctx.Deadline()
+	if !ok {
+		return fmt.Errorf("timeout for the job was not set")
+	}
+
 	retry := newJobBackoff()
 	for {
 		// Get job status
@@ -67,22 +72,23 @@ func waitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		}
 
 		// Wait and check again
-		delay := retry.NextBackOff()
-		if delay == backoff.Stop {
-			return fmt.Errorf("timeout while waiting for the storage job %d to complete", job.ID)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf(`error while waiting for the job "%s" to complete: %w`, job.ID, ctx.Err())
+		case <-time.After(retry.NextBackOff()):
+			// try again
 		}
-		time.Sleep(delay)
 	}
 }
 
-// newBackoff creates retry for waitForJob.
+// newBackoff creates retry for WaitForJob.
 func newJobBackoff() *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
 	b.RandomizationFactor = 0
 	b.InitialInterval = 50 * time.Millisecond
 	b.Multiplier = 2
 	b.MaxInterval = 3 * time.Second
-	b.MaxElapsedTime = 60 * time.Second
+	b.MaxElapsedTime = 0 // no limit, run until context timeout
 	b.Reset()
 	return b
 }
