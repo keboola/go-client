@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
 
@@ -315,7 +316,6 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	file := &File{
-		IsPublic:    false,
 		IsPermanent: false,
 		IsSliced:    false,
 		IsEncrypted: false,
@@ -341,7 +341,6 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	file = &File{
-		IsPublic:    false,
 		IsPermanent: false,
 		IsSliced:    false,
 		IsEncrypted: false,
@@ -373,4 +372,91 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	table, err = GetTableRequest(tableID).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(4), table.RowsCount)
+}
+
+func TestTableCreateFromSlicedFile(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := ClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
+
+	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	tableName := fmt.Sprintf("test_%d", rand.Int())
+
+	bucket := &Bucket{
+		Name:  bucketName,
+		Stage: "in",
+	}
+
+	// Create bucket
+	_, err := CreateBucketRequest(bucket).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, bucket.ID)
+	tableID := TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName))
+
+	// Create file
+	file := &File{
+		IsPermanent: false,
+		IsSliced:    false,
+		IsEncrypted: false,
+		Name:        tableName,
+	}
+	_, err = CreateFileResourceRequest(file).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, file.ID)
+
+	// Upload file
+	content := []byte("col1,col2\nval1,val2\n")
+	written, err := Upload(ctx, file, bytes.NewReader(content))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(content)), written)
+
+	// Create non-sliced table.
+	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
+	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+	defer waitCancelFn()
+	job, err := CreateTableFromFileRequest(string(bucket.ID), tableName, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, WaitForJob(waitCtx, c, job))
+
+	// Check rows count
+	table, err := GetTableRequest(tableID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(1), table.RowsCount)
+
+	// Create sliced file
+	file = &File{
+		IsPermanent: false,
+		IsSliced:    true,
+		IsEncrypted: true,
+		Name:        tableName,
+	}
+	resFile, err := CreateFileResourceRequest(file).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resFile.ID)
+
+	// Upload slice 1 file
+	content = []byte("val3,val4\nval5,val6\n")
+	_, err = UploadSlice(ctx, file, "slice1", bytes.NewReader(content))
+	assert.NoError(t, err)
+
+	// Upload slice 2 file
+	content = []byte("val7,val8\nval9,val10\n")
+	_, err = UploadSlice(ctx, file, "slice2", bytes.NewReader(content))
+	assert.NoError(t, err)
+
+	// Upload manifest
+	_, err = UploadSlicedFileManifest(ctx, file, []string{"slice1", "slice2"})
+	assert.NoError(t, err)
+
+	// Load data to table
+	waitCtx, waitCancelFn = context.WithTimeout(ctx, time.Minute*1)
+	defer waitCancelFn()
+	job, err = LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, WaitForJob(waitCtx, c, job))
+
+	// Check rows count
+	table, err = GetTableRequest(tableID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(5), table.RowsCount)
 }

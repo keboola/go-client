@@ -61,6 +61,10 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 }
 
 func NewUploadWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
+	return NewUploadSliceWriter(ctx, params, "")
+}
+
+func NewUploadSliceWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
@@ -76,10 +80,25 @@ func NewUploadWriter(ctx context.Context, params UploadParams) (*blob.Writer, er
 		return nil, err
 	}
 
-	bw, err := b.NewWriter(ctx, params.BlobName, nil)
+	blobName := params.BlobName
+	if slice != "" {
+		blobName += slice
+	}
+
+	bw, err := b.NewWriter(ctx, blobName, nil)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
 	}
 
 	return bw, nil
+}
+
+func NewSliceUrl(params UploadParams, slice string) string {
+	return fmt.Sprintf(
+		"azure://%s.blob.core.windows.net/%s/%s%s",
+		params.AccountName,
+		params.Container,
+		params.BlobName,
+		slice,
+	)
 }
