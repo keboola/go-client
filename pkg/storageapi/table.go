@@ -2,6 +2,7 @@ package storageapi
 
 import (
 	"bytes"
+	jsonLib "encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -22,20 +23,34 @@ func (v TableID) String() string {
 
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
-	ID             TableID                   `json:"id"`
-	Uri            string                    `json:"uri"`
-	Name           string                    `json:"name"`
-	DisplayName    string                    `json:"displayName"`
-	PrimaryKey     []string                  `json:"primaryKey"`
-	Created        iso8601.Time              `json:"created"`
-	LastImportDate iso8601.Time              `json:"lastImportDate"`
-	LastChangeDate *iso8601.Time             `json:"lastChangeDate"`
-	RowsCount      uint64                    `json:"rowsCount"`
-	DataSizeBytes  uint64                    `json:"dataSizeBytes"`
-	Columns        []string                  `json:"columns"`
-	Metadata       []MetadataDetail          `json:"metadata"`
-	ColumnMetadata map[string]MetadataDetail `json:"columnMetadata"`
-	Bucket         *Bucket                   `json:"bucket"`
+	ID             TableID          `json:"id"`
+	Uri            string           `json:"uri"`
+	Name           string           `json:"name"`
+	DisplayName    string           `json:"displayName"`
+	PrimaryKey     []string         `json:"primaryKey"`
+	Created        iso8601.Time     `json:"created"`
+	LastImportDate iso8601.Time     `json:"lastImportDate"`
+	LastChangeDate *iso8601.Time    `json:"lastChangeDate"`
+	RowsCount      uint64           `json:"rowsCount"`
+	DataSizeBytes  uint64           `json:"dataSizeBytes"`
+	Columns        []string         `json:"columns"`
+	Metadata       []MetadataDetail `json:"metadata"`
+	ColumnMetadata ColumnMetadata   `json:"columnMetadata"`
+	Bucket         *Bucket          `json:"bucket"`
+}
+
+type ColumnMetadata map[string]MetadataDetail
+
+// UnmarshalJSON implements JSON decoding.
+// The API returns empty value as empty array.
+func (r *ColumnMetadata) UnmarshalJSON(data []byte) (err error) {
+	if string(data) == "[]" {
+		*r = ColumnMetadata{}
+		return nil
+	}
+	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
+	type _r ColumnMetadata
+	return jsonLib.Unmarshal(data, (*_r)(r))
 }
 
 type listTablesConfig struct {
@@ -132,7 +147,8 @@ func CreateTableRequest(table *Table) client.APIRequest[*Table] {
 
 	request := newRequest().
 		WithResult(table).
-		WithPost(fmt.Sprintf("buckets/%s/tables", table.Bucket.ID)).
+		WithPost("buckets/{bucketId}/tables").
+		AndPathParam("bucketId", string(table.Bucket.ID)).
 		WithBody(bytes.NewReader(body.Bytes())).
 		WithContentType(contentType)
 
@@ -146,26 +162,26 @@ type loadDataFromFileConfig struct {
 	EscapedBy string `json:"escapedBy,omitempty" writeoptional:"true"`
 }
 
-// DelimiterOption specifies field delimiter used in the CSV file. Default value is ','.
-type DelimiterOption string
+// delimiterOption specifies field delimiter used in the CSV file. Default value is ','.
+type delimiterOption string
 
-func WithDelimiter(d string) DelimiterOption {
-	return DelimiterOption(d)
+func WithDelimiter(d string) delimiterOption {
+	return delimiterOption(d)
 }
 
-// EnclosureOption specifies field enclosure used in the CSV file. Default value is '"'.
-type EnclosureOption string
+// enclosureOption specifies field enclosure used in the CSV file. Default value is '"'.
+type enclosureOption string
 
-func WithEnclosure(e string) EnclosureOption {
-	return EnclosureOption(e)
+func WithEnclosure(e string) enclosureOption {
+	return enclosureOption(e)
 }
 
-// EscapedByOption specifies escape character used in the CSV file. The default value is an empty value - no escape character is used.
+// escapedByOption specifies escape character used in the CSV file. The default value is an empty value - no escape character is used.
 // Note: you can specify either enclosure or escapedBy parameter, not both.
-type EscapedByOption string
+type escapedByOption string
 
-func WithEscapedBy(e string) EscapedByOption {
-	return EscapedByOption(e)
+func WithEscapedBy(e string) escapedByOption {
+	return escapedByOption(e)
 }
 
 // CreateTableOption applies to the request for creating table from file.
@@ -179,27 +195,27 @@ type createTableConfig struct {
 	PrimaryKey string `json:"primaryKey,omitempty" writeoptional:"true"`
 }
 
-func (o DelimiterOption) applyCreateTableOption(c *createTableConfig) {
+func (o delimiterOption) applyCreateTableOption(c *createTableConfig) {
 	c.Delimiter = string(o)
 }
 
-func (o EnclosureOption) applyCreateTableOption(c *createTableConfig) {
+func (o enclosureOption) applyCreateTableOption(c *createTableConfig) {
 	c.Enclosure = string(o)
 }
 
-func (o EscapedByOption) applyCreateTableOption(c *createTableConfig) {
+func (o escapedByOption) applyCreateTableOption(c *createTableConfig) {
 	c.EscapedBy = string(o)
 }
 
-// PrimaryKeyOption specifies primary key of the table. Multiple columns can be separated by a comma.
-type PrimaryKeyOption string
+// primaryKeyOption specifies primary key of the table. Multiple columns can be separated by a comma.
+type primaryKeyOption string
 
-func (o PrimaryKeyOption) applyCreateTableOption(c *createTableConfig) {
+func (o primaryKeyOption) applyCreateTableOption(c *createTableConfig) {
 	c.PrimaryKey = string(o)
 }
 
-func WithPrimaryKey(pk []string) PrimaryKeyOption {
-	return PrimaryKeyOption(strings.Join(pk, ","))
+func WithPrimaryKey(pk []string) primaryKeyOption {
+	return primaryKeyOption(strings.Join(pk, ","))
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
@@ -216,7 +232,8 @@ func CreateTableFromFileRequest(bucketID string, name string, dataFileID int, op
 	job := &Job{}
 	request := newRequest().
 		WithResult(job).
-		WithPost(fmt.Sprintf("buckets/%s/tables-async", bucketID)).
+		WithPost("buckets/{bucketId}/tables-async").
+		AndPathParam("bucketId", bucketID).
 		WithFormBody(client.ToFormBody(params))
 
 	return client.NewAPIRequest(job, request)
@@ -235,61 +252,61 @@ type loadDataConfig struct {
 	Columns         []string `json:"columns,omitempty" writeoptional:"true"`
 }
 
-func (o DelimiterOption) applyLoadDataOption(c *loadDataConfig) {
+func (o delimiterOption) applyLoadDataOption(c *loadDataConfig) {
 	c.Delimiter = string(o)
 }
 
-func (o EnclosureOption) applyLoadDataOption(c *loadDataConfig) {
+func (o enclosureOption) applyLoadDataOption(c *loadDataConfig) {
 	c.Enclosure = string(o)
 }
 
-func (o EscapedByOption) applyLoadDataOption(c *loadDataConfig) {
+func (o escapedByOption) applyLoadDataOption(c *loadDataConfig) {
 	c.EscapedBy = string(o)
 }
 
-// IncrementalLoadOption decides whether the target table will be truncated before import.
-type IncrementalLoadOption bool
+// incrementalLoadOption decides whether the target table will be truncated before import.
+type incrementalLoadOption bool
 
-func (o IncrementalLoadOption) applyLoadDataOption(c *loadDataConfig) {
+func (o incrementalLoadOption) applyLoadDataOption(c *loadDataConfig) {
 	c.IncrementalLoad = 0
 	if o {
 		c.IncrementalLoad = 1
 	}
 }
 
-func WithIncrementalLoad(i bool) IncrementalLoadOption {
-	return IncrementalLoadOption(i)
+func WithIncrementalLoad(i bool) incrementalLoadOption {
+	return incrementalLoadOption(i)
 }
 
-// ColumnsHeadersOption specifies list of columns present in the CSV file.
+// columnsHeadersOption specifies list of columns present in the CSV file.
 // The first line of the file will not be treated as a header.
-type ColumnsHeadersOption []string
+type columnsHeadersOption []string
 
-func (o ColumnsHeadersOption) applyLoadDataOption(c *loadDataConfig) {
+func (o columnsHeadersOption) applyLoadDataOption(c *loadDataConfig) {
 	c.Columns = o
 }
 
-func WithColumnsHeaders(c []string) ColumnsHeadersOption {
+func WithColumnsHeaders(c []string) columnsHeadersOption {
 	return c
 }
 
-// WithoutHeaderOption specifies if the csv file contains header. If it doesn't, columns are matched by their order.
+// withoutHeaderOption specifies if the csv file contains header. If it doesn't, columns are matched by their order.
 // If this option is used, columns option is ignored.
-type WithoutHeaderOption bool
+type withoutHeaderOption bool
 
-func (o WithoutHeaderOption) applyLoadDataOption(c *loadDataConfig) {
+func (o withoutHeaderOption) applyLoadDataOption(c *loadDataConfig) {
 	c.WithoutHeaders = 0
 	if o {
 		c.WithoutHeaders = 1
 	}
 }
 
-func WithoutHeader(h bool) WithoutHeaderOption {
-	return WithoutHeaderOption(h)
+func WithoutHeader(h bool) withoutHeaderOption {
+	return withoutHeaderOption(h)
 }
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func LoadDataFromFileRequest(tableID string, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
+func LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
 	c := &loadDataConfig{}
 	for _, o := range opts {
 		o.applyLoadDataOption(c)
@@ -302,10 +319,20 @@ func LoadDataFromFileRequest(tableID string, dataFileID int, opts ...LoadDataOpt
 	request := newRequest().
 		WithResult(job).
 		WithPost("tables/{tableId}/import-async").
-		AndPathParam("tableId", tableID).
+		AndPathParam("tableId", string(tableID)).
 		WithFormBody(client.ToFormBody(params))
 
 	return client.NewAPIRequest(job, request)
+}
+
+// GetTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/table-detail
+func GetTableRequest(tableID TableID) client.APIRequest[*Table] {
+	table := &Table{}
+	request := newRequest().
+		WithResult(table).
+		WithGet("tables/{tableId}").
+		AndPathParam("tableId", string(tableID))
+	return client.NewAPIRequest(table, request)
 }
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table

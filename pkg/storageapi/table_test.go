@@ -320,9 +320,9 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		IsEncrypted: false,
 		Name:        tableName,
 	}
-	resFile, err := CreateFileResourceRequest(file).Send(ctx, c)
+	_, err = CreateFileResourceRequest(file).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, resFile.ID)
+	assert.NotEmpty(t, file.ID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
@@ -331,9 +331,10 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	job, err := CreateTableFromFileRequest(string(bucket.ID), tableName, resFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	job, err := CreateTableFromFileRequest(string(bucket.ID), tableName, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NoError(t, WaitForJob(ctx, c, job))
+	tableID := TableID(fmt.Sprintf("%s.%s", bucket.ID, tableName))
 
 	// Create file
 	file = &File{
@@ -343,9 +344,14 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		IsEncrypted: false,
 		Name:        tableName,
 	}
-	resFile, err = CreateFileResourceRequest(file).Send(ctx, c)
+	_, err = CreateFileResourceRequest(file).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, resFile.ID)
+	assert.NotEmpty(t, file.ID)
+
+	// Check rows count
+	table, err := GetTableRequest(tableID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(1), table.RowsCount)
 
 	// Upload file
 	content = []byte("val2,val3\nval3,val4\nval4,val5\n")
@@ -353,8 +359,13 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(len(content)), written)
 
-	// Load data to table
-	job, err = LoadDataFromFileRequest(fmt.Sprintf("%s.%s", bucket.ID, tableName), resFile.ID, WithColumnsHeaders([]string{"col2", "col1"})).Send(ctx, c)
+	// Load data to table - added three rows
+	job, err = LoadDataFromFileRequest(tableID, file.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NoError(t, WaitForJob(ctx, c, job))
+
+	// Check rows count
+	table, err = GetTableRequest(tableID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(4), table.RowsCount)
 }

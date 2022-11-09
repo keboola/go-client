@@ -24,9 +24,9 @@ type File struct {
 	Url             string           `json:"url" readonly:"true"`
 	Provider        string           `json:"provider" readonly:"true"`
 	Region          string           `json:"region" readonly:"true"`
-	SizeBytes       int              `json:"sizeBytes,omitempty"`
+	SizeBytes       uint64           `json:"sizeBytes,omitempty"`
 	Tags            []string         `json:"tags,omitempty"`
-	MaxAgeDays      int              `json:"maxAgeDays" readonly:"true"`
+	MaxAgeDays      uint             `json:"maxAgeDays" readonly:"true"`
 	S3UploadParams  s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
 	ABSUploadParams abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
 
