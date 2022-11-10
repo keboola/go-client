@@ -38,11 +38,11 @@ type File struct {
 }
 
 type SlicedFileManifest struct {
-	Entries []*ImportManifestEntry `json:"entries"`
+	Entries []Slice `json:"entries"`
 }
 
-type ImportManifestEntry struct {
-	Url string `json:"url"` // slice url
+type Slice struct {
+	Url string `json:"url"`
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
@@ -132,13 +132,13 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 }
 
 func CreateSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
-	m := &SlicedFileManifest{Entries: make([]*ImportManifestEntry, 0)}
+	m := &SlicedFileManifest{Entries: make([]Slice, 0)}
 	for _, s := range sliceNames {
 		url, err := NewSliceUrl(file, s)
 		if err != nil {
 			return nil, err
 		}
-		m.Entries = append(m.Entries, &ImportManifestEntry{Url: url})
+		m.Entries = append(m.Entries, Slice{Url: url})
 	}
 	return m, nil
 }

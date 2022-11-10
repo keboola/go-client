@@ -25,7 +25,7 @@ func TestCreateImportManifestOnABS(t *testing.T) {
 	res, err := storageapi.CreateSlicedFileManifest(f, []string{"one", "two"})
 	assert.NoError(t, err)
 
-	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.ImportManifestEntry{
+	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.Slice{
 		{Url: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1one"},
 		{Url: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1two"},
 	}}
@@ -46,7 +46,7 @@ func TestCreateImportManifestOnS3(t *testing.T) {
 	res, err := storageapi.CreateSlicedFileManifest(f, []string{"one", "two"})
 	assert.NoError(t, err)
 
-	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.ImportManifestEntry{
+	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.Slice{
 		{Url: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1one"},
 		{Url: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1two"},
 	}}
