@@ -32,11 +32,7 @@ type UploadParams struct {
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, region string) (*blob.Writer, error) {
-	return NewUploadSliceWriter(ctx, params, region, "")
-}
-
-func NewUploadSliceWriter(ctx context.Context, params UploadParams, region string, slice string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, region string, slice string) (*blob.Writer, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
 			params.Credentials.AccessKeyId,

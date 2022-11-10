@@ -59,23 +59,16 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 
 // NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
 func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
-	switch file.Provider {
-	case abs.Provider:
-		return abs.NewUploadWriter(ctx, file.ABSUploadParams)
-	case s3.Provider:
-		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region)
-	default:
-		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
-	}
+	return NewUploadSliceWriter(ctx, file, "")
 }
 
 // NewUploadSliceWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource and to the specified slice.
 func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.Writer, error) {
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewUploadSliceWriter(ctx, file.ABSUploadParams, slice)
+		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice)
 	case s3.Provider:
-		return s3.NewUploadSliceWriter(ctx, file.S3UploadParams, file.Region, slice)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
@@ -84,18 +77,7 @@ func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.
 // Upload instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes there
 // content of the reader.
 func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
-	bw, err := NewUploadWriter(ctx, file)
-	if err != nil {
-		return 0, fmt.Errorf("cannot open bucket writer: %w", err)
-	}
-
-	defer func() {
-		if closeErr := bw.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
-		}
-	}()
-
-	return io.Copy(bw, fr)
+	return UploadSlice(ctx, file, "", fr)
 }
 
 // UploadSlice instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes

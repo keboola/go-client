@@ -60,11 +60,7 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 	return cs, nil
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
-	return NewUploadSliceWriter(ctx, params, "")
-}
-
-func NewUploadSliceWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
