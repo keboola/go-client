@@ -77,17 +77,18 @@ func parseConnectionString(str string) (*ConnectionString, error) {
 		csMap[parts[0]] = parts[1]
 	}
 	cs := &ConnectionString{}
-	val, ok := csMap["BlobEndpoint"]
-	if !ok {
+
+	if val, ok := csMap["BlobEndpoint"]; ok {
+		cs.BlobEndpoint = val
+	} else {
 		return nil, fmt.Errorf(`connection string is missing "BlobEndpoint" part`)
 	}
-	cs.BlobEndpoint = val
 
-	val, ok = csMap["SharedAccessSignature"]
-	if !ok {
+	if val, ok := csMap["SharedAccessSignature"]; ok {
+		cs.SharedAccessSignature = val
+	} else {
 		return nil, fmt.Errorf(`connection string is missing "SharedAccessSignature" part`)
 	}
-	cs.SharedAccessSignature = val
 
 	return cs, nil
 }
