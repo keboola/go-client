@@ -3,11 +3,11 @@ package abs_test
 import (
 	"testing"
 
-	"github.com/keboola/go-client/pkg/storageapi/abs"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/storageapi"
+	"github.com/keboola/go-client/pkg/storageapi/abs"
 	"github.com/keboola/go-client/pkg/storageapi/testdata"
 )
 
