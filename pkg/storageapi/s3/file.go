@@ -75,10 +75,5 @@ func sliceKey(key, slice string) string {
 }
 
 func NewSliceUrl(params UploadParams, slice string) string {
-	return fmt.Sprintf(
-		"s3://%s/%s%s",
-		params.Bucket,
-		params.Key,
-		slice,
-	)
+	return fmt.Sprintf("s3://%s/%s", params.Bucket, sliceKey(params.Key, slice))
 }
