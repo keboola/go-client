@@ -37,6 +37,14 @@ type File struct {
 	Notify          bool   `json:"notify,omitempty"`
 }
 
+type SlicedFileManifest struct {
+	Entries []Slice `json:"entries"`
+}
+
+type Slice struct {
+	Url string `json:"url"`
+}
+
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
 func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 	file.FederationToken = true
@@ -59,23 +67,16 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 
 // NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
 func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
-	switch file.Provider {
-	case abs.Provider:
-		return abs.NewUploadWriter(ctx, file.ABSUploadParams)
-	case s3.Provider:
-		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region)
-	default:
-		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
-	}
+	return NewUploadSliceWriter(ctx, file, "")
 }
 
 // NewUploadSliceWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource and to the specified slice.
 func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.Writer, error) {
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewUploadSliceWriter(ctx, file.ABSUploadParams, slice)
+		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice)
 	case s3.Provider:
-		return s3.NewUploadSliceWriter(ctx, file.S3UploadParams, file.Region, slice)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
@@ -84,18 +85,7 @@ func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.
 // Upload instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes there
 // content of the reader.
 func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
-	bw, err := NewUploadWriter(ctx, file)
-	if err != nil {
-		return 0, fmt.Errorf("cannot open bucket writer: %w", err)
-	}
-
-	defer func() {
-		if closeErr := bw.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
-		}
-	}()
-
-	return io.Copy(bw, fr)
+	return UploadSlice(ctx, file, "", fr)
 }
 
 // UploadSlice instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes
@@ -118,7 +108,7 @@ func UploadSlice(ctx context.Context, file *File, slice string, fr io.Reader) (w
 // UploadSlicedFileManifest instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes
 // content of the reader to the specified slice manifest.
 func UploadSlicedFileManifest(ctx context.Context, file *File, slices []string) (written int64, err error) {
-	manifest, err := CreateSlicedFileManifest(file, slices)
+	manifest, err := NewSlicedFileManifest(file, slices)
 	if err != nil {
 		return 0, err
 	}
@@ -141,22 +131,14 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 	}
 }
 
-type SlicedFileManifest struct {
-	Entries []*ImportManifestEntry `json:"entries"`
-}
-
-type ImportManifestEntry struct {
-	Url string `json:"url"`
-}
-
-func CreateSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
-	m := &SlicedFileManifest{Entries: make([]*ImportManifestEntry, 0)}
+func NewSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
+	m := &SlicedFileManifest{Entries: make([]Slice, 0)}
 	for _, s := range sliceNames {
 		url, err := NewSliceUrl(file, s)
 		if err != nil {
 			return nil, err
 		}
-		m.Entries = append(m.Entries, &ImportManifestEntry{Url: url})
+		m.Entries = append(m.Entries, Slice{Url: url})
 	}
 	return m, nil
 }

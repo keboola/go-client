@@ -35,36 +35,7 @@ func (cs *ConnectionString) ServiceURL() string {
 	return fmt.Sprintf("%s?%s", cs.BlobEndpoint, cs.SharedAccessSignature)
 }
 
-func parseConnectionString(str string) (*ConnectionString, error) {
-	csMap := make(map[string]string)
-	for _, item := range strings.Split(str, ";") {
-		parts := strings.SplitN(item, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf(`connection string is malformed, it should contain key value pairs separated by semicolons`)
-		}
-		csMap[parts[0]] = parts[1]
-	}
-	cs := &ConnectionString{}
-	val, ok := csMap["BlobEndpoint"]
-	if !ok {
-		return nil, fmt.Errorf(`connection string is missing "BlobEndpoint" part`)
-	}
-	cs.BlobEndpoint = val
-
-	val, ok = csMap["SharedAccessSignature"]
-	if !ok {
-		return nil, fmt.Errorf(`connection string is missing "SharedAccessSignature" part`)
-	}
-	cs.SharedAccessSignature = val
-
-	return cs, nil
-}
-
-func NewUploadWriter(ctx context.Context, params UploadParams) (*blob.Writer, error) {
-	return NewUploadSliceWriter(ctx, params, "")
-}
-
-func NewUploadSliceWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
@@ -80,12 +51,7 @@ func NewUploadSliceWriter(ctx context.Context, params UploadParams, slice string
 		return nil, err
 	}
 
-	blobName := params.BlobName
-	if slice != "" {
-		blobName += slice
-	}
-
-	bw, err := b.NewWriter(ctx, blobName, nil)
+	bw, err := b.NewWriter(ctx, sliceKey(params.BlobName, slice), nil)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
 	}
@@ -94,11 +60,35 @@ func NewUploadSliceWriter(ctx context.Context, params UploadParams, slice string
 }
 
 func NewSliceUrl(params UploadParams, slice string) string {
-	return fmt.Sprintf(
-		"azure://%s.blob.core.windows.net/%s/%s%s",
-		params.AccountName,
-		params.Container,
-		params.BlobName,
-		slice,
-	)
+	return fmt.Sprintf("azure://%s.blob.core.windows.net/%s/%s", params.AccountName, params.Container, sliceKey(params.BlobName, slice))
+}
+
+func sliceKey(key, slice string) string {
+	return key + slice
+}
+
+func parseConnectionString(str string) (*ConnectionString, error) {
+	csMap := make(map[string]string)
+	for _, item := range strings.Split(str, ";") {
+		parts := strings.SplitN(item, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf(`connection string is malformed, it should contain key value pairs separated by semicolons`)
+		}
+		csMap[parts[0]] = parts[1]
+	}
+	cs := &ConnectionString{}
+
+	if val, ok := csMap["BlobEndpoint"]; ok {
+		cs.BlobEndpoint = val
+	} else {
+		return nil, fmt.Errorf(`connection string is missing "BlobEndpoint" part`)
+	}
+
+	if val, ok := csMap["SharedAccessSignature"]; ok {
+		cs.SharedAccessSignature = val
+	} else {
+		return nil, fmt.Errorf(`connection string is missing "SharedAccessSignature" part`)
+	}
+
+	return cs, nil
 }

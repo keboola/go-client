@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-client/pkg/storageapi/abs"
 	"github.com/keboola/go-client/pkg/storageapi/s3"
+	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob"
 )
@@ -111,37 +110,23 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 			assert.Equal(t, len(content), written)
 			assert.NoError(t, gzw.Close())
 			assert.NoError(t, bw.Close())
-
-			if tc.Sliced {
-				// Add manifest
-				bw, err = storageapi.NewUploadSliceWriter(ctx, file, "manifest")
-				assert.NoError(t, err)
-
-				manifest, err := storageapi.CreateSlicedFileManifest(file, []string{"slice1"})
-				assert.NoError(t, err)
-				marshaledManifest, err := json.Marshal(manifest)
-				assert.NoError(t, err)
-
-				gzw := gzip.NewWriter(bw)
-				written, err := gzw.Write(marshaledManifest)
-				assert.NoError(t, err)
-				assert.Equal(t, len(marshaledManifest), written)
-				assert.NoError(t, gzw.Close())
-				assert.NoError(t, bw.Close())
-			}
 		} else {
 			// Upload from reader
 			var written int64
 			var err error
 			if tc.Sliced {
 				written, err = storageapi.UploadSlice(ctx, file, "slice1", bytes.NewReader(content))
-				assert.NoError(t, err)
-				_, err = storageapi.UploadSlicedFileManifest(ctx, file, []string{"slice1"})
 			} else {
 				written, err = storageapi.Upload(ctx, file, bytes.NewReader(content))
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, int64(len(content)), written)
+		}
+
+		// Upload manifest
+		if tc.Sliced {
+			_, err := storageapi.UploadSlicedFileManifest(ctx, file, []string{"slice1"})
+			assert.NoError(t, err)
 		}
 
 		// Get file resource
@@ -154,37 +139,30 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		defer resp.Body.Close()
 
 		// Check that we didn't get error instead of the file
-		buf := new(strings.Builder)
-		_, err = io.Copy(buf, resp.Body)
-		assert.NoError(t, err)
-		strBody := buf.String()
-		if strings.HasPrefix(strBody, "<?xml") {
-			assert.Fail(t, strBody)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			data, _ := io.ReadAll(resp.Body)
+			t.Logf("Response body: \n%s\n", data)
 		}
-		strBodyReader := strings.NewReader(strBody)
 
 		// Get file reader
 		var fileReader io.Reader
-		if tc.Gzipped {
-			fileReader, err = gzip.NewReader(strBodyReader)
+		if tc.Gzipped && !tc.Sliced {
+			fileReader, err = gzip.NewReader(resp.Body)
 			assert.NoError(t, err)
 		} else {
-			fileReader = strBodyReader
+			fileReader = resp.Body
 		}
 
 		// Get and compare file content
 		fileContent, err := io.ReadAll(fileReader)
 		assert.NoError(t, err)
 		if tc.Sliced {
-			actualManifest := &storageapi.SlicedFileManifest{}
-			err = json.Unmarshal(fileContent, actualManifest)
-			assert.NoError(t, err)
-			expectedManifest, err := storageapi.CreateSlicedFileManifest(file, []string{"slice1"})
-			assert.NoError(t, err)
-			assert.Equal(t, expectedManifest, actualManifest)
+			// Check manifest content
+			wildcards.Assert(t, `{"entries":[{"url":"%sslice1"}]}`, string(fileContent))
 		} else {
+			// Check file content
 			assert.Equal(t, content, fileContent)
 		}
-		fmt.Printf("\n\n")
 	})
 }
