@@ -37,6 +37,14 @@ type File struct {
 	Notify          bool   `json:"notify,omitempty"`
 }
 
+type SlicedFileManifest struct {
+	Entries []*ImportManifestEntry `json:"entries"`
+}
+
+type ImportManifestEntry struct {
+	Url string `json:"url"` // slice url
+}
+
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
 func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 	file.FederationToken = true
@@ -121,14 +129,6 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 	default:
 		return "", fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
-}
-
-type SlicedFileManifest struct {
-	Entries []*ImportManifestEntry `json:"entries"`
-}
-
-type ImportManifestEntry struct {
-	Url string `json:"url"`
 }
 
 func CreateSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
