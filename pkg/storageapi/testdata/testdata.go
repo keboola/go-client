@@ -185,6 +185,5 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		} else {
 			assert.Equal(t, content, fileContent)
 		}
-		fmt.Printf("\n\n")
 	})
 }
