@@ -22,7 +22,7 @@ func TestCreateImportManifestOnABS(t *testing.T) {
 		},
 	}
 
-	res, err := storageapi.CreateSlicedFileManifest(f, []string{"one", "two"})
+	res, err := storageapi.NewSlicedFileManifest(f, []string{"one", "two"})
 	assert.NoError(t, err)
 
 	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.Slice{
@@ -43,7 +43,7 @@ func TestCreateImportManifestOnS3(t *testing.T) {
 		},
 	}
 
-	res, err := storageapi.CreateSlicedFileManifest(f, []string{"one", "two"})
+	res, err := storageapi.NewSlicedFileManifest(f, []string{"one", "two"})
 	assert.NoError(t, err)
 
 	e := &storageapi.SlicedFileManifest{Entries: []*storageapi.Slice{

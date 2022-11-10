@@ -108,7 +108,7 @@ func UploadSlice(ctx context.Context, file *File, slice string, fr io.Reader) (w
 // UploadSlicedFileManifest instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes
 // content of the reader to the specified slice manifest.
 func UploadSlicedFileManifest(ctx context.Context, file *File, slices []string) (written int64, err error) {
-	manifest, err := CreateSlicedFileManifest(file, slices)
+	manifest, err := NewSlicedFileManifest(file, slices)
 	if err != nil {
 		return 0, err
 	}
@@ -131,7 +131,7 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 	}
 }
 
-func CreateSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
+func NewSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
 	m := &SlicedFileManifest{Entries: make([]Slice, 0)}
 	for _, s := range sliceNames {
 		url, err := NewSliceUrl(file, s)

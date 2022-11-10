@@ -117,7 +117,7 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 				bw, err = storageapi.NewUploadSliceWriter(ctx, file, "manifest")
 				assert.NoError(t, err)
 
-				manifest, err := storageapi.CreateSlicedFileManifest(file, []string{"slice1"})
+				manifest, err := storageapi.NewSlicedFileManifest(file, []string{"slice1"})
 				assert.NoError(t, err)
 				marshaledManifest, err := json.Marshal(manifest)
 				assert.NoError(t, err)
@@ -179,7 +179,7 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 			actualManifest := &storageapi.SlicedFileManifest{}
 			err = json.Unmarshal(fileContent, actualManifest)
 			assert.NoError(t, err)
-			expectedManifest, err := storageapi.CreateSlicedFileManifest(file, []string{"slice1"})
+			expectedManifest, err := storageapi.NewSlicedFileManifest(file, []string{"slice1"})
 			assert.NoError(t, err)
 			assert.Equal(t, expectedManifest, actualManifest)
 		} else {
