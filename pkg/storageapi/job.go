@@ -2,6 +2,7 @@ package storageapi
 
 import (
 	"context"
+	jsonLib "encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -24,6 +25,20 @@ type JobKey struct {
 	ID JobID `json:"id"`
 }
 
+type JobResult map[string]any
+
+// UnmarshalJSON implements JSON decoding.
+// The API returns empty array when the results field is empty.
+func (r *JobResult) UnmarshalJSON(data []byte) (err error) {
+	if string(data) == "[]" {
+		*r = JobResult{}
+		return nil
+	}
+	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
+	type _r JobResult
+	return jsonLib.Unmarshal(data, (*_r)(r))
+}
+
 // Job is a storage job.
 type Job struct {
 	JobKey
@@ -31,10 +46,17 @@ type Job struct {
 	URL             string         `json:"url"`
 	OperationName   string         `json:"operationName"`
 	OperationParams map[string]any `json:"operationParams"`
-	Results         map[string]any `json:"results"`
+	Results         JobResult      `json:"results,omitempty"`
 	CreateTime      iso8601.Time   `json:"createdTime"`
 	StartTime       *iso8601.Time  `json:"startTime"`
 	EndTime         *iso8601.Time  `json:"endTime"`
+	Error           JobError       `json:"error,omitempty"`
+}
+
+type JobError struct {
+	Code        string `json:"code"`
+	Message     string `json:"message"`
+	ExceptionId string `json:"exceptionId"`
 }
 
 // GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
@@ -68,7 +90,7 @@ func WaitForJob(ctx context.Context, sender client.Sender, job *Job) error {
 		if job.Status == "success" {
 			return nil
 		} else if job.Status == "error" {
-			return fmt.Errorf(`job "%s" failed: %v`, job.ID, job.Results)
+			return fmt.Errorf(`job "%s" failed: %s (exception id: %s)`, job.ID, job.Error.Message, job.Error.ExceptionId)
 		}
 
 		// Wait and check again

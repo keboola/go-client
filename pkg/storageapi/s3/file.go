@@ -32,7 +32,7 @@ type UploadParams struct {
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, region string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, region string, slice string) (*blob.Writer, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
 			params.Credentials.AccessKeyId,
@@ -61,10 +61,19 @@ func NewUploadWriter(ctx context.Context, params UploadParams, region string) (*
 			return nil
 		},
 	}
-	bw, err := b.NewWriter(ctx, params.Key, opts)
+
+	bw, err := b.NewWriter(ctx, sliceKey(params.Key, slice), opts)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.Key, err)
 	}
 
 	return bw, nil
+}
+
+func NewSliceUrl(params UploadParams, slice string) string {
+	return fmt.Sprintf("s3://%s/%s", params.Bucket, sliceKey(params.Key, slice))
+}
+
+func sliceKey(key, slice string) string {
+	return key + slice
 }
