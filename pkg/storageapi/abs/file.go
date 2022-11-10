@@ -76,17 +76,16 @@ func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*b
 		return nil, err
 	}
 
-	blobName := params.BlobName
-	if slice != "" {
-		blobName += slice
-	}
-
-	bw, err := b.NewWriter(ctx, blobName, nil)
+	bw, err := b.NewWriter(ctx, sliceKey(params.BlobName, slice), nil)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
 	}
 
 	return bw, nil
+}
+
+func sliceKey(key, slice string) string {
+	return key + slice
 }
 
 func NewSliceUrl(params UploadParams, slice string) string {
