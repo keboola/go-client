@@ -70,10 +70,10 @@ func NewUploadWriter(ctx context.Context, params UploadParams, region string, sl
 	return bw, nil
 }
 
-func sliceKey(key, slice string) string {
-	return key + slice
-}
-
 func NewSliceUrl(params UploadParams, slice string) string {
 	return fmt.Sprintf("s3://%s/%s", params.Bucket, sliceKey(params.Key, slice))
+}
+
+func sliceKey(key, slice string) string {
+	return key + slice
 }
