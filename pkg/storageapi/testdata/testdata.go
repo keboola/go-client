@@ -12,6 +12,7 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-client/pkg/storageapi/abs"
+	"github.com/keboola/go-client/pkg/storageapi/gcs"
 	"github.com/keboola/go-client/pkg/storageapi/s3"
 	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
@@ -74,17 +75,24 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 
 		// Assert provider specific fields
 		switch file.Provider {
+		case abs.Provider:
+			assert.Equal(t, true, file.IsEncrypted)
+			assert.NotEmpty(t, file.ABSUploadParams)
+			assert.NotEmpty(t, file.ABSUploadParams.BlobName)
+			assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
+		case gcs.Provider:
+			assert.Equal(t, true, file.IsEncrypted)
+			assert.NotEmpty(t, file.GCSUploadParams)
+			assert.NotEmpty(t, file.GCSUploadParams.AccessToken)
+			assert.NotEmpty(t, file.GCSUploadParams.Bucket)
+			assert.NotEmpty(t, file.GCSUploadParams.Key)
+			assert.NotEmpty(t, file.GCSUploadParams.TokenType)
 		case s3.Provider:
 			assert.Equal(t, tc.Encrypted, file.IsEncrypted)
 			assert.NotEmpty(t, file.S3UploadParams)
 			assert.NotEmpty(t, file.S3UploadParams.Bucket)
 			assert.NotEmpty(t, file.S3UploadParams.Credentials.AccessKeyId)
 			assert.NotEmpty(t, file.S3UploadParams.Credentials.SecretAccessKey)
-		case abs.Provider:
-			assert.Equal(t, true, file.IsEncrypted)
-			assert.NotEmpty(t, file.ABSUploadParams)
-			assert.NotEmpty(t, file.ABSUploadParams.BlobName)
-			assert.NotEmpty(t, file.ABSUploadParams.Credentials.SASConnectionString)
 		default:
 			panic(fmt.Errorf(`unexpected storage provider "%s"`, file.Provider))
 		}

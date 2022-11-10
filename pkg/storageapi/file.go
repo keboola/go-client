@@ -13,6 +13,7 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi/abs"
+	"github.com/keboola/go-client/pkg/storageapi/gcs"
 	"github.com/keboola/go-client/pkg/storageapi/s3"
 )
 
@@ -28,8 +29,9 @@ type File struct {
 	SizeBytes       uint64           `json:"sizeBytes,omitempty"`
 	Tags            []string         `json:"tags,omitempty"`
 	MaxAgeDays      uint             `json:"maxAgeDays" readonly:"true"`
-	S3UploadParams  s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
 	ABSUploadParams abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
+	GCSUploadParams gcs.UploadParams `json:"gcsUploadParams,omitempty" readonly:"true"`
+	S3UploadParams  s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
 
 	ContentType     string `json:"contentType,omitempty"`
 	FederationToken bool   `json:"federationToken,omitempty"`
@@ -75,6 +77,8 @@ func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.
 	switch file.Provider {
 	case abs.Provider:
 		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice)
+	case gcs.Provider:
+		return gcs.NewUploadWriter(ctx, file.GCSUploadParams, slice)
 	case s3.Provider:
 		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice)
 	default:
@@ -124,6 +128,8 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 	switch file.Provider {
 	case abs.Provider:
 		return abs.NewSliceUrl(file.ABSUploadParams, slice), nil
+	case gcs.Provider:
+		return gcs.NewSliceUrl(file.GCSUploadParams, slice), nil
 	case s3.Provider:
 		return s3.NewSliceUrl(file.S3UploadParams, slice), nil
 	default:
