@@ -2,13 +2,12 @@ package storageapi
 
 import (
 	"bytes"
+	"context"
 	jsonLib "encoding/json"
 	"fmt"
-	"io"
-	"mime/multipart"
-	"net/textproto"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/relvacode/iso8601"
 
@@ -108,51 +107,30 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	return client.NewAPIRequest(&result, request)
 }
 
-// CreateTableRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
-func CreateTableRequest(table *Table) client.APIRequest[*Table] {
-	body := bytes.NewBufferString("")
-	mp := multipart.NewWriter(body)
-
-	err := mp.WriteField("name", table.Name)
+// CreateTable creates an empty table with given columns.
+func CreateTable(ctx context.Context, sender client.Sender, bucketID string, name string, columns []string, opts ...CreateTableOption) error {
+	// Create file resource
+	file, err := CreateFileResourceRequest(&File{Name: name}).Send(ctx, sender)
 	if err != nil {
-		panic(fmt.Errorf(`could not add param "name" with value "%s" to multipart: %w`, table.Name, err))
-	}
-	if len(table.PrimaryKey) > 0 {
-		primaryKeyColumns := strings.Join(table.PrimaryKey, ",")
-		err := mp.WriteField("primaryKey", primaryKeyColumns)
-		if err != nil {
-			panic(fmt.Errorf(`could not add param "primaryKey" with value "%s" to multipart: %w`, primaryKeyColumns, err))
-		}
+		return fmt.Errorf("creating file failed: %w", err)
 	}
 
-	// Add csv file with columns definition
-	csvData := []byte(strings.Join(table.Columns, ","))
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
-	h.Set("Content-Type", "text/csv")
-	wr, err := mp.CreatePart(h)
+	// Upload file with the header
+	content := []byte(strings.Join(columns, ","))
+	_, err = Upload(ctx, file, bytes.NewReader(content))
 	if err != nil {
-		panic(fmt.Errorf(`could not add binary to multipart: %w`, err))
-	}
-	_, err = io.Copy(wr, bytes.NewBuffer(csvData))
-	if err != nil {
-		panic(fmt.Errorf(`could not write binary to multipart: %w`, err))
+		return fmt.Errorf("uploading header file failed: %w", err)
 	}
 
-	contentType := fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())
-	err = mp.Close()
-	if err != nil {
-		panic(fmt.Errorf(`could not close multipart: %w`, err))
-	}
-
-	request := newRequest().
-		WithResult(table).
-		WithPost("buckets/{bucketId}/tables").
-		AndPathParam("bucketId", string(table.Bucket.ID)).
-		WithBody(bytes.NewReader(body.Bytes())).
-		WithContentType(contentType)
-
-	return client.NewAPIRequest(table, request)
+	// Create the table from the header file
+	_, err = CreateTableFromFileRequest(bucketID, name, file.ID, opts...).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, job *Job) error {
+			// Wait for storage job
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			defer waitCancelFn()
+			return WaitForJob(waitCtx, sender, job)
+		}).Send(ctx, sender)
+	return err
 }
 
 // loadDataFromFileConfig contains common params to load data from file resource.
@@ -191,20 +169,7 @@ type CreateTableOption interface {
 
 // createTableConfig contains params to create table from file resource.
 type createTableConfig struct {
-	loadDataFromFileConfig
 	PrimaryKey string `json:"primaryKey,omitempty" writeoptional:"true"`
-}
-
-func (o delimiterOption) applyCreateTableOption(c *createTableConfig) {
-	c.Delimiter = string(o)
-}
-
-func (o enclosureOption) applyCreateTableOption(c *createTableConfig) {
-	c.Enclosure = string(o)
-}
-
-func (o escapedByOption) applyCreateTableOption(c *createTableConfig) {
-	c.EscapedBy = string(o)
 }
 
 // primaryKeyOption specifies primary key of the table. Multiple columns can be separated by a comma.
