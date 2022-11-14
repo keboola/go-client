@@ -3,7 +3,10 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"net/http"
 
+	"cloud.google.com/go/storage"
+	"github.com/googleapis/gax-go/v2"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/gcp"
@@ -22,19 +25,44 @@ type UploadParams struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
+type uploadConfig struct {
+	transport http.RoundTripper
+}
+
+type UploadOptions func(c *uploadConfig)
+
+func WithUploadTransport(transport http.RoundTripper) UploadOptions {
+	return func(c *uploadConfig) {
+		c.transport = transport
+	}
+}
+
+func NewUploadWriter(ctx context.Context, params UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: params.AccessToken,
 		TokenType:   params.TokenType,
 	})
 
-	client, err := gcp.NewHTTPClient(gcp.DefaultTransport(), tokenSource)
+	if transport == nil {
+		transport = gcp.DefaultTransport()
+	}
+	client, err := gcp.NewHTTPClient(transport, tokenSource)
 	if err != nil {
 		return nil, err
 	}
 	b, err := gcsblob.OpenBucket(ctx, client, params.Bucket, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	var gcsClient *storage.Client
+	if b.As(&gcsClient) {
+		gcsClient.SetRetry(
+			storage.WithBackoff(gax.Backoff{}),
+			storage.WithPolicy(storage.RetryIdempotent),
+		)
+	} else {
+		panic("Unable to access storage.Client through Bucket.As")
 	}
 
 	bw, err := b.NewWriter(ctx, sliceKey(params.Key, slice), nil)

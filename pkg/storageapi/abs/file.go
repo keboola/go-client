@@ -3,6 +3,7 @@ package abs
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -35,13 +36,17 @@ func (cs *ConnectionString) ServiceURL() string {
 	return fmt.Sprintf("%s?%s", cs.BlobEndpoint, cs.SharedAccessSignature)
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), &azblob.ClientOptions{})
+	clientOptions := &azblob.ClientOptions{}
+	if transport != nil {
+		clientOptions.Transport = &http.Client{Transport: transport}
+	}
+	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
 	if err != nil {
 		return nil, err
 	}
