@@ -3,7 +3,9 @@ package s3
 import (
 	"context"
 	"fmt"
+	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -32,7 +34,7 @@ type UploadParams struct {
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, region string, slice string) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
 			params.Credentials.AccessKeyId,
@@ -40,7 +42,13 @@ func NewUploadWriter(ctx context.Context, params UploadParams, region string, sl
 			params.Credentials.SessionToken,
 		),
 	)
-	cfg, err := config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	var cfg aws.Config
+	var err error
+	if transport != nil {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region), config.WithHTTPClient(&http.Client{Transport: transport}))
+	} else {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	}
 	if err != nil {
 		return nil, err
 	}

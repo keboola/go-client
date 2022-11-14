@@ -3,6 +3,7 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
@@ -22,13 +23,28 @@ type UploadParams struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, slice string) (*blob.Writer, error) {
+type uploadConfig struct {
+	transport http.RoundTripper
+}
+
+type UploadOptions func(c *uploadConfig)
+
+func WithUploadTransport(transport http.RoundTripper) UploadOptions {
+	return func(c *uploadConfig) {
+		c.transport = transport
+	}
+}
+
+func NewUploadWriter(ctx context.Context, params UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: params.AccessToken,
 		TokenType:   params.TokenType,
 	})
 
-	client, err := gcp.NewHTTPClient(gcp.DefaultTransport(), tokenSource)
+	if transport == nil {
+		transport = gcp.DefaultTransport()
+	}
+	client, err := gcp.NewHTTPClient(transport, tokenSource)
 	if err != nil {
 		return nil, err
 	}

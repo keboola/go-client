@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/relvacode/iso8601"
@@ -67,20 +68,36 @@ func GetFileResourceRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
+type uploadConfig struct {
+	transport http.RoundTripper
+}
+
+type UploadOptions func(c *uploadConfig)
+
+func WithUploadTransport(transport http.RoundTripper) UploadOptions {
+	return func(c *uploadConfig) {
+		c.transport = transport
+	}
+}
+
 // NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
-func NewUploadWriter(ctx context.Context, file *File) (*blob.Writer, error) {
-	return NewUploadSliceWriter(ctx, file, "")
+func NewUploadWriter(ctx context.Context, file *File, opts ...UploadOptions) (*blob.Writer, error) {
+	return NewUploadSliceWriter(ctx, file, "", opts...)
 }
 
 // NewUploadSliceWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource and to the specified slice.
-func NewUploadSliceWriter(ctx context.Context, file *File, slice string) (*blob.Writer, error) {
+func NewUploadSliceWriter(ctx context.Context, file *File, slice string, opts ...UploadOptions) (*blob.Writer, error) {
+	uploadConfig := uploadConfig{}
+	for _, opt := range opts {
+		opt(&uploadConfig)
+	}
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice)
+		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice, uploadConfig.transport)
 	case gcs.Provider:
-		return gcs.NewUploadWriter(ctx, file.GCSUploadParams, slice)
+		return gcs.NewUploadWriter(ctx, file.GCSUploadParams, slice, uploadConfig.transport)
 	case s3.Provider:
-		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice, uploadConfig.transport)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
