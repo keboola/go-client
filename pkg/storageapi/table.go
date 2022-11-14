@@ -1,8 +1,8 @@
 package storageapi
 
 import (
-	"bytes"
 	"context"
+	"encoding/csv"
 	jsonLib "encoding/json"
 	"fmt"
 	"sort"
@@ -107,8 +107,30 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	return client.NewAPIRequest(&result, request)
 }
 
+func writeHeaderToCsv(ctx context.Context, file *File, columns []string) (err error) {
+	// Upload file with the header
+	bw, err := NewUploadWriter(ctx, file)
+	if err != nil {
+		return fmt.Errorf("connecting to the bucket failed: %w", err)
+	}
+	defer func() {
+		if closeErr := bw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
+		}
+	}()
+	cw := csv.NewWriter(bw)
+	if err := cw.Write(columns); err != nil {
+		return fmt.Errorf("error writing header to csv: %w", err)
+	}
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return fmt.Errorf("error writing header to csv: %w", err)
+	}
+	return nil
+}
+
 // CreateTable creates an empty table with given columns.
-func CreateTable(ctx context.Context, sender client.Sender, bucketID string, name string, columns []string, opts ...CreateTableOption) error {
+func CreateTable(ctx context.Context, sender client.Sender, bucketID string, name string, columns []string, opts ...CreateTableOption) (err error) {
 	// Create file resource
 	file, err := CreateFileResourceRequest(&File{Name: name}).Send(ctx, sender)
 	if err != nil {
@@ -116,10 +138,8 @@ func CreateTable(ctx context.Context, sender client.Sender, bucketID string, nam
 	}
 
 	// Upload file with the header
-	content := []byte(strings.Join(columns, ","))
-	_, err = Upload(ctx, file, bytes.NewReader(content))
-	if err != nil {
-		return fmt.Errorf("uploading header file failed: %w", err)
+	if err := writeHeaderToCsv(ctx, file, columns); err != nil {
+		return fmt.Errorf("error writing header to csv: %w", err)
 	}
 
 	// Create the table from the header file
