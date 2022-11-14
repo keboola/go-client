@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"cloud.google.com/go/storage"
+	"github.com/googleapis/gax-go/v2"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/gcp"
@@ -51,6 +53,16 @@ func NewUploadWriter(ctx context.Context, params UploadParams, slice string, tra
 	b, err := gcsblob.OpenBucket(ctx, client, params.Bucket, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	var gcsClient *storage.Client
+	if b.As(&gcsClient) {
+		gcsClient.SetRetry(
+			storage.WithBackoff(gax.Backoff{}),
+			storage.WithPolicy(storage.RetryIdempotent),
+		)
+	} else {
+		panic("Unable to access storage.Client through Bucket.As")
 	}
 
 	bw, err := b.NewWriter(ctx, sliceKey(params.Key, slice), nil)
