@@ -159,15 +159,16 @@ func CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*ConfigWithRo
 		})).
 		// Create config rows
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, _ client.HTTPResponse) error {
-			wg := client.NewWaitGroup(ctx, sender)
 			for _, row := range config.Rows {
 				row := row
 				row.BranchID = config.BranchID
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
-				wg.Send(CreateConfigRowRequest(row))
+				if _, err := CreateConfigRowRequest(row).Send(ctx, sender); err != nil {
+					return err
+				}
 			}
-			return wg.Wait()
+			return nil
 		})
 	return client.NewAPIRequest(config, request)
 }
