@@ -265,9 +265,8 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create table
-	resTable, err := CreateTableRequest(table).Send(ctx, c)
+	err = CreateTable(ctx, c, string(bucket.ID), tableName, table.Columns)
 	assert.NoError(t, err)
-	assert.Equal(t, table, resTable)
 
 	// List tables
 	resList, err := ListTablesRequest().Send(ctx, c)
