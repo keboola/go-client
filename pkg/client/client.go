@@ -32,9 +32,9 @@ import (
 	"github.com/cenkalti/backoff/v4"
 )
 
-const retryAttemptContextKey = contextKey("retryAttempt")
+const RetryAttemptContextKey = ContextKey("retryAttempt")
 
-type contextKey string
+type ContextKey string
 
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
@@ -410,7 +410,7 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		// Set retry attempt to the request context
-		req = req.WithContext(context.WithValue(req.Context(), retryAttemptContextKey, attempt))
+		req = req.WithContext(context.WithValue(req.Context(), RetryAttemptContextKey, attempt))
 
 		// Rewind body before retry
 		if req.GetBody != nil {
@@ -432,7 +432,7 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func ContextRetryAttempt(ctx context.Context) (int, bool) {
-	v := ctx.Value(retryAttemptContextKey)
+	v := ctx.Value(RetryAttemptContextKey)
 	if v == nil {
 		return 0, false
 	}

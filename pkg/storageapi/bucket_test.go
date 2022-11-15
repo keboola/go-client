@@ -31,6 +31,11 @@ func TestBucketApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resCreate)
 
+	// Get bucket - find the bucket
+	resGet, err := storageapi.GetBucketRequest(bucket.ID).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resGet)
+
 	// List - find the bucket
 	allBuckets, err := storageapi.ListBucketsRequest().Send(ctx, c)
 	assert.NoError(t, err)
@@ -46,6 +51,11 @@ func TestBucketApiCalls(t *testing.T) {
 	// Delete
 	_, err = storageapi.DeleteBucketRequest(bucket.ID, storageapi.WithForce()).Send(ctx, c)
 	assert.NoError(t, err)
+
+	// Get bucket - don't find the bucket
+	_, err = storageapi.GetBucketRequest(bucket.ID).Send(ctx, c)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s.%s not found", bucket.Stage, bucket.Name))
 
 	// List - don't find the bucket
 	allBuckets, err = storageapi.ListBucketsRequest().Send(ctx, c)
