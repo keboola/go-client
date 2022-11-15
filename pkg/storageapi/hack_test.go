@@ -10,11 +10,13 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 func TestIsResourceAlreadyExistsError(t *testing.T) {
+	t.Parallel()
 	assert.False(t, isResourceAlreadyExistsError(
 		&http.Response{},
 		errors.New("foo bar"),
@@ -37,6 +39,7 @@ func TestIsResourceAlreadyExistsError(t *testing.T) {
 }
 
 func TestIsResourceNotFoundError(t *testing.T) {
+	t.Parallel()
 	assert.False(t, isResourceNotFoundError(
 		&http.Response{},
 		errors.New("foo bar"),
@@ -59,6 +62,7 @@ func TestIsResourceNotFoundError(t *testing.T) {
 }
 
 func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
+	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(
@@ -67,7 +71,8 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
-				Body:       io.NopCloser(strings.NewReader("internal error"))},
+				Body:       io.NopCloser(strings.NewReader("internal error")),
+			},
 			{
 				StatusCode: http.StatusBadRequest,
 				Header:     map[string][]string{"Content-Type": {"application/json"}},
@@ -104,6 +109,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 }
 
 func TestDeleteBucketRequest_NotFound(t *testing.T) {
+	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(
@@ -112,7 +118,8 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
-				Body:       io.NopCloser(strings.NewReader("internal error"))},
+				Body:       io.NopCloser(strings.NewReader("internal error")),
+			},
 			{
 				StatusCode: http.StatusNotFound,
 				Header:     map[string][]string{"Content-Type": {"application/json"}},
