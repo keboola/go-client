@@ -331,9 +331,12 @@ func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest
 
 	request := newRequest().
 		WithDelete("tables/{tableId}").
+		WithOnError(ignoreResourceNotFoundError()).
 		AndPathParam("tableId", string(tableID))
+
 	if c.force {
 		request = request.AndQueryParam("force", "true")
 	}
+
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

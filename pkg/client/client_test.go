@@ -352,7 +352,16 @@ func TestRetryCount(t *testing.T) {
 		})
 
 	// Get
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest().
+		WithGet("https://example.com").
+		WithOnComplete(func(ctx context.Context, sender Sender, response HTTPResponse, err error) error {
+			// Check context
+			attempt, found := ContextRetryAttempt(response.RawRequest().Context())
+			assert.True(t, found)
+			assert.Equal(t, retryCount, attempt)
+			return err
+		}).
+		Send(ctx, c)
 	assert.Error(t, err)
 	assert.Equal(t, `request GET "https://example.com" failed: 504 Gateway Timeout`, err.Error())
 

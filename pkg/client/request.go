@@ -61,6 +61,8 @@ type httpResponseCommon interface {
 	ResponseHeader() http.Header
 	// StatusCode method returns HTTP status code.
 	StatusCode() int
+	// RawRequest method returns the standard HTTP request, from the last retry attempt.
+	RawRequest() *http.Request
 	// RawResponse method returns the standard HTTP response.
 	RawResponse() *http.Response
 	// IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
@@ -414,6 +416,13 @@ func (r httpResponse) ResponseHeader() http.Header {
 
 func (r httpResponse) StatusCode() int {
 	return r.rawResponse.StatusCode
+}
+
+func (r httpResponse) RawRequest() *http.Request {
+	if r.rawResponse != nil && r.rawResponse.Request != nil {
+		return r.rawResponse.Request
+	}
+	return nil
 }
 
 func (r httpResponse) RawResponse() *http.Response {

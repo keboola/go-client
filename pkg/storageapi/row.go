@@ -1,6 +1,8 @@
 package storageapi
 
 import (
+	"context"
+
 	"github.com/keboola/go-utils/pkg/orderedmap"
 
 	"github.com/keboola/go-client/pkg/client"
@@ -62,7 +64,15 @@ func CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
 		AndPathParam("branchId", row.BranchID.String()).
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
-		WithFormBody(client.ToFormBody(client.StructToMap(row, nil)))
+		WithFormBody(client.ToFormBody(client.StructToMap(row, nil))).
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+			if result, err := GetConfigRowRequest(row.ConfigRowKey).Send(ctx, sender); err == nil {
+				*row = *result
+				return nil
+			} else {
+				return err
+			}
+		}))
 	return client.NewAPIRequest(row, request)
 }
 
@@ -92,6 +102,7 @@ func DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult]
 		AndPathParam("branchId", key.BranchID.String()).
 		AndPathParam("componentId", string(key.ComponentID)).
 		AndPathParam("configId", string(key.ConfigID)).
-		AndPathParam("rowId", string(key.ID))
+		AndPathParam("rowId", string(key.ID)).
+		WithOnError(ignoreResourceNotFoundError())
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

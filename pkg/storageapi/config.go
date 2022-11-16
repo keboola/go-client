@@ -149,6 +149,14 @@ func CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*ConfigWithRo
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
 		WithFormBody(client.ToFormBody(client.StructToMap(config.Config, nil))).
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+			if result, err := GetConfigRequest(config.ConfigKey).Send(ctx, sender); err == nil {
+				*config.Config = *result
+				return nil
+			} else {
+				return err
+			}
+		})).
 		// Create config rows
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, _ client.HTTPResponse) error {
 			wg := client.NewWaitGroup(ctx, sender)
@@ -188,7 +196,8 @@ func DeleteConfigRequest(config ConfigKey) client.APIRequest[client.NoResult] {
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}").
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
-		AndPathParam("configId", string(config.ID))
+		AndPathParam("configId", string(config.ID)).
+		WithOnError(ignoreResourceNotFoundError())
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
 
@@ -254,6 +263,7 @@ func DeleteConfigMetadataRequest(key ConfigKey, metaID string) client.APIRequest
 		AndPathParam("branchId", key.BranchID.String()).
 		AndPathParam("componentId", string(key.ComponentID)).
 		AndPathParam("configId", string(key.ID)).
-		AndPathParam("metadataId", metaID)
+		AndPathParam("metadataId", metaID).
+		WithOnError(ignoreResourceNotFoundError())
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
