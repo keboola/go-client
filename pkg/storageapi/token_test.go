@@ -3,6 +3,7 @@ package storageapi_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -53,4 +54,20 @@ func TestVerifyTokenInvalid(t *testing.T) {
 	assert.Equal(t, "storage.tokenInvalid", apiErr.ErrCode)
 	assert.Equal(t, 401, apiErr.StatusCode())
 	assert.Empty(t, token)
+}
+
+func TestCreateToken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, c := ClientForRandomProject(t)
+
+	token, err := CreateTokenRequest(
+		WithDescription("create token request test"),
+		WithCanReadAllFileUploads(true),
+		WithCanPurgeTrash(true),
+		WithCanManageBuckets(true),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.NotNil(t, token)
 }
