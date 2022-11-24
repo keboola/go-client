@@ -21,7 +21,7 @@ type Token struct {
 	CanPurgeTrash         bool                          `json:"canPurgeTrash"`
 	Created               iso8601.Time                  `json:"created"`
 	Refreshed             iso8601.Time                  `json:"refreshed"`
-	Expires               iso8601.Time                  `json:"expires"`
+	Expires               *iso8601.Time                 `json:"expires"`
 	IsExpired             bool                          `json:"isExpired"`
 	IsDisabled            bool                          `json:"isDisabled"`
 	Owner                 TokenOwner                    `json:"owner"`
