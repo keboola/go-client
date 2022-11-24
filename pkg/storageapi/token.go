@@ -19,6 +19,8 @@ type Token struct {
 	CanManageTokens       bool                          `json:"canManageTokens"`
 	CanReadAllFileUploads bool                          `json:"canReadAllFileUploads"`
 	CanPurgeTrash         bool                          `json:"canPurgeTrash"`
+	Created               iso8601.Time                  `json:"created"`
+	Refreshed             iso8601.Time                  `json:"refreshed"`
 	Expires               iso8601.Time                  `json:"expires"`
 	IsExpired             bool                          `json:"isExpired"`
 	IsDisabled            bool                          `json:"isDisabled"`
@@ -145,5 +147,15 @@ func CreateTokenRequest(opts ...createTokenOption) client.APIRequest[*Token] {
 		WithResult(result).
 		WithPost("tokens").
 		WithFormBody(client.ToFormBody(client.StructToMap(options, nil)))
+	return client.NewAPIRequest(result, request)
+}
+
+// RefreshTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/share-token/refresh-token
+func RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
+	result := &Token{}
+	request := newRequest().
+		WithResult(result).
+		WithPost("tokens/{tokenId}/refresh").
+		AndPathParam("tokenId", tokenID)
 	return client.NewAPIRequest(result, request)
 }
