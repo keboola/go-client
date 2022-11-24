@@ -2,7 +2,10 @@ package storageapi_test
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -53,4 +56,77 @@ func TestVerifyTokenInvalid(t *testing.T) {
 	assert.Equal(t, "storage.tokenInvalid", apiErr.ErrCode)
 	assert.Equal(t, 401, apiErr.StatusCode())
 	assert.Empty(t, token)
+}
+
+func TestCreateToken_AllPerms(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, c := ClientForRandomProject(t)
+
+	description := "create token request all perms test"
+	token, err := CreateTokenRequest(
+		WithDescription(description),
+		WithCanReadAllFileUploads(true),
+		WithCanPurgeTrash(true),
+		WithCanManageBuckets(true),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx, c)
+	assert.NoError(t, err)
+
+	assert.Equal(t, description, token.Description)
+	assert.True(t, token.CanManageBuckets && token.CanPurgeTrash && token.CanReadAllFileUploads)
+	assert.Empty(t, token.ComponentAccess)
+}
+
+func TestCreateToken_SomePerms(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, c := ClientForRandomProject(t)
+
+	rand.Seed(time.Now().Unix())
+
+	bucket, err := CreateBucketRequest(&Bucket{
+		Name:  fmt.Sprintf("create_token_test_%d", rand.Int()),
+		Stage: BucketStageIn,
+	}).Send(ctx, c)
+	assert.NoError(t, err)
+
+	description := "create token request all perms test"
+	token, err := CreateTokenRequest(
+		WithDescription(description),
+		WithBucketPermission(bucket.ID, BucketPermissionRead),
+		WithComponentAccess("keboola.ex-aws-s3"),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx, c)
+	assert.NoError(t, err)
+
+	assert.Equal(t, description, token.Description)
+	assert.Equal(t,
+		map[BucketID]BucketPermission{bucket.ID: BucketPermissionRead},
+		token.BucketPermissions,
+	)
+	assert.Equal(t,
+		[]string{"keboola.ex-aws-s3"},
+		token.ComponentAccess,
+	)
+}
+
+func TestRefreshToken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, c := ClientForRandomProject(t)
+
+	created, err := CreateTokenRequest(
+		WithDescription("refresh token request test"),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx, c)
+	assert.NoError(t, err)
+
+	time.Sleep(2 * time.Second)
+
+	refreshed, err := RefreshTokenRequest(created.ID).Send(ctx, c)
+	assert.NoError(t, err)
+
+	assert.Equal(t, created.Description, refreshed.Description)
+	assert.NotEqual(t, refreshed.Created, refreshed.Refreshed)
 }
