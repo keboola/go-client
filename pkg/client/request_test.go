@@ -166,3 +166,27 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	b = a.WithOnError(l6)
 	assert.NotEqual(t, a, b)
 }
+
+func TestToFormBody(t *testing.T) {
+	t.Parallel()
+
+	data := map[string]any{
+		"string": "test",
+		"number": 100,
+		"slice":  []string{"a", "b", "c"},
+		"map":    map[string]string{"k0": "v0", "k1": "v1"},
+	}
+
+	expected := map[string]string{
+		"string":   "test",
+		"number":   "100",
+		"slice[0]": "a",
+		"slice[1]": "b",
+		"slice[2]": "c",
+		"map[k0]":  "v0",
+		"map[k1]":  "v1",
+	}
+	actual := client.ToFormBody(data)
+
+	assert.Equal(t, expected, actual)
+}
