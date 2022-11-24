@@ -25,14 +25,14 @@ type Token struct {
 	IsExpired             bool                          `json:"isExpired"`
 	IsDisabled            bool                          `json:"isDisabled"`
 	Owner                 TokenOwner                    `json:"owner"`
-	Admin                 *AdminToken                   `json:"admin,omitempty"`
+	Admin                 *TokenAdmin                   `json:"admin,omitempty"`
 	Creator               *CreatorToken                 `json:"creatorToken,omitempty"`
 	BucketPermissions     map[BucketID]BucketPermission `json:"bucketPermissions,omitempty"`
 	ComponentAccess       []string                      `json:"componentAccess,omitempty"`
 }
 
-// AdminToken - admin part of the token that should exists if the token is a master token.
-type AdminToken struct {
+// TokenAdmin - admin part of the token that should exists if the token is a master token.
+type TokenAdmin struct {
 	Name                 string   `json:"name"`
 	Id                   int      `json:"id"`
 	IsOrganizationMember bool     `json:"isOrganizationMember"`
