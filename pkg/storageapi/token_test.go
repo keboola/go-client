@@ -110,3 +110,23 @@ func TestCreateToken_SomePerms(t *testing.T) {
 		token.ComponentAccess,
 	)
 }
+
+func TestRefreshToken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, c := ClientForRandomProject(t)
+
+	created, err := CreateTokenRequest(
+		WithDescription("refresh token request test"),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx, c)
+	assert.NoError(t, err)
+
+	time.Sleep(2 * time.Second)
+
+	refreshed, err := RefreshTokenRequest(created.ID).Send(ctx, c)
+	assert.NoError(t, err)
+
+	assert.Equal(t, created.Description, refreshed.Description)
+	assert.NotEqual(t, refreshed.Created, refreshed.Refreshed)
+}
