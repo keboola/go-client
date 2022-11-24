@@ -2,31 +2,31 @@ package storageapi
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/relvacode/iso8601"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 // Token https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
 type Token struct {
-	Token                 string                      `json:"token"` // set manually from request
-	ID                    string                      `json:"id"`
-	Description           string                      `json:"description"`
-	IsMaster              bool                        `json:"isMasterToken"`
-	CanManageBuckets      bool                        `json:"canManageBuckets"`
-	CanManageTokens       bool                        `json:"canManageTokens"`
-	CanReadAllFileUploads bool                        `json:"canReadAllFileUploads"`
-	CanPurgeTrash         bool                        `json:"canPurgeTrash"`
-	Expires               iso8601.Time                `json:"expires"`
-	IsExpired             bool                        `json:"isExpired"`
-	IsDisabled            bool                        `json:"isDisabled"`
-	Owner                 TokenOwner                  `json:"owner"`
-	Admin                 *AdminToken                 `json:"admin,omitempty"`
-	Creator               *CreatorToken               `json:"creatorToken,omitempty"`
-	BucketPermissions     map[string]BucketPermission `json:"bucketPermissions,omitempty"`
-	ComponentAccess       []string                    `json:"componentAccess,omitempty"`
+	Token                 string                        `json:"token"` // set manually from request
+	ID                    string                        `json:"id"`
+	Description           string                        `json:"description"`
+	IsMaster              bool                          `json:"isMasterToken"`
+	CanManageBuckets      bool                          `json:"canManageBuckets"`
+	CanManageTokens       bool                          `json:"canManageTokens"`
+	CanReadAllFileUploads bool                          `json:"canReadAllFileUploads"`
+	CanPurgeTrash         bool                          `json:"canPurgeTrash"`
+	Expires               iso8601.Time                  `json:"expires"`
+	IsExpired             bool                          `json:"isExpired"`
+	IsDisabled            bool                          `json:"isDisabled"`
+	Owner                 TokenOwner                    `json:"owner"`
+	Admin                 *AdminToken                   `json:"admin,omitempty"`
+	Creator               *CreatorToken                 `json:"creatorToken,omitempty"`
+	BucketPermissions     map[BucketID]BucketPermission `json:"bucketPermissions,omitempty"`
+	ComponentAccess       []string                      `json:"componentAccess,omitempty"`
 }
 
 // AdminToken - admin part of the token that should exists if the token is a master token.
@@ -99,12 +99,12 @@ func WithDescription(description string) createTokenOption {
 }
 
 // WithBucketPermission adds `bucket` to the set of buckets this token may read or write to, depending on the permission specified (`perm`).
-func WithBucketPermission(bucketID string, perm BucketPermission) createTokenOption {
+func WithBucketPermission(bucketID BucketID, perm BucketPermission) createTokenOption {
 	return func(o *createTokenOptions) {
 		if o.BucketPermissions == nil {
 			o.BucketPermissions = make(map[string]string)
 		}
-		o.BucketPermissions[bucketID] = string(perm)
+		o.BucketPermissions[bucketID.String()] = string(perm)
 	}
 }
 
@@ -139,8 +139,6 @@ func CreateTokenRequest(opts ...createTokenOption) client.APIRequest[*Token] {
 	for _, opt := range opts {
 		opt(options)
 	}
-
-	fmt.Println("create token request body", client.ToFormBody(client.StructToMap(options, nil)))
 
 	result := &Token{}
 	request := newRequest().
