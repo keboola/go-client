@@ -19,20 +19,20 @@ import (
 )
 
 type File struct {
-	ID              int              `json:"id" readonly:"true"`
-	Created         iso8601.Time     `json:"created" readonly:"true"`
-	IsSliced        bool             `json:"isSliced,omitempty"`
-	IsEncrypted     bool             `json:"isEncrypted,omitempty"`
-	Name            string           `json:"name"`
-	Url             string           `json:"url" readonly:"true"`
-	Provider        string           `json:"provider" readonly:"true"`
-	Region          string           `json:"region" readonly:"true"`
-	SizeBytes       uint64           `json:"sizeBytes,omitempty"`
-	Tags            []string         `json:"tags,omitempty"`
-	MaxAgeDays      uint             `json:"maxAgeDays" readonly:"true"`
-	ABSUploadParams abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
-	GCSUploadParams gcs.UploadParams `json:"gcsUploadParams,omitempty" readonly:"true"`
-	S3UploadParams  s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
+	ID              int               `json:"id" readonly:"true"`
+	Created         iso8601.Time      `json:"created" readonly:"true"`
+	IsSliced        bool              `json:"isSliced,omitempty"`
+	IsEncrypted     bool              `json:"isEncrypted,omitempty"`
+	Name            string            `json:"name"`
+	Url             string            `json:"url" readonly:"true"`
+	Provider        string            `json:"provider" readonly:"true"`
+	Region          string            `json:"region" readonly:"true"`
+	SizeBytes       uint64            `json:"sizeBytes,omitempty"`
+	Tags            []string          `json:"tags,omitempty"`
+	MaxAgeDays      uint              `json:"maxAgeDays" readonly:"true"`
+	ABSUploadParams *abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
+	GCSUploadParams *gcs.UploadParams `json:"gcsUploadParams,omitempty" readonly:"true"`
+	S3UploadParams  *s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
 
 	ContentType     string `json:"contentType,omitempty"`
 	FederationToken bool   `json:"federationToken,omitempty"`

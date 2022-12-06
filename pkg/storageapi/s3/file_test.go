@@ -27,7 +27,7 @@ func TestCreateImportManifest(t *testing.T) {
 
 	f := &storageapi.File{
 		Provider: "aws",
-		S3UploadParams: s3.UploadParams{
+		S3UploadParams: &s3.UploadParams{
 			Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
 			Bucket: "kbc-sapi-files",
 		},
@@ -50,7 +50,7 @@ func TestTransportRetry(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("PUT", `https://bucket.s3.us-east-1.amazonaws.com/key`, httpmock.NewStringResponder(504, "test"))
 
-	params := s3.UploadParams{
+	params := &s3.UploadParams{
 		Key:    "key",
 		Bucket: "bucket",
 		Credentials: s3.Credentials{

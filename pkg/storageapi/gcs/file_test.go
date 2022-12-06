@@ -27,7 +27,7 @@ func TestCreateImportManifest(t *testing.T) {
 
 	f := &storageapi.File{
 		Provider: "gcp",
-		GCSUploadParams: gcs.UploadParams{
+		GCSUploadParams: &gcs.UploadParams{
 			Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
 			Bucket: "kbc-sapi-files",
 		},
@@ -50,7 +50,7 @@ func TestTransportRetry(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("POST", `https://storage.googleapis.com/upload/storage/v1/b/bucket/o`, httpmock.NewStringResponder(504, "test"))
 
-	params := gcs.UploadParams{
+	params := &gcs.UploadParams{
 		ProjectId:   "project",
 		Key:         "key",
 		Bucket:      "bucket",

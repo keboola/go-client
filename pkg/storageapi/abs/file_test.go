@@ -27,7 +27,7 @@ func TestCreateImportManifest(t *testing.T) {
 
 	f := &storageapi.File{
 		Provider: "azure",
-		ABSUploadParams: abs.UploadParams{
+		ABSUploadParams: &abs.UploadParams{
 			BlobName:    "test1",
 			AccountName: "kbcfshc7chguaeh2km",
 			Container:   "exp-15-files-4516-27298008-2022-11-08",
@@ -51,7 +51,7 @@ func TestTransportRetry(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder("PUT", `https://example.com/container/blob`, httpmock.NewStringResponder(504, "test"))
 
-	params := abs.UploadParams{
+	params := &abs.UploadParams{
 		BlobName:    "blob",
 		AccountName: "account",
 		Container:   "container",
