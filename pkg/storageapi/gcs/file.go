@@ -37,7 +37,7 @@ func WithUploadTransport(transport http.RoundTripper) UploadOptions {
 	}
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: params.AccessToken,
 		TokenType:   params.TokenType,
@@ -73,7 +73,7 @@ func NewUploadWriter(ctx context.Context, params UploadParams, slice string, tra
 	return bw, nil
 }
 
-func NewSliceUrl(params UploadParams, slice string) string {
+func NewSliceUrl(params *UploadParams, slice string) string {
 	return fmt.Sprintf(
 		"gs://%s/%s",
 		params.Bucket,

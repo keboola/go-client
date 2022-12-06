@@ -36,7 +36,7 @@ func (cs *ConnectionString) ServiceURL() string {
 	return fmt.Sprintf("%s?%s", cs.BlobEndpoint, cs.SharedAccessSignature)
 }
 
-func NewUploadWriter(ctx context.Context, params UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func NewUploadWriter(ctx context.Context, params UploadParams, slice string, tra
 	return bw, nil
 }
 
-func NewSliceUrl(params UploadParams, slice string) string {
+func NewSliceUrl(params *UploadParams, slice string) string {
 	return fmt.Sprintf("azure://%s.blob.core.windows.net/%s/%s", params.AccountName, params.Container, sliceKey(params.BlobName, slice))
 }
 
