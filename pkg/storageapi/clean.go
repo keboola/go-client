@@ -21,7 +21,8 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 
 	// For each branch
 	defaultBranch := &Branch{}
-	request := ListBranchesRequest().
+
+	cleanBranchesReq := ListBranchesRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Branch) error {
 			wg := client.NewWaitGroup(ctx, sender)
 			for _, branch := range *result {
@@ -47,15 +48,6 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 							}
 							return wgMetadata.Wait()
 						}))
-					// Clear buckets
-					wg.Send(ListBucketsRequest().
-						WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Bucket) error {
-							wgBuckets := client.NewWaitGroup(ctx, sender)
-							for _, item := range *result {
-								wgBuckets.Send(DeleteBucketRequest(item.ID, WithForce()))
-							}
-							return wgBuckets.Wait()
-						}))
 				} else {
 					// If it is not default branch -> delete branch.
 					wg.Send(DeleteBranchRequest(branch.BranchKey).
@@ -71,5 +63,26 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 			}
 			return wg.Wait()
 		})
-	return client.NewAPIRequest(defaultBranch, request)
+
+	cleanBucketsReq := ListBucketsRequest().
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Bucket) error {
+			wg := client.NewWaitGroup(ctx, sender)
+			for _, bucket := range *result {
+				wg.Send(DeleteBucketRequest(bucket.ID, WithForce()))
+			}
+			return wg.Wait()
+		})
+
+	cleanTokensReq := ListTokensRequest().
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Token) error {
+			wg := client.NewWaitGroup(ctx, sender)
+			for _, token := range *result {
+				if !token.IsMaster {
+					wg.Send(DeleteTokenRequest(token.ID))
+				}
+			}
+			return wg.Wait()
+		})
+
+	return client.NewAPIRequest(defaultBranch, client.Parallel(cleanBranchesReq, cleanBucketsReq, cleanTokensReq))
 }
