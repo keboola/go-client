@@ -72,7 +72,7 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 			}
 			return wg.Wait()
 		})
-	
+
 	cleanTokensReq := ListTokensRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Token) error {
 			wg := client.NewWaitGroup(ctx, sender)
