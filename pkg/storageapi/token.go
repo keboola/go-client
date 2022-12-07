@@ -2,6 +2,7 @@ package storageapi
 
 import (
 	"context"
+	jsonLib "encoding/json"
 	"time"
 
 	"github.com/relvacode/iso8601"
@@ -11,27 +12,29 @@ import (
 
 // Token https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
 type Token struct {
-	Token                 string                        `json:"token"` // set manually from request
-	ID                    string                        `json:"id"`
-	Description           string                        `json:"description"`
-	IsMaster              bool                          `json:"isMasterToken"`
-	CanManageBuckets      bool                          `json:"canManageBuckets"`
-	CanManageTokens       bool                          `json:"canManageTokens"`
-	CanReadAllFileUploads bool                          `json:"canReadAllFileUploads"`
-	CanPurgeTrash         bool                          `json:"canPurgeTrash"`
-	Created               iso8601.Time                  `json:"created"`
-	Refreshed             iso8601.Time                  `json:"refreshed"`
-	Expires               *iso8601.Time                 `json:"expires"`
-	IsExpired             bool                          `json:"isExpired"`
-	IsDisabled            bool                          `json:"isDisabled"`
-	Owner                 TokenOwner                    `json:"owner"`
-	Admin                 *TokenAdmin                   `json:"admin,omitempty"`
-	Creator               *CreatorToken                 `json:"creatorToken,omitempty"`
-	BucketPermissions     map[BucketID]BucketPermission `json:"bucketPermissions,omitempty"`
-	ComponentAccess       []string                      `json:"componentAccess,omitempty"`
+	Token                 string            `json:"token"` // set manually from request
+	ID                    string            `json:"id"`
+	Description           string            `json:"description"`
+	IsMaster              bool              `json:"isMasterToken"`
+	CanManageBuckets      bool              `json:"canManageBuckets"`
+	CanManageTokens       bool              `json:"canManageTokens"`
+	CanReadAllFileUploads bool              `json:"canReadAllFileUploads"`
+	CanPurgeTrash         bool              `json:"canPurgeTrash"`
+	Created               iso8601.Time      `json:"created"`
+	Refreshed             iso8601.Time      `json:"refreshed"`
+	Expires               *iso8601.Time     `json:"expires"`
+	IsExpired             bool              `json:"isExpired"`
+	IsDisabled            bool              `json:"isDisabled"`
+	Owner                 TokenOwner        `json:"owner"`
+	Admin                 *TokenAdmin       `json:"admin,omitempty"`
+	Creator               *CreatorToken     `json:"creatorToken,omitempty"`
+	BucketPermissions     BucketPermissions `json:"bucketPermissions,omitempty"`
+	ComponentAccess       []string          `json:"componentAccess,omitempty"`
 }
 
-// TokenAdmin - admin part of the token that should exists if the token is a master token.
+type BucketPermissions map[BucketID]BucketPermission
+
+// TokenAdmin - admin part of the token that should exist if the token is a master token.
 type TokenAdmin struct {
 	Name                 string   `json:"name"`
 	Id                   int      `json:"id"`
@@ -150,6 +153,25 @@ func CreateTokenRequest(opts ...createTokenOption) client.APIRequest[*Token] {
 	return client.NewAPIRequest(result, request)
 }
 
+// ListTokensRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/list-all-tokens
+func ListTokensRequest() client.APIRequest[*[]*Token] {
+	var result []*Token
+	request := newRequest().
+		WithResult(&result).
+		WithGet("tokens")
+	return client.NewAPIRequest(&result, request)
+}
+
+// DeleteTokenRequest (no documentation)
+func DeleteTokenRequest(tokenID string) client.APIRequest[*Token] {
+	result := &Token{}
+	request := newRequest().
+		WithResult(result).
+		WithDelete("tokens/{tokenId}").
+		AndPathParam("tokenId", tokenID)
+	return client.NewAPIRequest(result, request)
+}
+
 // RefreshTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/share-token/refresh-token
 func RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
 	result := &Token{}
@@ -158,4 +180,16 @@ func RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
 		WithPost("tokens/{tokenId}/refresh").
 		AndPathParam("tokenId", tokenID)
 	return client.NewAPIRequest(result, request)
+}
+
+// UnmarshalJSON implements JSON decoding.
+// The API returns empty array when the results field is empty.
+func (r *BucketPermissions) UnmarshalJSON(data []byte) (err error) {
+	if string(data) == "[]" {
+		*r = BucketPermissions{}
+		return nil
+	}
+	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
+	type _r BucketPermissions
+	return jsonLib.Unmarshal(data, (*_r)(r))
 }

@@ -102,13 +102,48 @@ func TestCreateToken_SomePerms(t *testing.T) {
 
 	assert.Equal(t, description, token.Description)
 	assert.Equal(t,
-		map[BucketID]BucketPermission{bucket.ID: BucketPermissionRead},
+		BucketPermissions{bucket.ID: BucketPermissionRead},
 		token.BucketPermissions,
 	)
 	assert.Equal(t,
 		[]string{"keboola.ex-aws-s3"},
 		token.ComponentAccess,
 	)
+}
+
+func TestListAndDeleteToken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := ClientForAnEmptyProject(t)
+
+	// Create tokens
+	token1, err := CreateTokenRequest(WithDescription("token1"), WithExpiresIn(5*time.Minute)).Send(ctx, c)
+	assert.NoError(t, err)
+	token2, err := CreateTokenRequest(WithDescription("token2"), WithExpiresIn(5*time.Minute)).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// List
+	allTokens, err := ListTokensRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, []*Token{token1, token2}, ignoreMasterTokens(*allTokens))
+
+	// Delete token1
+	_, err = DeleteTokenRequest(token1.ID).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// List
+	allTokens, err = ListTokensRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, []*Token{token2}, ignoreMasterTokens(*allTokens))
+
+	// Delete token2
+	_, err = DeleteTokenRequest(token2.ID).Send(ctx, c)
+	assert.NoError(t, err)
+
+	// List
+	allTokens, err = ListTokensRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Empty(t, ignoreMasterTokens(*allTokens))
 }
 
 func TestRefreshToken(t *testing.T) {
@@ -129,4 +164,13 @@ func TestRefreshToken(t *testing.T) {
 
 	assert.Equal(t, created.Description, refreshed.Description)
 	assert.NotEqual(t, refreshed.Created, refreshed.Refreshed)
+}
+
+func ignoreMasterTokens(in []*Token) (out []*Token) {
+	for _, t := range in {
+		if !t.IsMaster {
+			out = append(out, t)
+		}
+	}
+	return out
 }
