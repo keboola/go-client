@@ -138,7 +138,7 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		}
 
 		// Get file resource
-		fileFromRequest, err := storageapi.GetFileResourceRequest(file.ID).Send(ctx, storageApiClient)
+		fileFromRequest, err := storageapi.GetFileRequest(file.ID).Send(ctx, storageApiClient)
 		assert.NoError(t, err)
 
 		// Request file content

@@ -73,6 +73,15 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
+	cleanFilesReq := ListFilesRequest().
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*File) error {
+			wg := client.NewWaitGroup(ctx, sender)
+			for _, file := range *result {
+				wg.Send(DeleteFileRequest(file.ID))
+			}
+			return wg.Wait()
+		})
+
 	cleanTokensReq := ListTokensRequest().
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *[]*Token) error {
 			wg := client.NewWaitGroup(ctx, sender)
@@ -84,5 +93,5 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	return client.NewAPIRequest(defaultBranch, client.Parallel(cleanBranchesReq, cleanBucketsReq, cleanTokensReq))
+	return client.NewAPIRequest(defaultBranch, client.Parallel(cleanBranchesReq, cleanBucketsReq, cleanFilesReq, cleanTokensReq))
 }
