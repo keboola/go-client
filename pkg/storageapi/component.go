@@ -17,6 +17,7 @@ const (
 	TransformationType       = "transformation"
 	DeprecatedFlag           = `deprecated`
 	ExcludeFromNewListFlag   = `excludeFromNewList`
+	GenericCodeBlocksUIFlag  = `genericCodeBlocksUI`
 	ComponentTypeCodePattern = `code-pattern`
 	ComponentTypeProcessor   = `processor`
 )
@@ -108,6 +109,15 @@ func (v Components) ToMap() ComponentsMap {
 // IsTransformation returns true, if component is transformation.
 func (c *Component) IsTransformation() bool {
 	return c.Type == TransformationType
+}
+
+func (c *Component) IsTransformationWithBlocks() bool {
+	for _, flag := range c.Flags {
+		if flag == GenericCodeBlocksUIFlag {
+			return true
+		}
+	}
+	return false
 }
 
 // IsSharedCode returns true, if component is shared code.
