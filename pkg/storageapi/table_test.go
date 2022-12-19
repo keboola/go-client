@@ -269,7 +269,7 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create table
-	err = CreateTable(ctx, c, tableID, table.Columns)
+	_, err = CreateTable(ctx, c, tableID, table.Columns)
 	assert.NoError(t, err)
 
 	// List tables
@@ -340,11 +340,8 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
-	defer waitCancelFn()
-	job, err := CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	_, err = CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(waitCtx, c, job))
 
 	// Create file
 	fileName2 := fmt.Sprintf("file_%d", rand.Int())
@@ -372,7 +369,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	// Load data to table - added three rows
 	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn2()
-	job, err = LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx, c)
+	job, err := LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NoError(t, WaitForJob(waitCtx2, c, job))
 
@@ -425,11 +422,8 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
-	defer waitCancelFn()
-	job, err := CreateTableFromFileRequest(tableID, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	_, err = CreateTableFromFileRequest(tableID, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(waitCtx, c, job))
 
 	// Check rows count
 	table, err := GetTableRequest(tableID).Send(ctx, c)
@@ -462,9 +456,9 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Load data to table
-	waitCtx, waitCancelFn = context.WithTimeout(ctx, time.Minute*1)
+	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn()
-	job, err = LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx, c)
+	job, err := LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx, c)
 	assert.NoError(t, err)
 	assert.NoError(t, WaitForJob(waitCtx, c, job))
 
