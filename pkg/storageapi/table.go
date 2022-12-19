@@ -124,27 +124,20 @@ func writeHeaderToCsv(ctx context.Context, file *File, columns []string) (err er
 }
 
 // CreateTable creates an empty table with given columns.
-func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, columns []string, opts ...CreateTableOption) (err error) {
+func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
 	// Create file resource
 	file, err := CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx, sender)
 	if err != nil {
-		return fmt.Errorf("creating file failed: %w", err)
+		return nil, fmt.Errorf("creating file failed: %w", err)
 	}
 
 	// Upload file with the header
 	if err := writeHeaderToCsv(ctx, file, columns); err != nil {
-		return fmt.Errorf("error writing header to csv: %w", err)
+		return nil, fmt.Errorf("error writing header to csv: %w", err)
 	}
 
 	// Create the table from the header file
-	_, err = CreateTableFromFileRequest(tableID, file.ID, opts...).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, job *Job) error {
-			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
-			defer waitCancelFn()
-			return WaitForJob(waitCtx, sender, job)
-		}).Send(ctx, sender)
-	return err
+	return CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx, sender)
 }
 
 // loadDataFromFileConfig contains common params to load data from file resource.
@@ -198,7 +191,7 @@ func WithPrimaryKey(pk []string) primaryKeyOption {
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Job] {
+func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Table] {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
@@ -209,13 +202,31 @@ func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateT
 	params["dataFileId"] = dataFileID
 
 	job := &Job{}
+	table := &Table{}
 	request := newRequest().
 		WithResult(job).
 		WithPost("buckets/{bucketId}/tables-async").
 		AndPathParam("bucketId", tableID.BucketID.String()).
-		WithFormBody(client.ToFormBody(params))
+		WithFormBody(client.ToFormBody(params)).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, _ client.HTTPResponse) error {
+			// Wait for storage job
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			defer waitCancelFn()
+			return WaitForJob(waitCtx, sender, job)
+		}).
+		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+			bytes, err := jsonLib.Marshal(job.Results)
+			if err != nil {
+				return fmt.Errorf(`cannot encode create table results: %w`, err)
+			}
+			err = jsonLib.Unmarshal(bytes, &table)
+			if err != nil {
+				return fmt.Errorf(`cannot decode create table results: %w`, err)
+			}
+			return nil
+		})
 
-	return client.NewAPIRequest(job, request)
+	return client.NewAPIRequest(table, request)
 }
 
 // LoadDataOption applies to the request loading data to a table.
