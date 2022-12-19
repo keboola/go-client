@@ -3,6 +3,7 @@ package storageapi
 import (
 	"context"
 	jsonLib "encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/relvacode/iso8601"
@@ -190,6 +191,21 @@ func (r *BucketPermissions) UnmarshalJSON(data []byte) (err error) {
 		return nil
 	}
 	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
-	type _r BucketPermissions
-	return jsonLib.Unmarshal(data, (*_r)(r))
+	raw := make(map[string]BucketPermission)
+	if err := jsonLib.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("cannot decode bucket permissions: %w", err)
+	}
+
+	// convert key, string -> BucketID
+	out := make(map[BucketID]BucketPermission)
+	for k, v := range raw {
+		bucketID, err := ParseBucketID(k)
+		if err != nil {
+			return fmt.Errorf("cannot decode bucket permissions: %w", err)
+		}
+		out[bucketID] = v
+	}
+
+	*r = out
+	return nil
 }

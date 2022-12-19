@@ -14,12 +14,6 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-type TableID string
-
-func (v TableID) String() string {
-	return string(v)
-}
-
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
 	ID             TableID          `json:"id"`
@@ -130,9 +124,9 @@ func writeHeaderToCsv(ctx context.Context, file *File, columns []string) (err er
 }
 
 // CreateTable creates an empty table with given columns.
-func CreateTable(ctx context.Context, sender client.Sender, bucketID string, name string, columns []string, opts ...CreateTableOption) (err error) {
+func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, columns []string, opts ...CreateTableOption) (err error) {
 	// Create file resource
-	file, err := CreateFileResourceRequest(&File{Name: name}).Send(ctx, sender)
+	file, err := CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx, sender)
 	if err != nil {
 		return fmt.Errorf("creating file failed: %w", err)
 	}
@@ -143,7 +137,7 @@ func CreateTable(ctx context.Context, sender client.Sender, bucketID string, nam
 	}
 
 	// Create the table from the header file
-	_, err = CreateTableFromFileRequest(bucketID, name, file.ID, opts...).
+	_, err = CreateTableFromFileRequest(tableID, file.ID, opts...).
 		WithOnSuccess(func(ctx context.Context, sender client.Sender, job *Job) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
@@ -204,21 +198,21 @@ func WithPrimaryKey(pk []string) primaryKeyOption {
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func CreateTableFromFileRequest(bucketID string, name string, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Job] {
+func CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Job] {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
 	}
 
 	params := client.StructToMap(c, nil)
-	params["name"] = name
+	params["name"] = tableID.TableName
 	params["dataFileId"] = dataFileID
 
 	job := &Job{}
 	request := newRequest().
 		WithResult(job).
 		WithPost("buckets/{bucketId}/tables-async").
-		AndPathParam("bucketId", bucketID).
+		AndPathParam("bucketId", tableID.BucketID.String()).
 		WithFormBody(client.ToFormBody(params))
 
 	return client.NewAPIRequest(job, request)
@@ -304,7 +298,7 @@ func LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOp
 	request := newRequest().
 		WithResult(job).
 		WithPost("tables/{tableId}/import-async").
-		AndPathParam("tableId", string(tableID)).
+		AndPathParam("tableId", tableID.String()).
 		WithFormBody(client.ToFormBody(params))
 
 	return client.NewAPIRequest(job, request)
@@ -316,7 +310,7 @@ func GetTableRequest(tableID TableID) client.APIRequest[*Table] {
 	request := newRequest().
 		WithResult(table).
 		WithGet("tables/{tableId}").
-		AndPathParam("tableId", string(tableID))
+		AndPathParam("tableId", tableID.String())
 	return client.NewAPIRequest(table, request)
 }
 
@@ -332,7 +326,7 @@ func DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest
 	request := newRequest().
 		WithDelete("tables/{tableId}").
 		WithOnError(ignoreResourceNotFoundError()).
-		AndPathParam("tableId", string(tableID))
+		AndPathParam("tableId", tableID.String())
 
 	if c.force {
 		request = request.AndQueryParam("force", "true")

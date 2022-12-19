@@ -16,14 +16,11 @@ func TestBucketApiCalls(t *testing.T) {
 	ctx := context.Background()
 	c := storageapi.ClientForAnEmptyProject(t)
 
-	bucketName := fmt.Sprintf("test_%d", rand.Int())
-
-	// Delete the bucket if it exists beforehand
-	_, _ = storageapi.DeleteBucketRequest(storageapi.BucketID(fmt.Sprintf("in.c-%s", bucketName)), storageapi.WithForce()).Send(ctx, c)
-
 	bucket := &storageapi.Bucket{
-		Name:  bucketName,
-		Stage: "in",
+		ID: storageapi.BucketID{
+			Stage:      storageapi.BucketStageIn,
+			BucketName: fmt.Sprintf("test_%d", rand.Int()),
+		},
 	}
 
 	// Create
@@ -55,7 +52,7 @@ func TestBucketApiCalls(t *testing.T) {
 	// Get bucket - don't find the bucket
 	_, err = storageapi.GetBucketRequest(bucket.ID).Send(ctx, c)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s.%s not found", bucket.Stage, bucket.Name))
+	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s not found", bucket.ID.String()))
 
 	// List - don't find the bucket
 	allBuckets, err = storageapi.ListBucketsRequest().Send(ctx, c)
