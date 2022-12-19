@@ -2,6 +2,7 @@ package storageapi_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -166,6 +167,28 @@ func TestRefreshToken(t *testing.T) {
 
 	assert.Equal(t, created.Description, refreshed.Description)
 	assert.NotEqual(t, refreshed.Created, refreshed.Refreshed)
+}
+
+func TestToken_JSON(t *testing.T) {
+	t.Parallel()
+
+	token := &Token{
+		Token:       "secret",
+		ID:          "1234",
+		Description: "description",
+		BucketPermissions: BucketPermissions{
+			MustParseBucketID("in.c-bucket"): BucketPermissionRead,
+		},
+	}
+
+	bytes, err := json.Marshal(token)
+	assert.NoError(t, err)
+
+	var decoded *Token
+	err = json.Unmarshal(bytes, &decoded)
+	assert.NoError(t, err)
+
+	assert.Equal(t, token, decoded)
 }
 
 func ignoreMasterTokens(in []*Token) (out []*Token) {

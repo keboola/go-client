@@ -183,6 +183,14 @@ func (t *Token) ProjectName() string {
 	return t.Owner.Name
 }
 
+func (r BucketPermissions) MarshalJSON() ([]byte, error) {
+	raw := make(map[string]BucketPermission)
+	for k, v := range r {
+		raw[k.String()] = v
+	}
+	return jsonLib.Marshal(raw)
+}
+
 // UnmarshalJSON implements JSON decoding.
 // The API returns empty array when the results field is empty.
 func (r *BucketPermissions) UnmarshalJSON(data []byte) (err error) {
