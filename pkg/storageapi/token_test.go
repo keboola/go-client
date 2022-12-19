@@ -86,8 +86,10 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 
 	bucket, err := CreateBucketRequest(&Bucket{
-		Name:  fmt.Sprintf("create_token_test_%d", rand.Int()),
-		Stage: BucketStageIn,
+		ID: BucketID{
+			Stage:      BucketStageIn,
+			BucketName: fmt.Sprintf("create_token_test_%d", rand.Int()),
+		},
 	}).Send(ctx, c)
 	assert.NoError(t, err)
 

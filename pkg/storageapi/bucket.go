@@ -10,23 +10,10 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-type BucketID string
-
-func (v BucketID) String() string {
-	return string(v)
-}
-
-const (
-	BucketStageIn  = "in"
-	BucketStageOut = "out"
-)
-
 type Bucket struct {
 	ID             BucketID      `json:"id"`
 	Uri            string        `json:"uri"`
-	Name           string        `json:"name"`
 	DisplayName    string        `json:"displayName"`
-	Stage          string        `json:"stage"`
 	Description    string        `json:"description"`
 	Created        iso8601.Time  `json:"created"`
 	LastChangeDate *iso8601.Time `json:"lastChangeDate"`
@@ -51,12 +38,12 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func GetBucketRequest(id BucketID) client.APIRequest[*Bucket] {
-	result := Bucket{ID: id}
+func GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
+	result := Bucket{ID: bucketID}
 	request := newRequest().
 		WithResult(&result).
 		WithGet("buckets/{bucketId}").
-		AndPathParam("bucketId", string(id))
+		AndPathParam("bucketId", bucketID.String())
 	return client.NewAPIRequest(&result, request)
 }
 
@@ -79,10 +66,13 @@ func ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket]
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
 func CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	// Create config
-	params := client.StructToMap(bucket, []string{"name", "stage", "description", "displayName"})
+	params := client.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
 		delete(params, "displayName")
 	}
+	params["stage"] = bucket.ID.Stage
+	params["name"] = bucket.ID.BucketName
+
 	request := newRequest().
 		WithResult(bucket).
 		WithPost("buckets").
@@ -109,7 +99,7 @@ func DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequ
 
 	request := newRequest().
 		WithDelete("buckets/{bucketId}").
-		AndPathParam("bucketId", string(bucketID)).
+		AndPathParam("bucketId", bucketID.String()).
 		WithOnError(ignoreResourceNotFoundError())
 
 	if c.force {

@@ -114,7 +114,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(
 		http.MethodDelete,
-		`v2/storage/buckets/foo`,
+		`v2/storage/buckets/in.c-foo`,
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
@@ -132,7 +132,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
 
 	// Run request
-	id := BucketID("foo")
+	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
 	_, err := DeleteBucketRequest(id).Send(context.Background(), c)
 
 	// The request ended without an error
@@ -140,6 +140,6 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
-		"DELETE v2/storage/buckets/foo": 2,
+		"DELETE v2/storage/buckets/in.c-foo": 2,
 	}, transport.GetCallCountInfo())
 }
