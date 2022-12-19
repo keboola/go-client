@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/relvacode/iso8601"
@@ -58,14 +59,38 @@ func CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
-// GetFileResourceRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func GetFileResourceRequest(id int) client.APIRequest[*File] {
+// ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
+func ListFilesRequest() client.APIRequest[*[]*File] {
+	var files []*File
+	request := newRequest().
+		WithResult(&files).
+		WithGet("files").
+		AndQueryParam("limit", "200").
+		WithOnSuccess(func(_ context.Context, _ client.Sender, _ client.HTTPResponse) error {
+			sort.Slice(files, func(i, j int) bool {
+				return files[i].ID < files[j].ID
+			})
+			return nil
+		})
+	return client.NewAPIRequest(&files, request)
+}
+
+// GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
+func GetFileRequest(id int) client.APIRequest[*File] {
 	file := &File{}
 	request := newRequest().
 		WithResult(file).
 		WithGet("files/{fileId}").
 		AndPathParam("fileId", strconv.Itoa(id))
 	return client.NewAPIRequest(file, request)
+}
+
+// DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
+func DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
+	request := newRequest().
+		WithDelete("files/{fileId}").
+		AndPathParam("fileId", strconv.Itoa(id))
+	return client.NewAPIRequest(client.NoResult{}, request)
 }
 
 type uploadConfig struct {
