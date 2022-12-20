@@ -90,6 +90,16 @@ func WithBucketPermission(bucketID BucketID, perm BucketPermission) CreateTokenO
 	}
 }
 
+// WithBucketPermissions set token buckets permissions.
+func WithBucketPermissions(v BucketPermissions) CreateTokenOption {
+	return func(o *createTokenOptions) {
+		o.BucketPermissions = make(map[string]string)
+		for k, v := range v {
+			o.BucketPermissions[k.String()] = string(v)
+		}
+	}
+}
+
 // WithComponentAccess adds `component` to the list of components this token may access.
 func WithComponentAccess(component string) CreateTokenOption {
 	return func(o *createTokenOptions) { o.ComponentAccess = append(o.ComponentAccess, component) }
