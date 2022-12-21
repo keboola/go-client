@@ -89,6 +89,13 @@ func GetFileRequest(id int) client.APIRequest[*File] {
 func DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
 	request := newRequest().
 		WithDelete("files/{fileId}").
+		WithOnError(func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
+			if response.StatusCode() == http.StatusNotFound {
+				return nil
+			}
+			return err
+		}).
 		AndPathParam("fileId", strconv.Itoa(id))
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

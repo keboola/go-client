@@ -1,10 +1,13 @@
 package storageapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	jsonLib "encoding/json"
 	"fmt"
+	"mime/multipart"
+	"net/textproto"
 	"sort"
 	"strings"
 	"time"
@@ -101,7 +104,7 @@ func ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	return client.NewAPIRequest(&result, request)
 }
 
-func writeHeaderToCsv(ctx context.Context, file *File, columns []string) (err error) {
+func writeHeaderToCSV(ctx context.Context, file *File, columns []string) (err error) {
 	// Upload file with the header
 	bw, err := NewUploadWriter(ctx, file)
 	if err != nil {
@@ -112,15 +115,27 @@ func writeHeaderToCsv(ctx context.Context, file *File, columns []string) (err er
 			err = fmt.Errorf("cannot close bucket writer: %w", closeErr)
 		}
 	}()
-	cw := csv.NewWriter(bw)
+
+	header, err := columnsToCSVHeader(columns)
+	if err != nil {
+		return err
+	}
+
+	_, err = bw.Write(header)
+	return err
+}
+
+func columnsToCSVHeader(columns []string) ([]byte, error) {
+	var str bytes.Buffer
+	cw := csv.NewWriter(&str)
 	if err := cw.Write(columns); err != nil {
-		return fmt.Errorf("error writing header to csv: %w", err)
+		return nil, fmt.Errorf("error writing header to csv: %w", err)
 	}
 	cw.Flush()
 	if err := cw.Error(); err != nil {
-		return fmt.Errorf("error writing header to csv: %w", err)
+		return nil, fmt.Errorf("error writing header to csv: %w", err)
 	}
-	return nil
+	return str.Bytes(), nil
 }
 
 // CreateTable creates an empty table with given columns.
@@ -132,7 +147,7 @@ func CreateTable(ctx context.Context, sender client.Sender, tableID TableID, col
 	}
 
 	// Upload file with the header
-	if err := writeHeaderToCsv(ctx, file, columns); err != nil {
+	if err := writeHeaderToCSV(ctx, file, columns); err != nil {
 		return nil, fmt.Errorf("error writing header to csv: %w", err)
 	}
 
@@ -188,6 +203,50 @@ func (o primaryKeyOption) applyCreateTableOption(c *createTableConfig) {
 
 func WithPrimaryKey(pk []string) primaryKeyOption {
 	return primaryKeyOption(strings.Join(pk, ","))
+}
+
+// CreateTableDeprecatedSyncRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
+func CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
+	c := &createTableConfig{}
+	for _, o := range opts {
+		o.applyCreateTableOption(c)
+	}
+
+	body := bytes.NewBufferString("")
+	mp := multipart.NewWriter(body)
+
+	// Write params
+	params := client.ToFormBody(client.StructToMap(c, nil))
+	params["name"] = tableID.TableName
+	for k, v := range params {
+		_ = mp.WriteField(k, v)
+	}
+
+	// Write CSV header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
+	h.Set("Content-Type", "text/csv")
+	if wr, err := mp.CreatePart(h); err != nil {
+		return nil, fmt.Errorf(`could not add binary to multipart: %w`, err)
+	} else if csvHeader, err := columnsToCSVHeader(columns); err != nil {
+		return nil, fmt.Errorf(`could not convert columns to CSV header: %w`, err)
+	} else if _, err := wr.Write(csvHeader); err != nil {
+		return nil, fmt.Errorf(`could not write CSV header to multipart: %w`, err)
+	}
+
+	// Close body
+	if err := mp.Close(); err != nil {
+		return nil, fmt.Errorf(`could not close multipart: %w`, err)
+	}
+
+	table := &Table{}
+	request := newRequest().
+		WithResult(table).
+		WithPost("buckets/{bucketId}/tables").
+		AndPathParam("bucketId", tableID.BucketID.String()).
+		WithBody(bytes.NewReader(body.Bytes())).
+		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary()))
+	return client.NewAPIRequest(table, request), nil
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously

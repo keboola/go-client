@@ -299,6 +299,48 @@ func TestTableApiCalls(t *testing.T) {
 	assert.False(t, tableFound)
 }
 
+func TestTableApiCalls_Deprecated(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	c := ClientForAnEmptyProject(t)
+
+	bucket := &Bucket{
+		ID: BucketID{
+			Stage:      BucketStageIn,
+			BucketName: fmt.Sprintf("test_%d", rand.Int()),
+		},
+	}
+	tableID := TableID{
+		BucketID:  bucket.ID,
+		TableName: fmt.Sprintf("test_%d", rand.Int()),
+	}
+	columns := []string{"first", "second", "third", "fourth"}
+
+	// Create bucket
+	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// Create table
+	req, err := CreateTableDeprecatedSyncRequest(tableID, columns, WithPrimaryKey([]string{"first", "second"}))
+	assert.NoError(t, err)
+	table, err := req.Send(ctx, c)
+	assert.NoError(t, err)
+	assert.Equal(t, columns, table.Columns)
+	assert.Equal(t, []string{"first", "second"}, table.PrimaryKey)
+
+	// List tables
+	resList, err := ListTablesRequest().Send(ctx, c)
+	assert.NoError(t, err)
+	tableFound := false
+	for _, t := range *resList {
+		if t.ID == tableID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+}
+
 func TestTableCreateLoadDataFromFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
