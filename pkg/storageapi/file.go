@@ -91,7 +91,7 @@ func DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
 		WithDelete("files/{fileId}").
 		WithOnError(func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
 			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
-			if response.StatusCode() != http.StatusNotFound {
+			if response.StatusCode() == http.StatusNotFound {
 				return nil
 			}
 			return err
