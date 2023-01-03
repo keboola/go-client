@@ -245,7 +245,15 @@ func CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ..
 		WithPost("buckets/{bucketId}/tables").
 		AndPathParam("bucketId", tableID.BucketID.String()).
 		WithBody(bytes.NewReader(body.Bytes())).
-		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary()))
+		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())).
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+			if result, err := GetTableRequest(table.ID).Send(ctx, sender); err == nil {
+				*table = *result
+				return nil
+			} else {
+				return err
+			}
+		}))
 	return client.NewAPIRequest(table, request), nil
 }
 
