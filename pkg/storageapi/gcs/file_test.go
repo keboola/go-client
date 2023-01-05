@@ -14,7 +14,6 @@ import (
 )
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
-	t.Skip("Waiting for production GCP stack")
 	t.Parallel()
 	storageApiClient := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageGCS())
 	for _, tc := range testdata.UploadTestCases() {
