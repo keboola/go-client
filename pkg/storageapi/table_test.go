@@ -219,8 +219,11 @@ func TestMockListTablesRequest(t *testing.T) {
 				Bucket: &Bucket{
 					ID:             MustParseBucketID("in.c-keboola-ex-http-6336016"),
 					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
+					Name:           "c-keboola-ex-http-6336016",
 					DisplayName:    "keboola-ex-http-6336016",
+					Stage:          "in",
 					Description:    "",
+					Backend:        "snowflake",
 					Created:        parseDate("2021-10-15T11:29:09+0200"),
 					LastChangeDate: &lastChangeDate,
 					IsReadOnly:     false,

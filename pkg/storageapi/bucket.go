@@ -13,8 +13,11 @@ import (
 type Bucket struct {
 	ID             BucketID      `json:"id"`
 	Uri            string        `json:"uri"`
+	Name           string        `json:"name"`
 	DisplayName    string        `json:"displayName"`
+	Stage          string        `json:"stage"`
 	Description    string        `json:"description"`
+	Backend        string        `json:"backend"`
 	Created        iso8601.Time  `json:"created"`
 	LastChangeDate *iso8601.Time `json:"lastChangeDate"`
 	IsReadOnly     bool          `json:"isReadOnly"`
