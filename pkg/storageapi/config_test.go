@@ -15,15 +15,15 @@ import (
 func TestConfigApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := GetDefaultBranchRequest().Send(ctx, c)
+	branch, err := api.GetDefaultBranchRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
 	// List - no component/config
-	components, err := ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, c)
+	components, err := api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Empty(t, components)
 
@@ -66,7 +66,7 @@ func TestConfigApiCalls(t *testing.T) {
 		},
 		Rows: []*ConfigRow{row1, row2},
 	}
-	resConfig, err := CreateConfigRequest(config).Send(ctx, c)
+	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, config, resConfig)
 	assert.NotEmpty(t, config.ID)
@@ -78,7 +78,7 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Equal(t, branch.ID, row2.BranchID)
 
 	// Get config
-	resultConfig, err := GetConfigRequest(config.ConfigKey).Send(ctx, c)
+	resultConfig, err := api.GetConfigRequest(config.ConfigKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// Change description and version differs, because rows have been created after the configuration has been created.
@@ -87,7 +87,7 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Equal(t, config.Config, resultConfig)
 
 	// List configs (should contain 1)
-	configList, err := ListConfigRequest(config.BranchID, config.ComponentID).Send(ctx, c)
+	configList, err := api.ListConfigRequest(config.BranchID, config.ComponentID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *configList, 1)
 	assert.Equal(t, config.Config, (*configList)[0])
@@ -104,11 +104,11 @@ func TestConfigApiCalls(t *testing.T) {
 			}),
 		},
 	})
-	_, err = UpdateConfigRequest(config.Config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx, c)
+	_, err = api.UpdateConfigRequest(config.Config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
 	assert.NoError(t, err)
 
 	// List components
-	components, err = ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, c)
+	components, err = api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
 	assert.NotEmpty(t, components)
 	assert.NoError(t, err)
 	componentsJson, err := json.MarshalIndent(components, "", "  ")
@@ -117,31 +117,31 @@ func TestConfigApiCalls(t *testing.T) {
 
 	// Update metadata
 	metadata := map[string]string{"KBC.KaC.meta1": "value"}
-	_, err = AppendConfigMetadataRequest(config.ConfigKey, metadata).Send(ctx, c)
+	_, err = api.AppendConfigMetadataRequest(config.ConfigKey, metadata).Send(ctx)
 	assert.NoError(t, err)
 
 	// List metadata
-	configsMetadata, err := ListConfigMetadataRequest(branch.ID).Send(ctx, c)
+	configsMetadata, err := api.ListConfigMetadataRequest(branch.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, map[ConfigKey]Metadata{
 		config.ConfigKey: map[string]string{"KBC.KaC.meta1": "value"},
 	}, configsMetadata.ToMap())
 
 	// Delete metadata
-	_, err = DeleteConfigMetadataRequest(config.ConfigKey, (*configsMetadata)[0].Metadata[0].ID).Send(ctx, c)
+	_, err = api.DeleteConfigMetadataRequest(config.ConfigKey, (*configsMetadata)[0].Metadata[0].ID).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check that metadata is deleted
-	configsMetadata, err = ListConfigMetadataRequest(branch.ID).Send(ctx, c)
+	configsMetadata, err = api.ListConfigMetadataRequest(branch.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Empty(t, configsMetadata)
 
 	// Delete configuration
-	_, err = DeleteConfigRequest(config.ConfigKey).Send(ctx, c)
+	_, err = api.DeleteConfigRequest(config.ConfigKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// List components - no component
-	components, err = ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, c)
+	components, err = api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Empty(t, components)
 }

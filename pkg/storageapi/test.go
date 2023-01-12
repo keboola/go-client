@@ -19,13 +19,14 @@ func ClientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproj
 	return project, c
 }
 
-func ClientForAnEmptyProject(t *testing.T, opts ...testproject.Option) client.Sender {
+func APIClientForAnEmptyProject(t *testing.T, opts ...testproject.Option) *API {
 	t.Helper()
 
 	project, c := ClientForRandomProject(t, opts...)
-	_, err := CleanProjectRequest().Send(context.Background(), c)
+	api := NewAPI(c)
+	_, err := api.CleanProjectRequest().Send(context.Background())
 	if err != nil {
 		t.Fatalf(`cannot clear project "%d": %s`, project.ID(), err)
 	}
-	return c
+	return api
 }

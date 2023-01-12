@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/storageapi"
 	"github.com/keboola/go-client/pkg/storageapi/abs"
 	"github.com/keboola/go-client/pkg/storageapi/gcs"
@@ -43,7 +42,7 @@ func (tc UploadTestCase) Name() string {
 	return fmt.Sprintf("permanent[%t]_sliced[%t]_encrypted[%t]_gzipped[%t]", tc.Permanent, tc.Sliced, tc.Encrypted, tc.Gzipped)
 }
 
-func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
+func (tc UploadTestCase) Run(t *testing.T, api *storageapi.API) {
 	t.Helper()
 	t.Run(tc.Name(), func(t *testing.T) {
 		t.Parallel()
@@ -62,7 +61,7 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 
 		// Create file resource
 		ctx := context.Background()
-		_, err := storageapi.CreateFileResourceRequest(file).Send(ctx, storageApiClient)
+		_, err := api.CreateFileResourceRequest(file).Send(ctx)
 		assert.NoError(t, err)
 
 		// Assert common fields
@@ -138,7 +137,7 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 		}
 
 		// Get file resource
-		fileFromRequest, err := storageapi.GetFileRequest(file.ID).Send(ctx, storageApiClient)
+		fileFromRequest, err := api.GetFileRequest(file.ID).Send(ctx)
 		assert.NoError(t, err)
 
 		// Request file content

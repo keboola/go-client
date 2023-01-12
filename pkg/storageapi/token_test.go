@@ -17,8 +17,9 @@ func TestVerifyToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	project, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
-	token, err := VerifyTokenRequest(project.StorageAPIToken()).Send(ctx, c)
+	token, err := api.VerifyTokenRequest(project.StorageAPIToken()).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, project.ID(), token.ProjectID())
 	assert.NotEmpty(t, token.ProjectName())
@@ -35,8 +36,9 @@ func TestVerifyTokenEmpty(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
-	token, err := VerifyTokenRequest("").Send(ctx, c)
+	token, err := api.VerifyTokenRequest("").Send(ctx)
 	assert.Error(t, err)
 	apiErr := err.(*Error)
 	assert.Equal(t, "Access token must be set", apiErr.Message)
@@ -49,8 +51,9 @@ func TestVerifyTokenInvalid(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
-	token, err := VerifyTokenRequest("mytoken").Send(ctx, c)
+	token, err := api.VerifyTokenRequest("mytoken").Send(ctx)
 	assert.Error(t, err)
 	apiErr := err.(*Error)
 	assert.Equal(t, "Invalid access token", apiErr.Message)
@@ -63,15 +66,16 @@ func TestCreateToken_AllPerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
 	description := "create token request all perms test"
-	token, err := CreateTokenRequest(
+	token, err := api.CreateTokenRequest(
 		WithDescription(description),
 		WithCanReadAllFileUploads(true),
 		WithCanPurgeTrash(true),
 		WithCanManageBuckets(true),
 		WithExpiresIn(5*time.Minute),
-	).Send(ctx, c)
+	).Send(ctx)
 	assert.NoError(t, err)
 
 	assert.Equal(t, description, token.Description)
@@ -83,24 +87,25 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
 	rand.Seed(time.Now().Unix())
 
-	bucket, err := CreateBucketRequest(&Bucket{
+	bucket, err := api.CreateBucketRequest(&Bucket{
 		ID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: fmt.Sprintf("create_token_test_%d", rand.Int()),
 		},
-	}).Send(ctx, c)
+	}).Send(ctx)
 	assert.NoError(t, err)
 
 	description := "create token request all perms test"
-	token, err := CreateTokenRequest(
+	token, err := api.CreateTokenRequest(
 		WithDescription(description),
 		WithBucketPermission(bucket.ID, BucketPermissionRead),
 		WithComponentAccess("keboola.ex-aws-s3"),
 		WithExpiresIn(5*time.Minute),
-	).Send(ctx, c)
+	).Send(ctx)
 	assert.NoError(t, err)
 
 	assert.Equal(t, description, token.Description)
@@ -117,34 +122,34 @@ func TestCreateToken_SomePerms(t *testing.T) {
 func TestListAndDeleteToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	// Create tokens
-	token1, err := CreateTokenRequest(WithDescription("token1"), WithExpiresIn(5*time.Minute)).Send(ctx, c)
+	token1, err := api.CreateTokenRequest(WithDescription("token1"), WithExpiresIn(5*time.Minute)).Send(ctx)
 	assert.NoError(t, err)
-	token2, err := CreateTokenRequest(WithDescription("token2"), WithExpiresIn(5*time.Minute)).Send(ctx, c)
+	token2, err := api.CreateTokenRequest(WithDescription("token2"), WithExpiresIn(5*time.Minute)).Send(ctx)
 	assert.NoError(t, err)
 
 	// List
-	allTokens, err := ListTokensRequest().Send(ctx, c)
+	allTokens, err := api.ListTokensRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, []*Token{token1, token2}, ignoreMasterTokens(*allTokens))
 
 	// Delete token1
-	_, err = DeleteTokenRequest(token1.ID).Send(ctx, c)
+	_, err = api.DeleteTokenRequest(token1.ID).Send(ctx)
 	assert.NoError(t, err)
 
 	// List
-	allTokens, err = ListTokensRequest().Send(ctx, c)
+	allTokens, err = api.ListTokensRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, []*Token{token2}, ignoreMasterTokens(*allTokens))
 
 	// Delete token2
-	_, err = DeleteTokenRequest(token2.ID).Send(ctx, c)
+	_, err = api.DeleteTokenRequest(token2.ID).Send(ctx)
 	assert.NoError(t, err)
 
 	// List
-	allTokens, err = ListTokensRequest().Send(ctx, c)
+	allTokens, err = api.ListTokensRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Empty(t, ignoreMasterTokens(*allTokens))
 }
@@ -153,16 +158,17 @@ func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
-	created, err := CreateTokenRequest(
+	created, err := api.CreateTokenRequest(
 		WithDescription("refresh token request test"),
 		WithExpiresIn(5*time.Minute),
-	).Send(ctx, c)
+	).Send(ctx)
 	assert.NoError(t, err)
 
 	time.Sleep(2 * time.Second)
 
-	refreshed, err := RefreshTokenRequest(created.ID).Send(ctx, c)
+	refreshed, err := api.RefreshTokenRequest(created.ID).Send(ctx)
 	assert.NoError(t, err)
 
 	assert.Equal(t, created.Description, refreshed.Description)

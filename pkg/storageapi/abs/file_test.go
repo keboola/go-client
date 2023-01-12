@@ -16,15 +16,14 @@ import (
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
 	t.Parallel()
-	storageApiClient := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageABS())
+	api := storageapi.APIClientForAnEmptyProject(t, testproject.WithStagingStorageABS())
 	for _, tc := range testdata.UploadTestCases() {
-		tc.Run(t, storageApiClient)
+		tc.Run(t, api)
 	}
 }
 
 func TestCreateImportManifest(t *testing.T) {
 	t.Parallel()
-
 	f := &storageapi.File{
 		Provider: "azure",
 		ABSUploadParams: &abs.UploadParams{

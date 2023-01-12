@@ -14,10 +14,10 @@ import (
 func TestBranchApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	// Get default branch
-	defaultBranch, err := GetDefaultBranchRequest().Send(ctx, c)
+	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, defaultBranch)
 	assert.Equal(t, "Main", defaultBranch.Name)
@@ -25,11 +25,11 @@ func TestBranchApiCalls(t *testing.T) {
 
 	// Default branch cannot be created
 	assert.PanicsWithError(t, "default branch cannot be created", func() {
-		CreateBranchRequest(&Branch{
+		api.CreateBranchRequest(&Branch{
 			Name:        "Foo",
 			Description: "Foo branch",
 			IsDefault:   true,
-		}).Send(ctx, c)
+		}).Send(ctx)
 	})
 
 	// Create branch, wait for successful job status
@@ -38,12 +38,12 @@ func TestBranchApiCalls(t *testing.T) {
 		Description: "Foo branch",
 		IsDefault:   false,
 	}
-	_, err = CreateBranchRequest(branchFoo).Send(ctx, c)
+	_, err = api.CreateBranchRequest(branchFoo).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, branchFoo.ID)
 
 	// Get branch
-	resultBranch, err := GetBranchRequest(branchFoo.BranchKey).Send(ctx, c)
+	resultBranch, err := api.GetBranchRequest(branchFoo.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, branchFoo, resultBranch)
 
@@ -53,29 +53,29 @@ func TestBranchApiCalls(t *testing.T) {
 		Description: "Foo branch 2",
 		IsDefault:   false,
 	}
-	_, err = CreateBranchRequest(branchFooDuplicate).Send(ctx, c)
+	_, err = api.CreateBranchRequest(branchFooDuplicate).Send(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "There already is a branch with name \"Foo\"")
 
 	// Update branch
 	branchFoo.Name = "Foo modified"
 	branchFoo.Description = "Foo description modified"
-	_, err = UpdateBranchRequest(branchFoo, []string{"name", "description"}).Send(ctx, c)
+	_, err = api.UpdateBranchRequest(branchFoo, []string{"name", "description"}).Send(ctx)
 	assert.NoError(t, err)
 
 	// Update main branch description
 	defaultBranch.Description = "Default branch"
-	_, err = UpdateBranchRequest(defaultBranch, []string{"description"}).Send(ctx, c)
+	_, err = api.UpdateBranchRequest(defaultBranch, []string{"description"}).Send(ctx)
 	assert.NoError(t, err)
 
 	// Can update default branch name
 	defaultBranch.Name = "Not Allowed"
 	assert.PanicsWithError(t, `the name of the main branch cannot be changed`, func() {
-		UpdateBranchRequest(defaultBranch, []string{"name", "description"}).Send(ctx, c)
+		api.UpdateBranchRequest(defaultBranch, []string{"name", "description"}).Send(ctx)
 	})
 
 	// List branches
-	branches, err := ListBranchesRequest().Send(ctx, c)
+	branches, err := api.ListBranchesRequest().Send(ctx)
 	assert.NotNil(t, branches)
 	assert.NoError(t, err)
 	branchesJson, err := json.MarshalIndent(branches, "", "  ")
@@ -83,38 +83,38 @@ func TestBranchApiCalls(t *testing.T) {
 	wildcards.Assert(t, expectedBranchesAll(), string(branchesJson), "Unexpected branches state")
 
 	// Append branch metadata
-	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}).Send(ctx, c)
+	_, err = api.AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}).Send(ctx)
 	assert.NoError(t, err)
 
 	// List metadata
-	metadata, err := ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx, c)
+	metadata, err := api.ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}, metadata.ToMap())
 
 	// Append metadata with empty value
-	_, err = AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta2": ""}).Send(ctx, c)
+	_, err = api.AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta2": ""}).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check that metadata is deleted
-	metadata, err = ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx, c)
+	metadata, err = api.ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, Metadata{"KBC.KaC.meta1": "value"}, metadata.ToMap())
 
 	// Delete metadata
-	_, err = DeleteBranchMetadataRequest(branchFoo.BranchKey, (*metadata)[0].ID).Send(ctx, c)
+	_, err = api.DeleteBranchMetadataRequest(branchFoo.BranchKey, (*metadata)[0].ID).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check that metadata is deleted
-	metadata, err = ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx, c)
+	metadata, err = api.ListBranchMetadataRequest(branchFoo.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Empty(t, metadata)
 
 	// Delete branch
-	_, err = DeleteBranchRequest(branchFoo.BranchKey).Send(ctx, c)
+	_, err = api.DeleteBranchRequest(branchFoo.BranchKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check that branch has been deleted
-	branches, err = ListBranchesRequest().Send(ctx, c)
+	branches, err = api.ListBranchesRequest().Send(ctx)
 	assert.NotNil(t, branches)
 	assert.NoError(t, err)
 	branchesJson, err = json.MarshalIndent(branches, "", "  ")

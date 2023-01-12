@@ -92,10 +92,11 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
+	api := NewAPI(c)
 
 	// Run request
 	config := &ConfigWithRows{Config: &Config{ConfigKey: ConfigKey{BranchID: 123, ComponentID: "foo.bar", ID: "123"}}}
-	_, err := CreateConfigRequest(config).Send(context.Background(), c)
+	_, err := api.CreateConfigRequest(config).Send(context.Background())
 
 	// The request ended without an error, the config was loaded via a GET request
 	assert.NoError(t, err)
@@ -130,10 +131,11 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
+	api := NewAPI(c)
 
 	// Run request
 	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
-	_, err := DeleteBucketRequest(id).Send(context.Background(), c)
+	_, err := api.DeleteBucketRequest(id).Send(context.Background())
 
 	// The request ended without an error
 	assert.NoError(t, err)

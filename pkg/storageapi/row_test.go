@@ -15,10 +15,10 @@ import (
 func TestConfigRowApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := GetDefaultBranchRequest().Send(ctx, c)
+	branch, err := api.GetDefaultBranchRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -42,7 +42,7 @@ func TestConfigRowApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = CreateConfigRequest(config).Send(ctx, c)
+	_, err = api.CreateConfigRequest(config).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create row1
@@ -60,11 +60,11 @@ func TestConfigRowApiCalls(t *testing.T) {
 			{Key: "row1", Value: "value1"},
 		}),
 	}
-	_, err = CreateConfigRowRequest(row1).Send(ctx, c)
+	_, err = api.CreateConfigRowRequest(row1).Send(ctx)
 	assert.NoError(t, err)
 
 	// Get row1
-	resultRow, err := GetConfigRowRequest(row1.ConfigRowKey).Send(ctx, c)
+	resultRow, err := api.GetConfigRowRequest(row1.ConfigRowKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, row1, resultRow)
 
@@ -83,7 +83,7 @@ func TestConfigRowApiCalls(t *testing.T) {
 			{Key: "row2", Value: "value2"},
 		}),
 	}
-	_, err = CreateConfigRowRequest(row2).Send(ctx, c)
+	_, err = api.CreateConfigRowRequest(row2).Send(ctx)
 	assert.NoError(t, err)
 
 	// Update row 1
@@ -93,15 +93,15 @@ func TestConfigRowApiCalls(t *testing.T) {
 	row1.Content = orderedmap.FromPairs([]orderedmap.Pair{
 		{Key: "row1", Value: "xyz"},
 	})
-	_, err = UpdateConfigRowRequest(row1, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx, c)
+	_, err = api.UpdateConfigRowRequest(row1, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
 	assert.NoError(t, err)
 
 	// Delete row 2
-	_, err = DeleteConfigRowRequest(row2.ConfigRowKey).Send(ctx, c)
+	_, err = api.DeleteConfigRowRequest(row2.ConfigRowKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// List components
-	components, err := ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx, c)
+	components, err := api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
 	assert.NotNil(t, components)
 	assert.NoError(t, err)
 	componentsJson, err := json.MarshalIndent(components, "", "  ")

@@ -14,8 +14,9 @@ func TestGenerateNewId(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, c := ClientForRandomProject(t)
+	api := NewAPI(c)
 
-	ticket, err := GenerateIDRequest().Send(ctx, c)
+	ticket, err := api.GenerateIDRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, ticket)
 	assert.NotEmpty(t, ticket.ID)

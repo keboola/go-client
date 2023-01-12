@@ -15,9 +15,9 @@ import (
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
 	t.Parallel()
-	storageApiClient := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageGCS())
+	api := storageapi.APIClientForAnEmptyProject(t, testproject.WithStagingStorageGCS())
 	for _, tc := range testdata.UploadTestCases() {
-		tc.Run(t, storageApiClient)
+		tc.Run(t, api)
 	}
 }
 

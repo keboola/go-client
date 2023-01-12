@@ -14,7 +14,7 @@ import (
 func TestBucketApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := storageapi.ClientForAnEmptyProject(t)
+	api := storageapi.APIClientForAnEmptyProject(t)
 
 	bucket := &storageapi.Bucket{
 		ID: storageapi.BucketID{
@@ -24,17 +24,17 @@ func TestBucketApiCalls(t *testing.T) {
 	}
 
 	// Create
-	resCreate, err := storageapi.CreateBucketRequest(bucket).Send(ctx, c)
+	resCreate, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resCreate)
 
 	// Get bucket - find the bucket
-	resGet, err := storageapi.GetBucketRequest(bucket.ID).Send(ctx, c)
+	resGet, err := api.GetBucketRequest(bucket.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resGet)
 
 	// List - find the bucket
-	allBuckets, err := storageapi.ListBucketsRequest().Send(ctx, c)
+	allBuckets, err := api.ListBucketsRequest().Send(ctx)
 	assert.NoError(t, err)
 	bucketFound := false
 	for _, b := range *allBuckets {
@@ -46,16 +46,16 @@ func TestBucketApiCalls(t *testing.T) {
 	assert.True(t, bucketFound)
 
 	// Delete
-	_, err = storageapi.DeleteBucketRequest(bucket.ID, storageapi.WithForce()).Send(ctx, c)
+	_, err = api.DeleteBucketRequest(bucket.ID, storageapi.WithForce()).Send(ctx)
 	assert.NoError(t, err)
 
 	// Get bucket - don't find the bucket
-	_, err = storageapi.GetBucketRequest(bucket.ID).Send(ctx, c)
+	_, err = api.GetBucketRequest(bucket.ID).Send(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s not found", bucket.ID.String()))
 
 	// List - don't find the bucket
-	allBuckets, err = storageapi.ListBucketsRequest().Send(ctx, c)
+	allBuckets, err = api.ListBucketsRequest().Send(ctx)
 	assert.NoError(t, err)
 	for _, b := range *allBuckets {
 		assert.NotEqual(t, bucket, b)

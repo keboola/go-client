@@ -33,7 +33,7 @@ func parseDate(value string) iso8601.Time {
 	}
 }
 
-func listTablesMock() client.Client {
+func mockedListTablesClient() client.Client {
 	c, transport := client.NewMockedClient()
 	transport.RegisterResponder(
 		"GET",
@@ -140,9 +140,9 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
-	tables, err := ListTablesRequest().Send(ctx, c)
+	tables, err := api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *tables, 0)
 }
@@ -151,8 +151,8 @@ func TestMockListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	c := listTablesMock()
-
+	c := mockedListTablesClient()
+	api := NewAPI(c)
 	{
 		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
@@ -174,7 +174,7 @@ func TestMockListTablesRequest(t *testing.T) {
 			},
 		}
 
-		actual, err := ListTablesRequest().Send(ctx, c)
+		actual, err := api.ListTablesRequest().Send(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
@@ -230,7 +230,7 @@ func TestMockListTablesRequest(t *testing.T) {
 			},
 		}
 
-		actual, err := ListTablesRequest(WithBuckets(), WithMetadata()).Send(ctx, c)
+		actual, err := api.ListTablesRequest(WithBuckets(), WithMetadata()).Send(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
@@ -239,7 +239,7 @@ func TestMockListTablesRequest(t *testing.T) {
 func TestTableApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())
@@ -252,7 +252,7 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create bucket
-	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resBucket)
 
@@ -269,11 +269,11 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create table
-	_, err = CreateTable(ctx, c, tableID, table.Columns)
+	_, err = api.CreateTable(ctx, tableID, table.Columns)
 	assert.NoError(t, err)
 
 	// List tables
-	resList, err := ListTablesRequest().Send(ctx, c)
+	resList, err := api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
 	tableFound := false
 	for _, t := range *resList {
@@ -284,11 +284,11 @@ func TestTableApiCalls(t *testing.T) {
 	assert.True(t, tableFound)
 
 	// Delete table
-	_, err = DeleteTableRequest(table.ID, WithForce()).Send(ctx, c)
+	_, err = api.DeleteTableRequest(table.ID, WithForce()).Send(ctx)
 	assert.NoError(t, err)
 
 	// List tables again - without the deleted table
-	resList, err = ListTablesRequest().Send(ctx, c)
+	resList, err = api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
 	tableFound = false
 	for _, t := range *resList {
@@ -302,7 +302,7 @@ func TestTableApiCalls(t *testing.T) {
 func TestTableApiCalls_Deprecated(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	bucket := &Bucket{
 		ID: BucketID{
@@ -317,20 +317,20 @@ func TestTableApiCalls_Deprecated(t *testing.T) {
 	columns := []string{"first", "second", "third", "fourth"}
 
 	// Create bucket
-	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resBucket)
 
 	// Create table
-	req, err := CreateTableDeprecatedSyncRequest(tableID, columns, WithPrimaryKey([]string{"first", "second"}))
+	req, err := api.CreateTableDeprecatedSyncRequest(tableID, columns, WithPrimaryKey([]string{"first", "second"}))
 	assert.NoError(t, err)
-	table, err := req.Send(ctx, c)
+	table, err := req.Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, columns, table.Columns)
 	assert.Equal(t, []string{"first", "second"}, table.PrimaryKey)
 
 	// List tables
-	resList, err := ListTablesRequest().Send(ctx, c)
+	resList, err := api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
 	tableFound := false
 	for _, t := range *resList {
@@ -344,7 +344,7 @@ func TestTableApiCalls_Deprecated(t *testing.T) {
 func TestTableCreateLoadDataFromFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
@@ -359,7 +359,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	}
 
 	// Create bucket
-	resBucket, err := CreateBucketRequest(bucket).Send(ctx, c)
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resBucket)
 
@@ -371,7 +371,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		IsEncrypted: false,
 		Name:        fileName1,
 	}
-	_, err = CreateFileResourceRequest(file1).Send(ctx, c)
+	_, err = api.CreateFileResourceRequest(file1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
 
@@ -382,7 +382,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	_, err = api.CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create file
@@ -393,12 +393,12 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		IsEncrypted: false,
 		Name:        fileName2,
 	}
-	_, err = CreateFileResourceRequest(file2).Send(ctx, c)
+	_, err = api.CreateFileResourceRequest(file2).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file2.ID)
 
 	// Check rows count
-	table, err := GetTableRequest(tableID).Send(ctx, c)
+	table, err := api.GetTableRequest(tableID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), table.RowsCount)
 
@@ -411,12 +411,12 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	// Load data to table - added three rows
 	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn2()
-	job, err := LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx, c)
+	job, err := api.LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(waitCtx2, c, job))
+	assert.NoError(t, api.WaitForJob(waitCtx2, job))
 
 	// Check rows count
-	table, err = GetTableRequest(tableID).Send(ctx, c)
+	table, err = api.GetTableRequest(tableID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(4), table.RowsCount)
 }
@@ -424,7 +424,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 func TestTableCreateFromSlicedFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	c := ClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
+	api := APIClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())
@@ -437,7 +437,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	}
 
 	// Create bucket
-	_, err := CreateBucketRequest(bucket).Send(ctx, c)
+	_, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bucket.ID)
 	tableID := TableID{
@@ -452,7 +452,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 		IsEncrypted: false,
 		Name:        tableName,
 	}
-	_, err = CreateFileResourceRequest(file).Send(ctx, c)
+	_, err = api.CreateFileResourceRequest(file).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file.ID)
 
@@ -464,11 +464,11 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	_, err = CreateTableFromFileRequest(tableID, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx, c)
+	_, err = api.CreateTableFromFileRequest(tableID, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
-	table, err := GetTableRequest(tableID).Send(ctx, c)
+	table, err := api.GetTableRequest(tableID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), table.RowsCount)
 
@@ -479,7 +479,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 		IsEncrypted: true,
 		Name:        tableName,
 	}
-	resFile, err := CreateFileResourceRequest(file).Send(ctx, c)
+	resFile, err := api.CreateFileResourceRequest(file).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resFile.ID)
 
@@ -500,12 +500,12 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Load data to table
 	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn()
-	job, err := LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx, c)
+	job, err := api.LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, WaitForJob(waitCtx, c, job))
+	assert.NoError(t, api.WaitForJob(waitCtx, job))
 
 	// Check rows count
-	table, err = GetTableRequest(tableID).Send(ctx, c)
+	table, err = api.GetTableRequest(tableID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(5), table.RowsCount)
 }
