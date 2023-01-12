@@ -101,7 +101,7 @@ RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 
 	// Test
 	str := ""
-	_, result, err := NewHTTPRequest().WithGet("https://example.com/redirect1").WithResult(&str).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com/redirect1").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK", *result.(*string))
 	assert.Equal(t, strings.TrimLeft(expected, "\n"), logs.String())
@@ -189,7 +189,7 @@ func TestTrace_Multiple(t *testing.T) {
 
 	// Test
 	str := ""
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&str).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK", *result.(*string))
 	assert.Equal(t, strings.TrimLeft(expected, "\n"), logs.String())
@@ -259,7 +259,7 @@ OK
 
 	// Test
 	str := ""
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&str).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK", *result.(*string))
 	wildcards.Assert(t, strings.TrimLeft(expected, "\n"), logs.String())
@@ -305,10 +305,10 @@ HTTP_REQUEST[0002] BODY  GET "https://example.com" | %s
 
 	// Test
 	str := ""
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&str).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK1", *result.(*string))
-	_, result, err = NewHTTPRequest().WithGet("https://example.com").WithResult(&str).Send(ctx, c)
+	_, result, err = NewHTTPRequest(c).WithGet("https://example.com").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK2", *result.(*string))
 	wildcards.Assert(t, strings.TrimLeft(expected, "\n"), logs.String())

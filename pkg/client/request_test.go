@@ -26,7 +26,8 @@ type result2 struct{}
 func TestHttpRequest_Immutability(t *testing.T) {
 	t.Parallel()
 	var a, b client.HTTPRequest
-	a = client.NewHTTPRequest()
+	c := client.New()
+	a = client.NewHTTPRequest(c)
 
 	// WithGet
 	a = a.WithGet("/foo1")
@@ -134,10 +135,10 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.Equal(t, &result2{}, b.ResultDef())
 
 	// WithOnComplete
-	l1 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+	l1 := func(ctx context.Context, response client.HTTPResponse, err error) error {
 		return nil
 	}
-	l2 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+	l2 := func(ctx context.Context, response client.HTTPResponse, err error) error {
 		return nil
 	}
 	a = a.WithOnComplete(l1)
@@ -145,10 +146,10 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.NotEqual(t, a, b)
 
 	// WithOnSuccess
-	l3 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
+	l3 := func(ctx context.Context, response client.HTTPResponse) error {
 		return nil
 	}
-	l4 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
+	l4 := func(ctx context.Context, response client.HTTPResponse) error {
 		return nil
 	}
 	a = a.WithOnSuccess(l3)
@@ -156,10 +157,10 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.NotEqual(t, a, b)
 
 	// WithOnError
-	l5 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+	l5 := func(ctx context.Context, response client.HTTPResponse, err error) error {
 		return nil
 	}
-	l6 := func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+	l6 := func(ctx context.Context, response client.HTTPResponse, err error) error {
 		return nil
 	}
 	a = a.WithOnError(l5)

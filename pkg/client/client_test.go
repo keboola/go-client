@@ -50,7 +50,7 @@ func TestRequest(t *testing.T) {
 
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -65,7 +65,7 @@ func TestBytesResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	var resultDef []byte
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&resultDef).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&resultDef).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, &resultDef, result)
 	assert.Equal(t, []byte(`{"foo":"bar"}`), resultDef)
@@ -82,7 +82,7 @@ func TestWriterResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	var out strings.Builder
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").WithResult(io.Writer(&out)).Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(io.Writer(&out)).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, `{"foo":"bar"}`, out.String())
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
@@ -98,7 +98,7 @@ func TestWriteCloserResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	var out strings.Builder
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").WithResult(testWriteCloser{Writer: &out}).Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(testWriteCloser{Writer: &out}).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, `{"foo":"bar"}<CLOSE>`, out.String())
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
@@ -114,7 +114,7 @@ func TestJsonMapResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	resultDef := make(map[string]any)
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&resultDef).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&resultDef).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, &resultDef, result)
 	assert.Equal(t, &map[string]any{"foo": "bar"}, result)
@@ -135,7 +135,7 @@ func TestJsonMapResult_ContentTypeWithCharset(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	resultDef := make(map[string]any)
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(&resultDef).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(&resultDef).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, &resultDef, result)
 	assert.Equal(t, &map[string]any{"foo": "bar"}, result)
@@ -152,7 +152,7 @@ func TestJsonStructResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	resultDef := &testStruct{}
-	_, result, err := NewHTTPRequest().WithGet("https://example.com").WithResult(resultDef).Send(ctx, c)
+	_, result, err := NewHTTPRequest(c).WithGet("https://example.com").WithResult(resultDef).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, resultDef, result)
 	assert.Equal(t, &testStruct{Foo: "bar"}, result)
@@ -169,7 +169,7 @@ func TestJsonErrorResult(t *testing.T) {
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
 	errDef := &testError{}
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").WithError(errDef).Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").WithError(errDef).Send(ctx)
 	assert.Error(t, err)
 	assert.Same(t, errDef, err)
 	assert.Equal(t, &testError{ErrorMsg: "error message"}, err)
@@ -185,7 +185,7 @@ func TestWithBaseUrl(t *testing.T) {
 
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry()).WithBaseURL("https://example.com")
-	_, _, err := NewHTTPRequest().WithGet("baz").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("baz").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com/baz"])
 }
@@ -202,7 +202,7 @@ func TestRequestContext(t *testing.T) {
 	})
 	ctx := context.WithValue(context.Background(), "testKey", "testValue") //nolint:staticcheck
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -222,7 +222,7 @@ func TestDefaultHeaders(t *testing.T) {
 
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry())
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -242,7 +242,7 @@ func TestWithUserAgent(t *testing.T) {
 
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry()).WithUserAgent("my-user-agent")
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -263,7 +263,7 @@ func TestWithHeader(t *testing.T) {
 
 	ctx := context.Background()
 	c := New().WithTransport(transport).WithRetry(TestingRetry()).WithHeader("my-header", "my-value")
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -288,7 +288,7 @@ func TestWithHeaders(t *testing.T) {
 		"key1": "value1",
 		"key2": "value2",
 	})
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET https://example.com"])
 }
@@ -314,7 +314,7 @@ func TestRetryBodyRewind(t *testing.T) {
 
 	// Post
 	jsonBody := map[string]any{"foo": "bar"}
-	_, _, err := NewHTTPRequest().WithPost("https://example.com").WithJSONBody(jsonBody).Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithPost("https://example.com").WithJSONBody(jsonBody).Send(ctx)
 	assert.Error(t, err)
 	assert.Equal(t, `request POST "https://example.com" failed: 502 Bad Gateway`, err.Error())
 
@@ -352,16 +352,16 @@ func TestRetryCount(t *testing.T) {
 		})
 
 	// Get
-	_, _, err := NewHTTPRequest().
+	_, _, err := NewHTTPRequest(c).
 		WithGet("https://example.com").
-		WithOnComplete(func(ctx context.Context, sender Sender, response HTTPResponse, err error) error {
+		WithOnComplete(func(ctx context.Context, response HTTPResponse, err error) error {
 			// Check context
 			attempt, found := ContextRetryAttempt(response.RawRequest().Context())
 			assert.True(t, found)
 			assert.Equal(t, retryCount, attempt)
 			return err
 		}).
-		Send(ctx, c)
+		Send(ctx)
 	assert.Error(t, err)
 	assert.Equal(t, `request GET "https://example.com" failed: 504 Gateway Timeout`, err.Error())
 
@@ -404,7 +404,7 @@ func TestRequestTimeout(t *testing.T) {
 		})
 
 	// Get
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), `request GET "https://example.com" failed: timeout after`)
 }
@@ -424,8 +424,8 @@ func TestContext_DeadlineExceeded(t *testing.T) {
 	defer cancel()
 	c := New().WithTransport(transport)
 
-	wg := NewWaitGroup(ctx, c)
-	wg.Send(NewHTTPRequest().WithGet("https://example.com"))
+	wg := NewWaitGroup(ctx)
+	wg.Send(NewHTTPRequest(c).WithGet("https://example.com"))
 	err := wg.Wait()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), `request GET "https://example.com" failed: timeout after`)
@@ -445,8 +445,8 @@ func TestContext_Canceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := New().WithTransport(transport)
 
-	wg := NewWaitGroup(ctx, c)
-	wg.Send(NewHTTPRequest().WithGet("https://example.com"))
+	wg := NewWaitGroup(ctx)
+	wg.Send(NewHTTPRequest(c).WithGet("https://example.com"))
 
 	time.Sleep(50 * time.Millisecond)
 	cancel()
@@ -486,7 +486,7 @@ func TestStopRetryOnRequestTimeout(t *testing.T) {
 		})
 
 	// Get
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.Error(t, err)
 	assert.Equal(t, `request GET "https://example.com" failed: 504 Gateway Timeout`, err.Error())
 
@@ -526,7 +526,7 @@ func TestDoNotRetry(t *testing.T) {
 		})
 
 	// Get
-	_, _, err := NewHTTPRequest().WithGet("https://example.com").Send(ctx, c)
+	_, _, err := NewHTTPRequest(c).WithGet("https://example.com").Send(ctx)
 	assert.Error(t, err)
 	assert.Equal(t, `request GET "https://example.com" failed: 403 Forbidden`, err.Error())
 
