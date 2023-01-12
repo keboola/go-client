@@ -38,7 +38,7 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
-func (a *Api) GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
+func (a *API) GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
 	result := Bucket{ID: bucketID}
 	request := a.
 		newRequest(StorageAPI).
@@ -49,7 +49,7 @@ func (a *Api) GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
 }
 
 // ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func (a *Api) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
+func (a *API) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
 	config := listBucketsConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
@@ -66,7 +66,7 @@ func (a *Api) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[
 }
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
-func (a *Api) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
+func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	// Create config
 	params := client.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
@@ -81,7 +81,7 @@ func (a *Api) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 		WithResult(bucket).
 		WithPost("buckets").
 		WithFormBody(client.ToFormBody(params)).
-		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetBucketRequest(bucket.ID).Send(ctx); err == nil {
 				*bucket = *result
 				return nil
@@ -93,7 +93,7 @@ func (a *Api) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *Api) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}

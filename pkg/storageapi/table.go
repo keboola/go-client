@@ -89,7 +89,7 @@ func WithColumnMetadata() Option {
 }
 
 // ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
-func (a *Api) ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
+func (a *API) ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
@@ -140,9 +140,9 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 }
 
 // CreateTable creates an empty table with given columns.
-func (a *Api) CreateTable(ctx context.Context, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
+func (a *API) CreateTable(ctx context.Context, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
 	// Create file resource
-	file, err := CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx)
+	file, err := a.CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating file failed: %w", err)
 	}
@@ -207,7 +207,7 @@ func WithPrimaryKey(pk []string) primaryKeyOption {
 }
 
 // CreateTableDeprecatedSyncRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
-func (a *Api) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
+func (a *API) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
@@ -248,7 +248,7 @@ func (a *Api) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string
 		AndPathParam("bucketId", tableID.BucketID.String()).
 		WithBody(bytes.NewReader(body.Bytes())).
 		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())).
-		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetTableRequest(table.ID).Send(ctx); err == nil {
 				*table = *result
 				return nil
@@ -260,7 +260,7 @@ func (a *Api) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func (a *Api) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Table] {
+func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) client.APIRequest[*Table] {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
@@ -366,7 +366,7 @@ func WithoutHeader(h bool) withoutHeaderOption {
 }
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func (a *Api) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
+func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
 	c := &loadDataConfig{}
 	for _, o := range opts {
 		o.applyLoadDataOption(c)
@@ -387,7 +387,7 @@ func (a *Api) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...L
 }
 
 // GetTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/table-detail
-func (a *Api) GetTableRequest(tableID TableID) client.APIRequest[*Table] {
+func (a *API) GetTableRequest(tableID TableID) client.APIRequest[*Table] {
 	table := &Table{}
 	request := a.
 		newRequest(StorageAPI).
@@ -398,7 +398,7 @@ func (a *Api) GetTableRequest(tableID TableID) client.APIRequest[*Table] {
 }
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
-func (a *Api) DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+func (a *API) DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}

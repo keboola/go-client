@@ -24,8 +24,8 @@ type Event struct {
 	Results     JSONString             `json:"results"`
 }
 
-// CreatEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
-func (a *Api) CreatEventRequest(event *Event) client.APIRequest[*Event] {
+// CreateEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
+func (a *API) CreateEventRequest(event *Event) client.APIRequest[*Event] {
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(event).
@@ -34,7 +34,7 @@ func (a *Api) CreatEventRequest(event *Event) client.APIRequest[*Event] {
 	return client.NewAPIRequest(event, request)
 }
 
-// JSONString is Json encoded as string, see CreatEventRequest.
+// JSONString is Json encoded as string, see CreateEventRequest.
 type JSONString map[string]any
 
 // UnmarshalJSON implements JSON decoding.

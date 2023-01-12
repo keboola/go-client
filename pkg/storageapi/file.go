@@ -50,7 +50,7 @@ type Slice struct {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *Api) CreateFileResourceRequest(file *File) client.APIRequest[*File] {
+func (a *API) CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 	file.FederationToken = true
 	request := a.
 		newRequest(StorageAPI).
@@ -61,7 +61,7 @@ func (a *Api) CreateFileResourceRequest(file *File) client.APIRequest[*File] {
 }
 
 // ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
-func (a *Api) ListFilesRequest() client.APIRequest[*[]*File] {
+func (a *API) ListFilesRequest() client.APIRequest[*[]*File] {
 	var files []*File
 	request := a.
 		newRequest(StorageAPI).
@@ -78,7 +78,7 @@ func (a *Api) ListFilesRequest() client.APIRequest[*[]*File] {
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *Api) GetFileRequest(id int) client.APIRequest[*File] {
+func (a *API) GetFileRequest(id int) client.APIRequest[*File] {
 	file := &File{}
 	request := a.
 		newRequest(StorageAPI).
@@ -89,7 +89,7 @@ func (a *Api) GetFileRequest(id int) client.APIRequest[*File] {
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func (a *Api) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
+func (a *API) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
 	request := a.
 		newRequest(StorageAPI).
 		WithDelete("files/{fileId}").

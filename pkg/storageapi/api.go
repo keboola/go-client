@@ -32,7 +32,7 @@ func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Cl
 	return ClientWithToken(ClientWithHost(c, apiHost), apiToken)
 }
 
-func (a *Api) newRequest(s ServiceType) client.HTTPRequest {
+func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 	switch s {
 	case StorageAPI:
 		// Create request, set base URL and default error type
@@ -45,13 +45,17 @@ func (a *Api) newRequest(s ServiceType) client.HTTPRequest {
 	}
 }
 
-func (a *Api) senderForService(s ServiceType) client.Sender {
+func (a *API) senderForService(s ServiceType) client.Sender {
 	// TODO, API should contains hosts for all Services
 	return nil
 }
 
-type Api struct {
+type API struct {
 	sender client.Sender
+}
+
+func NewAPI(sender client.Sender) *API {
+	return &API{sender: sender}
 }
 
 type Object interface {
@@ -59,7 +63,7 @@ type Object interface {
 }
 
 // CreateRequest creates request to create object according its type.
-func (a *Api) CreateRequest(object Object) client.APIRequest[Object] {
+func (a *API) CreateRequest(object Object) client.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
 		return client.NewAPIRequest(object, a.CreateBranchRequest(v))
@@ -75,7 +79,7 @@ func (a *Api) CreateRequest(object Object) client.APIRequest[Object] {
 }
 
 // UpdateRequest creates request to update object according its type.
-func (a *Api) UpdateRequest(object Object, changedFields []string) client.APIRequest[Object] {
+func (a *API) UpdateRequest(object Object, changedFields []string) client.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
 		return client.NewAPIRequest(object, a.UpdateBranchRequest(v, changedFields))
@@ -91,7 +95,7 @@ func (a *Api) UpdateRequest(object Object, changedFields []string) client.APIReq
 }
 
 // DeleteRequest creates request to delete object according its type.
-func (a *Api) DeleteRequest(key any) client.APIRequest[client.NoResult] {
+func (a *API) DeleteRequest(key any) client.APIRequest[client.NoResult] {
 	switch k := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchRequest(k)
@@ -105,7 +109,7 @@ func (a *Api) DeleteRequest(key any) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func (a *Api) AppendMetadataRequest(key any, metadata map[string]string) client.APIRequest[client.NoResult] {
+func (a *API) AppendMetadataRequest(key any, metadata map[string]string) client.APIRequest[client.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.AppendBranchMetadataRequest(v, metadata)
@@ -117,7 +121,7 @@ func (a *Api) AppendMetadataRequest(key any, metadata map[string]string) client.
 }
 
 // DeleteMetadataRequest creates request to delete object metadata according its type.
-func (a *Api) DeleteMetadataRequest(key any, metaID string) client.APIRequest[client.NoResult] {
+func (a *API) DeleteMetadataRequest(key any, metaID string) client.APIRequest[client.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchMetadataRequest(v, metaID)

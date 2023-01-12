@@ -78,7 +78,7 @@ func (v ConfigsMetadata) ToMap() map[ConfigKey]Metadata {
 }
 
 // ListConfigsAndRowsFrom https://keboola.docs.apiary.io/#reference/components-and-configurations/get-components/get-components
-func (a *Api) ListConfigsAndRowsFrom(branch BranchKey) client.APIRequest[*[]*ComponentWithConfigs] {
+func (a *API) ListConfigsAndRowsFrom(branch BranchKey) client.APIRequest[*[]*ComponentWithConfigs] {
 	result := make([]*ComponentWithConfigs, 0)
 	request := a.
 		newRequest(StorageAPI).
@@ -110,7 +110,7 @@ func (a *Api) ListConfigsAndRowsFrom(branch BranchKey) client.APIRequest[*[]*Com
 	return client.NewAPIRequest(&result, request)
 }
 
-func (a *Api) ListConfigRequest(branchId BranchID, componentId ComponentID) client.APIRequest[*[]*Config] {
+func (a *API) ListConfigRequest(branchId BranchID, componentId ComponentID) client.APIRequest[*[]*Config] {
 	result := make([]*Config, 0)
 	request := a.newRequest(StorageAPI).
 		WithResult(&result).
@@ -128,7 +128,7 @@ func (a *Api) ListConfigRequest(branchId BranchID, componentId ComponentID) clie
 }
 
 // GetConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/development-branch-configuration-detail
-func (a *Api) GetConfigRequest(key ConfigKey) client.APIRequest[*Config] {
+func (a *API) GetConfigRequest(key ConfigKey) client.APIRequest[*Config] {
 	result := &Config{}
 	result.BranchID = key.BranchID
 	result.ComponentID = key.ComponentID
@@ -143,7 +143,7 @@ func (a *Api) GetConfigRequest(key ConfigKey) client.APIRequest[*Config] {
 }
 
 // CreateConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/create-development-branch-configuration
-func (a *Api) CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*ConfigWithRows] {
+func (a *API) CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*ConfigWithRows] {
 	// Create config
 	request := a.
 		newRequest(StorageAPI).
@@ -152,7 +152,7 @@ func (a *Api) CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*Con
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
 		WithFormBody(client.ToFormBody(client.StructToMap(config.Config, nil))).
-		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetConfigRequest(config.ConfigKey).Send(ctx); err == nil {
 				*config.Config = *result
 				return nil
@@ -176,7 +176,7 @@ func (a *Api) CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*Con
 }
 
 // UpdateConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/update-development-branch-configuration
-func (a *Api) UpdateConfigRequest(config *Config, changedFields []string) client.APIRequest[*Config] {
+func (a *API) UpdateConfigRequest(config *Config, changedFields []string) client.APIRequest[*Config] {
 	// ID is required
 	if config.ID == "" {
 		panic("config id must be set")
@@ -195,7 +195,7 @@ func (a *Api) UpdateConfigRequest(config *Config, changedFields []string) client
 }
 
 // DeleteConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/delete-configuration
-func (a *Api) DeleteConfigRequest(config ConfigKey) client.APIRequest[client.NoResult] {
+func (a *API) DeleteConfigRequest(config ConfigKey) client.APIRequest[client.NoResult] {
 	request := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}").
@@ -207,7 +207,7 @@ func (a *Api) DeleteConfigRequest(config ConfigKey) client.APIRequest[client.NoR
 }
 
 // DeleteConfigsInBranchRequest lists all configs in branch and deletes them all.
-func (a *Api) DeleteConfigsInBranchRequest(branch BranchKey) client.APIRequest[client.NoResult] {
+func (a *API) DeleteConfigsInBranchRequest(branch BranchKey) client.APIRequest[client.NoResult] {
 	request := a.
 		ListConfigsAndRowsFrom(branch).
 		WithOnSuccess(func(ctx context.Context, result *[]*ComponentWithConfigs) error {
@@ -224,7 +224,7 @@ func (a *Api) DeleteConfigsInBranchRequest(branch BranchKey) client.APIRequest[c
 }
 
 // ListConfigMetadataRequest https://keboola.docs.apiary.io/#reference/search/search-components-configurations/search-component-configurations
-func (a *Api) ListConfigMetadataRequest(branchID BranchID) client.APIRequest[*ConfigsMetadata] {
+func (a *API) ListConfigMetadataRequest(branchID BranchID) client.APIRequest[*ConfigsMetadata] {
 	result := make(ConfigsMetadata, 0)
 	request := a.
 		newRequest(StorageAPI).
@@ -242,7 +242,7 @@ func (a *Api) ListConfigMetadataRequest(branchID BranchID) client.APIRequest[*Co
 }
 
 // AppendConfigMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/components-configurations-metadata/create-or-update
-func (a *Api) AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) client.APIRequest[client.NoResult] {
+func (a *API) AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) client.APIRequest[client.NoResult] {
 	// Empty, we have nothing to append
 	if len(metadata) == 0 {
 		return client.NewNoOperationAPIRequest(client.NoResult{})
@@ -265,7 +265,7 @@ func (a *Api) AppendConfigMetadataRequest(key ConfigKey, metadata Metadata) clie
 }
 
 // DeleteConfigMetadataRequest https://keboola.docs.apiary.io/#reference/metadata/components-configurations-metadata/delete
-func (a *Api) DeleteConfigMetadataRequest(key ConfigKey, metaID string) client.APIRequest[client.NoResult] {
+func (a *API) DeleteConfigMetadataRequest(key ConfigKey, metaID string) client.APIRequest[client.NoResult] {
 	request := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/metadata/{metadataId}").

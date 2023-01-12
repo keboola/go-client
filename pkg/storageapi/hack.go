@@ -13,11 +13,11 @@ import (
 // Sometimes it happens that the HTTP request ends with a 500 error, but the operation was performed.
 // In that case, a retry is performed, which ends with an "already exists" error.
 // The error should be ignored, because the CREATE operation was performed.
-func ignoreResourceAlreadyExistsError(getFn func(context.Context, client.Sender) error) func(context.Context, client.Sender, client.HTTPResponse, error) error {
-	return func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
+func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(context.Context, client.HTTPResponse, error) error {
+	return func(ctx context.Context, response client.HTTPResponse, err error) error {
 		if isResourceAlreadyExistsError(response.RawResponse(), err) {
 			// Fill result with the GET request
-			return getFn(ctx, sender)
+			return getFn(ctx)
 		}
 		return err
 	}
@@ -27,8 +27,8 @@ func ignoreResourceAlreadyExistsError(getFn func(context.Context, client.Sender)
 // Sometimes it happens that the HTTP request ends with a 500 error, but the operation was performed.
 // In that case, a retry is performed, which ends with a "not found" error.
 // The error should be ignored, because the DELETE operation was performed.
-func ignoreResourceNotFoundError() func(context.Context, client.Sender, client.HTTPResponse, error) error {
-	return func(_ context.Context, _ client.Sender, response client.HTTPResponse, err error) error {
+func ignoreResourceNotFoundError() func(context.Context, client.HTTPResponse, error) error {
+	return func(_ context.Context, response client.HTTPResponse, err error) error {
 		if isResourceNotFoundError(response.RawResponse(), err) {
 			return nil
 		}

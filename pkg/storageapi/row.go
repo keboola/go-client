@@ -40,7 +40,7 @@ type ConfigRow struct {
 }
 
 // GetConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/row-detail
-func (a *Api) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
+func (a *API) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
 	row := &ConfigRow{}
 	row.BranchID = key.BranchID
 	row.ComponentID = key.ComponentID
@@ -57,7 +57,7 @@ func (a *Api) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow
 }
 
 // CreateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/create-development-branch-configuration-row
-func (a *Api) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
+func (a *API) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
 	// Create request
 	request := a.
 		newRequest(StorageAPI).
@@ -67,8 +67,8 @@ func (a *Api) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRo
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
 		WithFormBody(client.ToFormBody(client.StructToMap(row, nil))).
-		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context, sender client.Sender) error {
-			if result, err := GetConfigRowRequest(row.ConfigRowKey).Send(ctx, sender); err == nil {
+		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
+			if result, err := a.GetConfigRowRequest(row.ConfigRowKey).Send(ctx); err == nil {
 				*row = *result
 				return nil
 			} else {
@@ -79,7 +79,7 @@ func (a *Api) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRo
 }
 
 // UpdateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row-for-development-branch
-func (a *Api) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRequest[*ConfigRow] {
+func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRequest[*ConfigRow] {
 	// ID is required
 	if row.ID == "" {
 		panic("config row id must be set")
@@ -99,7 +99,7 @@ func (a *Api) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) cli
 }
 
 // DeleteConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row
-func (a *Api) DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult] {
+func (a *API) DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult] {
 	request := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
