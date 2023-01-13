@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,8 @@ func APIClientForRandomProject(t *testing.T, opts ...testproject.Option) (*testp
 
 	project, err := testproject.GetTestProjectForTest(t, opts...)
 	assert.NoError(t, err)
-	api := NewAPI(project.StorageAPIHost(), WithToken(project.StorageAPIToken()))
+	c := client.NewTestClient()
+	api := NewAPI(project.StorageAPIHost(), WithToken(project.StorageAPIToken()), WithClient(&c))
 	return project, api
 }
 

@@ -13,58 +13,58 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-// JobID is an ID of a storage job.
-type JobID int
+// StorageJobID is an ID of a storage job.
+type StorageJobID int
 
-func (id JobID) String() string {
+func (id StorageJobID) String() string {
 	return strconv.Itoa(int(id))
 }
 
-// JobKey is a unique identifier of Job.
-type JobKey struct {
-	ID JobID `json:"id"`
+// StorageJobKey is a unique identifier of StorageJob.
+type StorageJobKey struct {
+	ID StorageJobID `json:"id"`
 }
 
-type JobResult map[string]any
+type StorageJobResult map[string]any
 
 // UnmarshalJSON implements JSON decoding.
 // The API returns empty array when the results field is empty.
-func (r *JobResult) UnmarshalJSON(data []byte) (err error) {
+func (r *StorageJobResult) UnmarshalJSON(data []byte) (err error) {
 	if string(data) == "[]" {
-		*r = JobResult{}
+		*r = StorageJobResult{}
 		return nil
 	}
 	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
-	type _r JobResult
+	type _r StorageJobResult
 	return jsonLib.Unmarshal(data, (*_r)(r))
 }
 
-// Job is a storage job.
-type Job struct {
-	JobKey
-	Status          string         `json:"status"`
-	URL             string         `json:"url"`
-	OperationName   string         `json:"operationName"`
-	OperationParams map[string]any `json:"operationParams"`
-	Results         JobResult      `json:"results,omitempty"`
-	CreateTime      iso8601.Time   `json:"createdTime"`
-	StartTime       *iso8601.Time  `json:"startTime"`
-	EndTime         *iso8601.Time  `json:"endTime"`
-	Error           JobError       `json:"error,omitempty"`
+// StorageJob is a storage job.
+type StorageJob struct {
+	StorageJobKey
+	Status          string           `json:"status"`
+	URL             string           `json:"url"`
+	OperationName   string           `json:"operationName"`
+	OperationParams map[string]any   `json:"operationParams"`
+	Results         StorageJobResult `json:"results,omitempty"`
+	CreateTime      iso8601.Time     `json:"createdTime"`
+	StartTime       *iso8601.Time    `json:"startTime"`
+	EndTime         *iso8601.Time    `json:"endTime"`
+	Error           StorageJobError  `json:"error,omitempty"`
 }
 
-type JobError struct {
+type StorageJobError struct {
 	Code        string `json:"code"`
 	Message     string `json:"message"`
 	ExceptionId string `json:"exceptionId"`
 }
 
-// GetJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
-func (a *API) GetJobRequest(key JobKey) client.APIRequest[*Job] {
-	return a.getJobRequest(&Job{JobKey: key})
+// GetStorageJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
+func (a *API) GetStorageJobRequest(key StorageJobKey) client.APIRequest[*StorageJob] {
+	return a.getStorageJobRequest(&StorageJob{StorageJobKey: key})
 }
 
-func (a *API) getJobRequest(job *Job) client.APIRequest[*Job] {
+func (a *API) getStorageJobRequest(job *StorageJob) client.APIRequest[*StorageJob] {
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(job).
@@ -73,17 +73,17 @@ func (a *API) getJobRequest(job *Job) client.APIRequest[*Job] {
 	return client.NewAPIRequest(job, request)
 }
 
-// WaitForJob pulls job status until it is completed.
-func (a *API) WaitForJob(ctx context.Context, job *Job) error {
+// WaitForStorageJob pulls job status until it is completed.
+func (a *API) WaitForStorageJob(ctx context.Context, job *StorageJob) error {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")
 	}
 
-	retry := newJobBackoff()
+	retry := newStorageJobBackoff()
 	for {
 		// Get job status
-		if err := a.getJobRequest(job).SendOrErr(ctx); err != nil {
+		if err := a.getStorageJobRequest(job).SendOrErr(ctx); err != nil {
 			return err
 		}
 
@@ -104,8 +104,8 @@ func (a *API) WaitForJob(ctx context.Context, job *Job) error {
 	}
 }
 
-// newBackoff creates retry for WaitForJob.
-func newJobBackoff() *backoff.ExponentialBackOff {
+// newStorageJobBackoff creates retry for WaitForStorageJob.
+func newStorageJobBackoff() *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
 	b.RandomizationFactor = 0
 	b.InitialInterval = 50 * time.Millisecond

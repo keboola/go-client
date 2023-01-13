@@ -413,7 +413,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	defer waitCancelFn2()
 	job, err := api.LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, api.WaitForJob(waitCtx2, job))
+	assert.NoError(t, api.WaitForStorageJob(waitCtx2, job))
 
 	// Check rows count
 	table, err = api.GetTableRequest(tableID).Send(ctx)
@@ -502,7 +502,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	defer waitCancelFn()
 	job, err := api.LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
-	assert.NoError(t, api.WaitForJob(waitCtx, job))
+	assert.NoError(t, api.WaitForStorageJob(waitCtx, job))
 
 	// Check rows count
 	table, err = api.GetTableRequest(tableID).Send(ctx)

@@ -1,12 +1,12 @@
-package jobsqueueapi
+package keboola
 
 import (
 	"fmt"
 	"net/http"
 )
 
-// Error represents the structure of Jobs Queue API error.
-type Error struct {
+// QueueError represents the structure of Jobs Queue API error.
+type QueueError struct {
 	Message     string `json:"error"`
 	ErrCode     int    `json:"code"`
 	ExceptionID string `json:"exceptionId"`
@@ -14,36 +14,36 @@ type Error struct {
 	response    *http.Response
 }
 
-func (e Error) Error() string {
+func (e *QueueError) Error() string {
 	return fmt.Sprintf("jobs queue api error[%d]: %s", e.ErrCode, e.Message)
 }
 
 // ErrorName returns a human-readable name of the error.
-func (e Error) ErrorName() string {
+func (e *QueueError) ErrorName() string {
 	return http.StatusText(e.ErrCode)
 }
 
 // ErrorUserMessage returns error message for end user.
-func (e Error) ErrorUserMessage() string {
+func (e *QueueError) ErrorUserMessage() string {
 	return e.Message
 }
 
 // ErrorExceptionID returns exception ID to find details in logs.
-func (e Error) ErrorExceptionID() string {
+func (e *QueueError) ErrorExceptionID() string {
 	return e.ExceptionID
 }
 
 // StatusCode returns HTTP status code.
-func (e Error) StatusCode() int {
+func (e *QueueError) StatusCode() int {
 	return e.response.StatusCode
 }
 
 // SetRequest method allows injection of HTTP request to the error, it implements client.errorWithRequest.
-func (e *Error) SetRequest(request *http.Request) {
+func (e *QueueError) SetRequest(request *http.Request) {
 	e.request = request
 }
 
 // SetResponse method allows injection of HTTP response to the error, it implements client.errorWithResponse.
-func (e *Error) SetResponse(response *http.Response) {
+func (e *QueueError) SetResponse(response *http.Response) {
 	e.response = response
 }

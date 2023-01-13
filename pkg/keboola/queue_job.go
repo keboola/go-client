@@ -1,4 +1,4 @@
-package jobsqueueapi
+package keboola
 
 import (
 	jsonLib "encoding/json"
@@ -13,7 +13,7 @@ func (j JobID) String() string {
 	return string(j)
 }
 
-// JobKey is a unique identifier of Job.
+// JobKey is a unique identifier of QueueJob.
 type JobKey struct {
 	ID JobID `json:"id"`
 }
@@ -37,8 +37,8 @@ func (r *JobResult) UnmarshalJSON(data []byte) (err error) {
 	return jsonLib.Unmarshal(data, (*_r)(r))
 }
 
-// Job is a component job.
-type Job struct {
+// QueueJob is a component job.
+type QueueJob struct {
 	JobKey
 	Status     string        `json:"status"`
 	IsFinished bool          `json:"isFinished"`

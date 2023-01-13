@@ -19,10 +19,10 @@ func (c *TestClock) Advance(d time.Duration) {
 	c.now = c.now.Add(d)
 }
 
-func TestJobBackoff(t *testing.T) {
+func TestStorageJobBackoff(t *testing.T) {
 	t.Parallel()
 	clock := &TestClock{now: time.Now()}
-	backoff := newJobBackoff()
+	backoff := newStorageJobBackoff()
 	backoff.Clock = clock
 
 	// Get all delays without sleep

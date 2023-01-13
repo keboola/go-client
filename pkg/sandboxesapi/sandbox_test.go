@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/jobsqueueapi"
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 )
@@ -145,7 +144,7 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 
 	schedulerClient := keboola.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
 	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
-	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
+	queueClient := keboola.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
 	if err := platform.CleanProject(ctx, api, schedulerClient, queueClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)

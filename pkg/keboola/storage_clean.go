@@ -14,7 +14,7 @@ const mainBranchDescription = ""
 // Useful for E2E tests. Result is default branch.
 func (a *API) CleanProjectRequest() client.APIRequest[*Branch] {
 	// Only one delete branch request can run simultaneously.
-	// Branch deletion is performed via Storage Job, which uses locks.
+	// Branch deletion is performed via Storage StorageJob, which uses locks.
 	// If we ran multiple requests, then only one job would run and the other jobs would wait.
 	// The problem is that the lock is checked again after 30 seconds, so there is a long delay.
 	deleteBranchSem := semaphore.NewWeighted(1)

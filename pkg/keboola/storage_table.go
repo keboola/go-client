@@ -270,7 +270,7 @@ func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts .
 	params["name"] = tableID.TableName
 	params["dataFileId"] = dataFileID
 
-	job := &Job{}
+	job := &StorageJob{}
 	table := &Table{}
 	request := a.
 		newRequest(StorageAPI).
@@ -282,7 +282,7 @@ func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts .
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 			defer waitCancelFn()
-			return a.WaitForJob(waitCtx, job)
+			return a.WaitForStorageJob(waitCtx, job)
 		}).
 		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
 			bytes, err := jsonLib.Marshal(job.Results)
@@ -366,7 +366,7 @@ func WithoutHeader(h bool) withoutHeaderOption {
 }
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*Job] {
+func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) client.APIRequest[*StorageJob] {
 	c := &loadDataConfig{}
 	for _, o := range opts {
 		o.applyLoadDataOption(c)
@@ -375,7 +375,7 @@ func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...L
 	params := client.StructToMap(c, nil)
 	params["dataFileId"] = dataFileID
 
-	job := &Job{}
+	job := &StorageJob{}
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(job).

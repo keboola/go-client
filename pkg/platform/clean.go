@@ -6,17 +6,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 )
 
 func CleanProject(
 	ctx context.Context,
-	storageClient client.Sender,
-	schedulerClient client.Sender,
-	queueClient client.Sender,
-	sandboxClient client.Sender,
+	api *keboola.API,
 ) error {
 	wg := &sync.WaitGroup{}
 	m := &sync.Mutex{}
@@ -25,7 +21,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if e := keboola.CleanProjectRequest().SendOrErr(ctx, storageClient); e != nil {
+		if e := api.CleanProjectRequest().SendOrErr(ctx); e != nil {
 			m.Lock()
 			defer m.Unlock()
 			err = multierror.Append(err, e)
@@ -35,7 +31,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if e := keboola.CleanAllSchedulesRequest().SendOrErr(ctx, schedulerClient); e != nil {
+		if e := api.CleanAllSchedulesRequest().SendOrErr(ctx); e != nil {
 			m.Lock()
 			defer m.Unlock()
 			err = multierror.Append(err, e)

@@ -16,6 +16,7 @@ import (
 type ServiceType string
 
 const EncryptionAPI = ServiceType("encryption")
+const QueueAPI = ServiceType("queue")
 const SchedulerAPI = ServiceType("scheduler")
 const StorageAPI = ServiceType("storage")
 
@@ -33,6 +34,8 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 	switch s {
 	case EncryptionAPI:
 		c = c.WithError(&EncryptionError{})
+	case QueueAPI:
+		c = c.WithError(&QueueError{})
 	case SchedulerAPI:
 		c = c.WithError(&SchedulerError{})
 	}
@@ -43,7 +46,7 @@ func (a *API) baseURLForService(s ServiceType) string {
 	if a.services.Len() == 0 {
 		res, err := a.IndexRequest().Send(context.Background())
 		if err != nil {
-			panic(fmt.Errorf(`service list cannot be downloaded: "%s"`, s))
+			panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
 		}
 		a.services = res.Services.ToMap()
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/keboola"
 )
 
 type params struct {
@@ -63,10 +63,9 @@ func (p params) toMap() map[string]any {
 
 func CreateJobRequest(configId ConfigID, sandboxType string, opts ...Option) client.APIRequest[client.NoResult] {
 	params := newParams(sandboxType, opts...)
-	request := jobsqueueapi.
-		CreateJobConfigDataRequest(Component, configId, map[string]any{"parameters": params.toMap()}).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
-			return jobsqueueapi.WaitForJob(ctx, sender, result)
+	request := keboola.CreateJobConfigDataRequest(Component, configId, map[string]any{"parameters": params.toMap()}).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *keboola.QueueJob) error {
+			return keboola.WaitForQueueJob(ctx, sender, result)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
@@ -78,10 +77,9 @@ func DeleteJobRequest(sandboxId SandboxID) client.APIRequest[client.NoResult] {
 			"id":   sandboxId.String(),
 		},
 	}
-	request := jobsqueueapi.
-		CreateJobConfigDataRequest(Component, "", configData).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *jobsqueueapi.Job) error {
-			return jobsqueueapi.WaitForJob(ctx, sender, result)
+	request := keboola.CreateJobConfigDataRequest(Component, "", configData).
+		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *keboola.QueueJob) error {
+			return keboola.WaitForQueueJob(ctx, sender, result)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
