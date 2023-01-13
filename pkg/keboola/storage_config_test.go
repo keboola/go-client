@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/wildcards"
@@ -78,6 +79,7 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Equal(t, branch.ID, row2.BranchID)
 
 	// Get config
+	time.Sleep(2 * time.Second)
 	resultConfig, err := api.GetConfigRequest(config.ConfigKey).Send(ctx)
 	assert.NoError(t, err)
 
