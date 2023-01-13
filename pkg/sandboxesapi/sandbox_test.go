@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
@@ -21,7 +21,7 @@ func TestCreateAndDeletePythonSandbox(t *testing.T) {
 	ctx, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
+	branch, err := keboola.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -72,7 +72,7 @@ func TestCreateAndDeleteSnowflakeSandbox(t *testing.T) {
 	ctx, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
+	branch, err := keboola.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
@@ -130,9 +130,9 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 
-	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := keboola.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	index, err := keboola.IndexRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 
 	services := index.AllServices()

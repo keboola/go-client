@@ -9,10 +9,10 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestCleanProject(t *testing.T) {
@@ -28,23 +28,23 @@ func TestCleanProject(t *testing.T) {
 	// Assert that project is clean
 
 	// Only default branch exists
-	branches, err := storageapi.ListBranchesRequest().Send(ctx, c.Storage)
+	branches, err := keboola.ListBranchesRequest().Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *branches, 1)
 	defaultBranch := (*branches)[0].BranchKey
 
 	// Default branch has no metadata
-	metadata, err := storageapi.ListBranchMetadataRequest(defaultBranch).Send(ctx, c.Storage)
+	metadata, err := keboola.ListBranchMetadataRequest(defaultBranch).Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *metadata, 0)
 
 	// No configs - implies no rows or config metadata
-	configs, err := storageapi.ListConfigsAndRowsFrom(defaultBranch).Send(ctx, c.Storage)
+	configs, err := keboola.ListConfigsAndRowsFrom(defaultBranch).Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *configs, 0)
 
 	// No buckets - implies no tables
-	buckets, err := storageapi.ListBucketsRequest().Send(ctx, c.Storage)
+	buckets, err := keboola.ListBucketsRequest().Send(ctx, c.Storage)
 	assert.NoError(t, err)
 	assert.Len(t, *buckets, 0)
 
@@ -72,9 +72,9 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 
-	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := keboola.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	index, err := keboola.IndexRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 
 	services := index.AllServices()

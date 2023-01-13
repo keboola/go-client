@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,6 @@ import (
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func TestSchedulerApiCalls(t *testing.T) {
@@ -21,14 +21,14 @@ func TestSchedulerApiCalls(t *testing.T) {
 	ctx, clients := depsForAnEmptyProject(t)
 
 	// Get default branch
-	branch, err := storageapi.GetDefaultBranchRequest().Send(ctx, clients.Storage)
+	branch, err := keboola.GetDefaultBranchRequest().Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 
 	// Create a config to schedule
-	targetConfig := &storageapi.ConfigWithRows{
-		Config: &storageapi.Config{
-			ConfigKey: storageapi.ConfigKey{
+	targetConfig := &keboola.ConfigWithRows{
+		Config: &keboola.Config{
+			ConfigKey: keboola.ConfigKey{
 				BranchID:    branch.ID,
 				ComponentID: "ex-generic-v2",
 			},
@@ -45,13 +45,13 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = storageapi.CreateConfigRequest(targetConfig).Send(ctx, clients.Storage)
+	_, err = keboola.CreateConfigRequest(targetConfig).Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 
 	// Create scheduler config
-	schedulerConfig := &storageapi.ConfigWithRows{
-		Config: &storageapi.Config{
-			ConfigKey: storageapi.ConfigKey{
+	schedulerConfig := &keboola.ConfigWithRows{
+		Config: &keboola.Config{
+			ConfigKey: keboola.ConfigKey{
 				BranchID:    branch.ID,
 				ComponentID: "keboola.scheduler",
 			},
@@ -78,7 +78,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = storageapi.CreateConfigRequest(schedulerConfig).Send(ctx, clients.Storage)
+	_, err = keboola.CreateConfigRequest(schedulerConfig).Send(ctx, clients.Storage)
 	assert.NoError(t, err)
 
 	// List should return no schedule
@@ -140,9 +140,9 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 
-	storageClient := storageapi.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	storageClient := keboola.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
 
-	index, err := storageapi.IndexRequest().Send(ctx, storageClient)
+	index, err := keboola.IndexRequest().Send(ctx, storageClient)
 	assert.NoError(t, err)
 
 	services := index.AllServices()

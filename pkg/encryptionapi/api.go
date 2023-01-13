@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/spf13/cast"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 // ComponentID is id of a Keboola component.
-type ComponentID = storageapi.ComponentID
+type ComponentID = keboola.ComponentID
 
 // ClientWithHost returns HTTP client with api host set.
 func ClientWithHost(c client.Client, apiHost string) client.Client {

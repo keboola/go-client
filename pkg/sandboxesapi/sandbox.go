@@ -8,17 +8,16 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 type (
-	BranchID = storageapi.BranchID
-	ConfigID = storageapi.ConfigID
+	BranchID = keboola.BranchID
+	ConfigID = keboola.ConfigID
 )
 
 type SandboxWithConfig struct {
 	Sandbox *Sandbox
-	Config  *storageapi.Config
+	Config  *keboola.Config
 }
 
 func (v SandboxWithConfig) String() string {
@@ -176,7 +175,7 @@ func List(
 	branchId BranchID,
 ) ([]*SandboxWithConfig, error) {
 	// List configs and instances in parallel
-	var configs []*storageapi.Config
+	var configs []*keboola.Config
 	var instances map[string]*Sandbox
 	wg := &sync.WaitGroup{}
 	m := &sync.Mutex{}

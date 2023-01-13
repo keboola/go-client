@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
 	"github.com/keboola/go-client/pkg/schedulerapi"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 func CleanProject(
@@ -26,7 +26,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if e := storageapi.CleanProjectRequest().SendOrErr(ctx, storageClient); e != nil {
+		if e := keboola.CleanProjectRequest().SendOrErr(ctx, storageClient); e != nil {
 			m.Lock()
 			defer m.Unlock()
 			err = multierror.Append(err, e)

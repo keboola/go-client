@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/storageapi"
+	"github.com/keboola/go-client/pkg/keboola"
 )
 
 // ClientWithHostAndToken returns HTTP client with api host set.
@@ -24,7 +24,7 @@ func newRequest() client.HTTPRequest {
 }
 
 // ActivateScheduleRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/activate
-func ActivateScheduleRequest(configID storageapi.ConfigID, configurationVersionID string) client.APIRequest[*Schedule] {
+func ActivateScheduleRequest(configID keboola.ConfigID, configurationVersionID string) client.APIRequest[*Schedule] {
 	body := map[string]string{
 		"configurationId": configID.String(),
 	}

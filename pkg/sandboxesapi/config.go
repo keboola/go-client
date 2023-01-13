@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
-func GetSandboxID(c *storageapi.Config) (SandboxID, error) {
+func GetSandboxID(c *keboola.Config) (SandboxID, error) {
 	id, found, err := c.Content.GetNested("parameters.id")
 	if err != nil {
 		return "", err
@@ -24,34 +23,34 @@ func GetSandboxID(c *storageapi.Config) (SandboxID, error) {
 	return SandboxID(out), nil
 }
 
-func GetConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*storageapi.Config] {
-	key := storageapi.ConfigKey{
+func GetConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*keboola.Config] {
+	key := keboola.ConfigKey{
 		BranchID:    branchId,
 		ComponentID: Component,
 		ID:          configId,
 	}
-	return storageapi.GetConfigRequest(key)
+	return keboola.GetConfigRequest(key)
 }
 
-func ListConfigRequest(branchId BranchID) client.APIRequest[*[]*storageapi.Config] {
-	return storageapi.ListConfigRequest(branchId, Component)
+func ListConfigRequest(branchId BranchID) client.APIRequest[*[]*keboola.Config] {
+	return keboola.ListConfigRequest(branchId, Component)
 }
 
-func CreateConfigRequest(branchId BranchID, name string) client.APIRequest[*storageapi.ConfigWithRows] {
-	config := &storageapi.ConfigWithRows{
-		Config: &storageapi.Config{
-			ConfigKey: storageapi.ConfigKey{
+func CreateConfigRequest(branchId BranchID, name string) client.APIRequest[*keboola.ConfigWithRows] {
+	config := &keboola.ConfigWithRows{
+		Config: &keboola.Config{
+			ConfigKey: keboola.ConfigKey{
 				BranchID:    branchId,
 				ComponentID: Component,
 			},
 			Name: name,
 		},
 	}
-	return storageapi.CreateConfigRequest(config)
+	return keboola.CreateConfigRequest(config)
 }
 
 func DeleteConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[client.NoResult] {
-	request := storageapi.DeleteConfigRequest(storageapi.ConfigKey{
+	request := keboola.DeleteConfigRequest(keboola.ConfigKey{
 		BranchID:    branchId,
 		ComponentID: Component,
 		ID:          configId,

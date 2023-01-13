@@ -11,16 +11,16 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/keboola/go-client/pkg/keboola"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/storageapi"
 )
 
 // ComponentID is id of a Keboola component.
-type ComponentID = storageapi.ComponentID
+type ComponentID = keboola.ComponentID
 
 // ConfigID is id of a Keboola component configuration.
-type ConfigID = storageapi.ConfigID
+type ConfigID = keboola.ConfigID
 
 // ClientWithHostAndToken returns HTTP client with api host and token set.
 func ClientWithHostAndToken(c client.Client, apiHost string, apiToken string) client.Client {

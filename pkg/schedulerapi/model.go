@@ -1,7 +1,7 @@
 package schedulerapi
 
 import (
-	"github.com/keboola/go-client/pkg/storageapi"
+	"github.com/keboola/go-client/pkg/keboola"
 )
 
 // ScheduleID is ID of a schedule in Scheduler API.
@@ -12,7 +12,7 @@ func (v ScheduleID) String() string {
 }
 
 // ConfigID is ID of a configuration in Storage API.
-type ConfigID = storageapi.ConfigID
+type ConfigID = keboola.ConfigID
 
 // ScheduleKey is a unique identifier of a schedule.
 type ScheduleKey struct {
