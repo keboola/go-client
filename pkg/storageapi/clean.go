@@ -33,7 +33,8 @@ func CleanProjectRequest() client.APIRequest[*Branch] {
 					// Reset description
 					if branch.Description != mainBranchDescription {
 						branch.Description = mainBranchDescription
-						wg.Send(UpdateBranchRequest(branch, []string{"description"}))
+						clone := *branch // prevent data-race, other operations reads from the branch variable
+						wg.Send(UpdateBranchRequest(&clone, []string{"description"}))
 					}
 					// Store default branch
 					*defaultBranch = *branch
