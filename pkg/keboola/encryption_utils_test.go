@@ -1,4 +1,4 @@
-package encryptionapi
+package keboola
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsKeyToEncrypt(t *testing.T) {
+func TestEncryptionAPI_IsKeyToEncrypt(t *testing.T) {
 	t.Parallel()
 	assert.True(t, IsKeyToEncrypt("#keyToEncrypt"))
 	assert.True(t, IsKeyToEncrypt("##aa"))
@@ -17,7 +17,7 @@ func TestIsKeyToEncrypt(t *testing.T) {
 	assert.False(t, IsKeyToEncrypt("aabc#"))
 }
 
-func TestIsValueEncrypted(t *testing.T) {
+func TestEncryptionAPI_IsValueEncrypted(t *testing.T) {
 	t.Parallel()
 	assert.False(t, IsEncrypted("somevalue"))
 	assert.False(t, IsEncrypted("kbc:value"))

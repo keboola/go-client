@@ -6,6 +6,7 @@
 package keboola
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -14,28 +15,46 @@ import (
 
 type ServiceType string
 
+const EncryptionAPI = ServiceType("encryption")
 const StorageAPI = ServiceType("storage")
 
+// newRequest Creates request, sets base URL and default error type
 func (a *API) newRequest(s ServiceType) client.HTTPRequest {
-	switch s {
-	case StorageAPI:
-		// Create request, set base URL and default error type
-		return client.
-			NewHTTPRequest(a.senderForService(s)).
+	c := client.
+		NewHTTPRequest(a.sender)
+	if s == StorageAPI {
+		return c.
 			WithBaseURL("v2/storage").
 			WithError(&StorageError{})
-	default:
-		panic(fmt.Errorf(`unexpected service "%s"`, s))
 	}
+	c = c.WithBaseURL(a.baseURLForService(s))
+
+	switch s {
+	case EncryptionAPI:
+		c = c.
+			WithError(&EncryptionError{})
+	}
+	return c
 }
 
-func (a *API) senderForService(s ServiceType) client.Sender {
-	// TODO, API should contains hosts for all Services
-	return a.sender
+func (a *API) baseURLForService(s ServiceType) string {
+	if a.services.Len() == 0 {
+		res, err := a.IndexRequest().Send(context.Background())
+		if err != nil {
+			panic(fmt.Errorf(`service list cannot be downloaded: "%s"`, s))
+		}
+		a.services = res.Services.ToMap()
+	}
+	url, found := a.services.URLByID(ServiceID(s))
+	if !found {
+		panic(fmt.Errorf(`service not found "%s"`, s))
+	}
+	return url.String()
 }
 
 type API struct {
-	sender client.Sender
+	sender   client.Sender
+	services ServicesMap
 }
 
 type apiConfig struct {

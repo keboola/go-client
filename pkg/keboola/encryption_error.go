@@ -1,12 +1,12 @@
-package encryptionapi
+package keboola
 
 import (
 	"fmt"
 	"net/http"
 )
 
-// Error represents the structure Encryption API error.
-type Error struct {
+// EncryptionError represents the structure Encryption API error.
+type EncryptionError struct {
 	Message     string `json:"error"`
 	ErrCode     int    `json:"code"`
 	ExceptionID string `json:"exceptionId"`
@@ -14,7 +14,7 @@ type Error struct {
 	response    *http.Response
 }
 
-func (e Error) Error() string {
+func (e *EncryptionError) Error() string {
 	req := e.request
 	msg := fmt.Sprintf(`%s, method: "%s", url: "%s", httpCode: "%d"`, e.Message, req.Method, req.URL, e.StatusCode())
 	if e.ErrCode > 0 {
@@ -27,31 +27,31 @@ func (e Error) Error() string {
 }
 
 // ErrorName returns a human-readable name of the error.
-func (e Error) ErrorName() string {
+func (e *EncryptionError) ErrorName() string {
 	return http.StatusText(e.ErrCode)
 }
 
 // ErrorUserMessage returns error message for end user.
-func (e Error) ErrorUserMessage() string {
+func (e *EncryptionError) ErrorUserMessage() string {
 	return e.Message
 }
 
 // ErrorExceptionID returns exception ID to find details in logs.
-func (e Error) ErrorExceptionID() string {
+func (e *EncryptionError) ErrorExceptionID() string {
 	return e.ExceptionID
 }
 
 // StatusCode returns HTTP status code.
-func (e Error) StatusCode() int {
+func (e *EncryptionError) StatusCode() int {
 	return e.response.StatusCode
 }
 
 // SetRequest method allows injection of HTTP request to the error, it implements client.errorWithRequest.
-func (e *Error) SetRequest(request *http.Request) {
+func (e *EncryptionError) SetRequest(request *http.Request) {
 	e.request = request
 }
 
 // SetResponse method allows injection of HTTP response to the error, it implements client.errorWithResponse.
-func (e *Error) SetResponse(response *http.Response) {
+func (e *EncryptionError) SetResponse(response *http.Response) {
 	e.response = response
 }

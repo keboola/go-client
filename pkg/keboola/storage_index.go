@@ -87,6 +87,11 @@ func (m ServicesMap) URLByID(serviceID ServiceID) (ServiceURL, bool) {
 	return v, found
 }
 
+// Len return length of services map.
+func (m ServicesMap) Len() int {
+	return len(m.data)
+}
+
 // ToMap converts Features slice to FeaturesMap.
 func (v Features) ToMap() FeaturesMap {
 	out := FeaturesMap{data: make(map[string]bool)}

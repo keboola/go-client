@@ -1,4 +1,4 @@
-package encryptionapi
+package keboola
 
 import (
 	"regexp"
