@@ -12,7 +12,6 @@ import (
 	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
-	"github.com/keboola/go-client/pkg/schedulerapi"
 )
 
 func TestCleanProject(t *testing.T) {
@@ -49,7 +48,7 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *buckets, 0)
 
 	// No schedules
-	schedules, err := schedulerapi.ListSchedulesRequest().Send(ctx, c.Schedule)
+	schedules, err := keboola.ListSchedulesRequest().Send(ctx, c.Schedule)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 
@@ -86,7 +85,7 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	jobsQueueHost, found := services.URLByID("queue")
 	assert.True(t, found)
 
-	scheduleClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	scheduleClient := keboola.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
 	sandboxClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 

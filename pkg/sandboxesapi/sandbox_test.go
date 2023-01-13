@@ -13,7 +13,6 @@ import (
 	"github.com/keboola/go-client/pkg/jobsqueueapi"
 	"github.com/keboola/go-client/pkg/platform"
 	"github.com/keboola/go-client/pkg/sandboxesapi"
-	"github.com/keboola/go-client/pkg/schedulerapi"
 )
 
 func TestCreateAndDeletePythonSandbox(t *testing.T) {
@@ -144,7 +143,7 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	jobsQueueHost, found := services.URLByID("queue")
 	assert.True(t, found)
 
-	schedulerClient := schedulerapi.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
+	schedulerClient := keboola.ClientWithHostAndToken(client.NewTestClient(), schedulerApiHost.String(), project.StorageAPIToken())
 	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 

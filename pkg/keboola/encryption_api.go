@@ -1,4 +1,4 @@
-// Package encryptionapi contains request definitions for the Encryption API.
+// Contains request definitions for the Encryption API.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
 package keboola
 

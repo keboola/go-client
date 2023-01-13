@@ -16,6 +16,7 @@ import (
 type ServiceType string
 
 const EncryptionAPI = ServiceType("encryption")
+const SchedulerAPI = ServiceType("scheduler")
 const StorageAPI = ServiceType("storage")
 
 // newRequest Creates request, sets base URL and default error type
@@ -31,8 +32,9 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 
 	switch s {
 	case EncryptionAPI:
-		c = c.
-			WithError(&EncryptionError{})
+		c = c.WithError(&EncryptionError{})
+	case SchedulerAPI:
+		c = c.WithError(&SchedulerError{})
 	}
 	return c
 }
