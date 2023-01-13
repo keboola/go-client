@@ -6,24 +6,21 @@ import (
 
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/keboola/go-client/pkg/client"
 )
 
-func ClientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproject.Project, client.Client) {
+func APIClientForRandomProject(t *testing.T, opts ...testproject.Option) (*testproject.Project, *API) {
 	t.Helper()
 
 	project, err := testproject.GetTestProjectForTest(t, opts...)
 	assert.NoError(t, err)
-	c := ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
-	return project, c
+	api := NewAPI(project.StorageAPIHost(), WithToken(project.StorageAPIToken()))
+	return project, api
 }
 
 func APIClientForAnEmptyProject(t *testing.T, opts ...testproject.Option) *API {
 	t.Helper()
 
-	project, c := ClientForRandomProject(t, opts...)
-	api := NewAPI(c)
+	project, api := APIClientForRandomProject(t, opts...)
 	_, err := api.CleanProjectRequest().Send(context.Background())
 	if err != nil {
 		t.Fatalf(`cannot clear project "%d": %s`, project.ID(), err)

@@ -16,8 +16,7 @@ import (
 func TestVerifyToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	project, api := APIClientForRandomProject(t)
 
 	token, err := api.VerifyTokenRequest(project.StorageAPIToken()).Send(ctx)
 	assert.NoError(t, err)
@@ -35,8 +34,7 @@ func TestVerifyToken(t *testing.T) {
 func TestVerifyTokenEmpty(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	_, api := APIClientForRandomProject(t)
 
 	token, err := api.VerifyTokenRequest("").Send(ctx)
 	assert.Error(t, err)
@@ -50,8 +48,7 @@ func TestVerifyTokenEmpty(t *testing.T) {
 func TestVerifyTokenInvalid(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	_, api := APIClientForRandomProject(t)
 
 	token, err := api.VerifyTokenRequest("mytoken").Send(ctx)
 	assert.Error(t, err)
@@ -65,8 +62,7 @@ func TestVerifyTokenInvalid(t *testing.T) {
 func TestCreateToken_AllPerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	_, api := APIClientForRandomProject(t)
 
 	description := "create token request all perms test"
 	token, err := api.CreateTokenRequest(
@@ -86,8 +82,7 @@ func TestCreateToken_AllPerms(t *testing.T) {
 func TestCreateToken_SomePerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	_, api := APIClientForRandomProject(t)
 
 	rand.Seed(time.Now().Unix())
 
@@ -157,8 +152,7 @@ func TestListAndDeleteToken(t *testing.T) {
 func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, c := ClientForRandomProject(t)
-	api := NewAPI(c)
+	_, api := APIClientForRandomProject(t)
 
 	created, err := api.CreateTokenRequest(
 		WithDescription("refresh token request test"),

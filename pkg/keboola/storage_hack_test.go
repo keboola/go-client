@@ -67,7 +67,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(
 		http.MethodPost,
-		`v2/storage/branch/123/components/foo.bar/configs`,
+		`https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs`,
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
@@ -82,7 +82,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 	)
 	transport.RegisterResponder(
 		http.MethodGet,
-		`v2/storage/branch/123/components/foo.bar/configs/123`,
+		`https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs/123`,
 		httpmock.NewJsonResponderOrPanic(http.StatusOK, map[string]any{
 			"componentId": "foo.bar",
 			"id":          "123",
@@ -92,7 +92,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI(c)
+	api := NewAPI("https://connection.keboola.com", WithClient(&c))
 
 	// Run request
 	config := &ConfigWithRows{Config: &Config{ConfigKey: ConfigKey{BranchID: 123, ComponentID: "foo.bar", ID: "123"}}}
@@ -104,8 +104,8 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
-		"POST v2/storage/branch/123/components/foo.bar/configs":    2,
-		"GET v2/storage/branch/123/components/foo.bar/configs/123": 1,
+		"POST https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs":    2,
+		"GET https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs/123": 1,
 	}, transport.GetCallCountInfo())
 }
 
@@ -115,7 +115,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(
 		http.MethodDelete,
-		`v2/storage/buckets/in.c-foo`,
+		`https://connection.keboola.com/v2/storage/buckets/in.c-foo`,
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
@@ -131,7 +131,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI(c)
+	api := NewAPI("https://connection.keboola.com", WithClient(&c))
 
 	// Run request
 	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
@@ -142,6 +142,6 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
-		"DELETE v2/storage/buckets/in.c-foo": 2,
+		"DELETE https://connection.keboola.com/v2/storage/buckets/in.c-foo": 2,
 	}, transport.GetCallCountInfo())
 }

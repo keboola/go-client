@@ -130,9 +130,10 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 
-	storageClient := keboola.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	c := client.NewTestClient()
+	api := keboola.NewAPI(project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
 
-	index, err := keboola.IndexRequest().Send(ctx, storageClient)
+	index, err := api.IndexRequest().Send(ctx)
 	assert.NoError(t, err)
 
 	services := index.AllServices()
@@ -147,12 +148,12 @@ func depsForAnEmptyProject(t *testing.T) (context.Context, *testClients) {
 	sandboxesClient := sandboxesapi.ClientWithHostAndToken(client.NewTestClient(), sandboxesApiHost.String(), project.StorageAPIToken())
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
-	if err := platform.CleanProject(ctx, storageClient, schedulerClient, queueClient, sandboxesClient); err != nil {
+	if err := platform.CleanProject(ctx, api, schedulerClient, queueClient, sandboxesClient); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
 	clients := &testClients{
-		Storage:  storageClient,
+		Storage:  api,
 		Schedule: schedulerClient,
 		Sandbox:  sandboxesClient,
 		Queue:    queueClient,

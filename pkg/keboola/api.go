@@ -1,8 +1,8 @@
-// Package storageapi contains request definitions for the Storage API.
+// Package keboola contains request definitions for all supported Keboola APIs.
 // The definitions are not complete and can be extended as needed.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
 // It is necessary to set API host and "X-StorageApi-Token" header in the HTTP client,
-// see the ClientWithHost and the ClientWithHostAndToken functions.
+// see the NewAPI function.
 package keboola
 
 import (
@@ -14,23 +14,7 @@ import (
 
 type ServiceType string
 
-const StorageAPI = ServiceType("storage api")
-
-// ClientWithHost returns HTTP client with api host set.
-func ClientWithHost(c client.Client, apiHost string) client.Client {
-	apiHost = strings.TrimPrefix(apiHost, "https://")
-	return c.WithBaseURL(`https://` + apiHost)
-}
-
-// ClientWithToken returns HTTP client with api token set.
-func ClientWithToken(c client.Client, apiToken string) client.Client {
-	return c.WithHeader("X-StorageApi-Token", apiToken)
-}
-
-// ClientWithHostAndToken returns HTTP client with api host and token set.
-func ClientWithHostAndToken(c client.Client, apiHost, apiToken string) client.Client {
-	return ClientWithToken(ClientWithHost(c, apiHost), apiToken)
-}
+const StorageAPI = ServiceType("storage")
 
 func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 	switch s {
@@ -47,19 +31,59 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 
 func (a *API) senderForService(s ServiceType) client.Sender {
 	// TODO, API should contains hosts for all Services
-	return nil
+	return a.sender
 }
 
 type API struct {
 	sender client.Sender
 }
 
-func NewAPI(sender client.Sender) *API {
-	return &API{sender: sender}
+type apiConfig struct {
+	client *client.Client
+	token  string
+}
+
+type APIOption func(c *apiConfig)
+
+func WithClient(cl *client.Client) APIOption {
+	return func(c *apiConfig) {
+		c.client = cl
+	}
+}
+
+func WithToken(token string) APIOption {
+	return func(c *apiConfig) {
+		c.token = token
+	}
 }
 
 type Object interface {
 	ObjectId() any
+}
+
+func NewAPI(host string, opts ...APIOption) *API {
+	if !strings.HasPrefix(host, "https://") {
+		host = "https://" + host
+	}
+	config := apiConfig{}
+	for _, opt := range opts {
+		opt(&config)
+	}
+	var c client.Client
+	if config.client != nil {
+		c = *config.client
+	} else {
+		c = client.New()
+	}
+	if config.token != "" {
+		c = c.WithHeader("X-StorageApi-Token", config.token)
+	}
+
+	return &API{sender: c.WithBaseURL(host)}
+}
+
+func (a *API) Client() client.Sender {
+	return a.sender
 }
 
 // CreateRequest creates request to create object according its type.

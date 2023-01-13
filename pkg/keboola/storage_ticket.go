@@ -33,8 +33,8 @@ type TicketProvider struct {
 }
 
 // NewTicketProvider creates TicketProvider.
-func NewTicketProvider(ctx context.Context, sender client.Sender) *TicketProvider {
-	return &TicketProvider{group: client.NewRunGroup(ctx, sender), lock: &sync.Mutex{}}
+func NewTicketProvider(ctx context.Context, api *API) *TicketProvider {
+	return &TicketProvider{api: api, group: client.NewRunGroup(ctx, api.Client()), lock: &sync.Mutex{}}
 }
 
 // Request queues ID generation requests and registers callback.

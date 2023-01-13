@@ -72,9 +72,10 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 
-	storageClient := keboola.ClientWithHostAndToken(client.NewTestClient(), project.StorageAPIHost(), project.StorageAPIToken())
+	c := client.NewTestClient()
+	api := keboola.NewAPI(project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
 
-	index, err := keboola.IndexRequest().Send(ctx, storageClient)
+	index, err := api.IndexRequest().Send(ctx)
 	assert.NoError(t, err)
 
 	services := index.AllServices()
@@ -90,7 +91,7 @@ func deps(t *testing.T) (context.Context, *testproject.Project, *testClients) {
 	queueClient := jobsqueueapi.ClientWithHostAndToken(client.NewTestClient(), jobsQueueHost.String(), project.StorageAPIToken())
 
 	clients := &testClients{
-		Storage:  storageClient,
+		Storage:  api,
 		Schedule: scheduleClient,
 		Sandbox:  sandboxClient,
 		Queue:    queueClient,

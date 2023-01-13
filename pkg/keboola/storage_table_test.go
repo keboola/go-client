@@ -37,7 +37,7 @@ func mockedListTablesClient() client.Client {
 	c, transport := client.NewMockedClient()
 	transport.RegisterResponder(
 		"GET",
-		"v2/storage/tables?include=",
+		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=",
 		newJsonResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -65,7 +65,7 @@ func mockedListTablesClient() client.Client {
 	)
 	transport.RegisterResponder(
 		"GET",
-		"v2/storage/tables?include=buckets%2Cmetadata",
+		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=buckets%2Cmetadata",
 		newJsonResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
@@ -152,7 +152,7 @@ func TestMockListTablesRequest(t *testing.T) {
 
 	ctx := context.Background()
 	c := mockedListTablesClient()
-	api := NewAPI(c)
+	api := NewAPI("https://connection.north-europe.azure.keboola.com", WithClient(&c))
 	{
 		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
