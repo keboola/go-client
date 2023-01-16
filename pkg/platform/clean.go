@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/keboola/go-client/pkg/keboola"
-	"github.com/keboola/go-client/pkg/sandboxesapi"
 )
 
 func CleanProject(
@@ -41,7 +40,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if e := sandboxesapi.CleanInstances(ctx, queueClient, sandboxClient); e != nil {
+		if e := keboola.CleanWorkspaceInstances(ctx, queueClient, sandboxClient); e != nil {
 			m.Lock()
 			defer m.Unlock()
 			err = multierror.Append(err, e)

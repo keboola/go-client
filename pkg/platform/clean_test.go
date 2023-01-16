@@ -10,7 +10,6 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/platform"
-	"github.com/keboola/go-client/pkg/sandboxesapi"
 )
 
 func TestCleanProject(t *testing.T) {
@@ -52,7 +51,7 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *schedules, 0)
 
 	// No sandbox instances
-	instances, err := sandboxesapi.ListInstancesRequest().Send(ctx)
+	instances, err := keboola.ListWorkspaceInstancesRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *instances, 0)
 }

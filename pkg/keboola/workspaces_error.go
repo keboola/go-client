@@ -1,19 +1,19 @@
-package sandboxesapi
+package keboola
 
 import (
 	"fmt"
 	"net/http"
 )
 
-// Error represents the structure of Storage API error.
-type Error struct {
+// WorkspacesError represents the structure of Workspaces API error.
+type WorkspacesError struct {
 	Message   string `json:"messsage"`
 	ErrorInfo string `json:"error"`
 	request   *http.Request
 	response  *http.Response
 }
 
-func (e Error) Error() string {
+func (e WorkspacesError) Error() string {
 	if e.request == nil {
 		panic(fmt.Errorf("http request is not set"))
 	}
@@ -25,26 +25,26 @@ func (e Error) Error() string {
 }
 
 // ErrorName returns a human-readable name of the error.
-func (e Error) ErrorName() string {
+func (e WorkspacesError) ErrorName() string {
 	return e.ErrorInfo
 }
 
 // ErrorUserMessage returns error message for end user.
-func (e Error) ErrorUserMessage() string {
+func (e WorkspacesError) ErrorUserMessage() string {
 	return e.Message
 }
 
 // StatusCode returns HTTP status code.
-func (e Error) StatusCode() int {
+func (e WorkspacesError) StatusCode() int {
 	return e.response.StatusCode
 }
 
 // SetRequest method allows injection of HTTP request to the error, it implements client.errorWithRequest.
-func (e *Error) SetRequest(request *http.Request) {
+func (e *WorkspacesError) SetRequest(request *http.Request) {
 	e.request = request
 }
 
 // SetResponse method allows injection of HTTP response to the error, it implements client.errorWithResponse.
-func (e *Error) SetResponse(response *http.Response) {
+func (e *WorkspacesError) SetResponse(response *http.Response) {
 	e.response = response
 }

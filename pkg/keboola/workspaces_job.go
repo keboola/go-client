@@ -1,10 +1,9 @@
-package sandboxesapi
+package keboola
 
 import (
 	"context"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/keboola"
 )
 
 type params struct {
@@ -15,25 +14,25 @@ type params struct {
 	ImageVersion     string
 }
 
-type Option func(p *params)
+type CreateWorkspaceOption func(p *params)
 
-func WithShared(v bool) Option {
+func WithShared(v bool) CreateWorkspaceOption {
 	return func(p *params) { p.Shared = v }
 }
 
-func WithExpireAfterHours(v uint64) Option {
+func WithExpireAfterHours(v uint64) CreateWorkspaceOption {
 	return func(p *params) { p.ExpireAfterHours = v }
 }
 
-func WithSize(v string) Option {
+func WithSize(v string) CreateWorkspaceOption {
 	return func(p *params) { p.Size = v }
 }
 
-func WithImageVersion(v string) Option {
+func WithImageVersion(v string) CreateWorkspaceOption {
 	return func(p *params) { p.ImageVersion = v }
 }
 
-func newParams(type_ string, opts ...Option) params {
+func newParams(type_ string, opts ...CreateWorkspaceOption) params {
 	p := params{
 		Type:             type_,
 		Shared:           false,
@@ -61,25 +60,25 @@ func (p params) toMap() map[string]any {
 	return m
 }
 
-func CreateJobRequest(configId ConfigID, sandboxType string, opts ...Option) client.APIRequest[client.NoResult] {
-	params := newParams(sandboxType, opts...)
-	request := keboola.CreateJobConfigDataRequest(Component, configId, map[string]any{"parameters": params.toMap()}).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *keboola.QueueJob) error {
-			return keboola.WaitForQueueJob(ctx, sender, result)
+func (a *API) CreateWorkspaceJobRequest(configId ConfigID, workspaceType string, opts ...CreateWorkspaceOption) client.APIRequest[client.NoResult] {
+	params := newParams(workspaceType, opts...)
+	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configId, map[string]any{"parameters": params.toMap()}).
+		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
+			return a.WaitForQueueJob(ctx, result)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
 
-func DeleteJobRequest(sandboxId SandboxID) client.APIRequest[client.NoResult] {
+func (a *API) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) client.APIRequest[client.NoResult] {
 	configData := map[string]any{
 		"parameters": map[string]any{
 			"task": "delete",
-			"id":   sandboxId.String(),
+			"id":   workspaceID.String(),
 		},
 	}
-	request := keboola.CreateJobConfigDataRequest(Component, "", configData).
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, result *keboola.QueueJob) error {
-			return keboola.WaitForQueueJob(ctx, sender, result)
+	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, "", configData).
+		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
+			return a.WaitForQueueJob(ctx, result)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

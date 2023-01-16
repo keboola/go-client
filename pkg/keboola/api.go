@@ -19,6 +19,7 @@ const EncryptionAPI = ServiceType("encryption")
 const QueueAPI = ServiceType("queue")
 const SchedulerAPI = ServiceType("scheduler")
 const StorageAPI = ServiceType("storage")
+const WorkspacesAPI = ServiceType("sandboxes")
 
 // newRequest Creates request, sets base URL and default error type
 func (a *API) newRequest(s ServiceType) client.HTTPRequest {
@@ -38,6 +39,8 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 		c = c.WithError(&QueueError{})
 	case SchedulerAPI:
 		c = c.WithError(&SchedulerError{})
+	case WorkspacesAPI:
+		c = c.WithError(&WorkspacesError{})
 	}
 	return c
 }
