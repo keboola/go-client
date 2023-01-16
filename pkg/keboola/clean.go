@@ -1,17 +1,15 @@
-package platform
+package keboola
 
 import (
 	"context"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-
-	"github.com/keboola/go-client/pkg/keboola"
 )
 
 func CleanProject(
 	ctx context.Context,
-	api *keboola.API,
+	api *API,
 ) error {
 	wg := &sync.WaitGroup{}
 	m := &sync.Mutex{}
@@ -40,7 +38,7 @@ func CleanProject(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if e := keboola.CleanWorkspaceInstances(ctx, queueClient, sandboxClient); e != nil {
+		if e := api.CleanWorkspaceInstances(ctx); e != nil {
 			m.Lock()
 			defer m.Unlock()
 			err = multierror.Append(err, e)

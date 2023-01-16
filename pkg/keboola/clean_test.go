@@ -1,15 +1,14 @@
-package platform_test
+package keboola_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/keboola"
-	"github.com/keboola/go-client/pkg/platform"
 )
 
 func TestCleanProject(t *testing.T) {
@@ -18,7 +17,7 @@ func TestCleanProject(t *testing.T) {
 	ctx, project, api := deps(t)
 
 	// Clean project
-	if err := platform.CleanProject(ctx, api); err != nil {
+	if err := keboola.CleanProject(ctx, api); err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 
@@ -51,7 +50,7 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *schedules, 0)
 
 	// No sandbox instances
-	instances, err := keboola.ListWorkspaceInstancesRequest().Send(ctx)
+	instances, err := api.ListWorkspaceInstancesRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *instances, 0)
 }
