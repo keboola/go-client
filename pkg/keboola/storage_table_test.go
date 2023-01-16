@@ -17,7 +17,7 @@ import (
 	. "github.com/keboola/go-client/pkg/keboola"
 )
 
-func newJsonResponder(status int, response string) httpmock.Responder {
+func newJSONResponder(status int, response string) httpmock.Responder {
 	r := httpmock.NewStringResponse(status, response)
 	r.Header.Set("Content-Type", "application/json")
 	return httpmock.ResponderFromResponse(r)
@@ -38,7 +38,7 @@ func mockedListTablesClient() client.Client {
 	transport.RegisterResponder(
 		"GET",
 		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=",
-		newJsonResponder(200, `[
+		newJSONResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				"id": "in.c-keboola-ex-http-6336016.tmp1",
@@ -66,7 +66,7 @@ func mockedListTablesClient() client.Client {
 	transport.RegisterResponder(
 		"GET",
 		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=buckets%2Cmetadata",
-		newJsonResponder(200, `[
+		newJSONResponder(200, `[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				"id": "in.c-keboola-ex-http-6336016.tmp1",
@@ -158,7 +158,7 @@ func TestMockListTablesRequest(t *testing.T) {
 		expected := &[]*Table{
 			{
 				ID:             MustParseTableID("in.c-keboola-ex-http-6336016.tmp1"),
-				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				URI:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				Name:           "tmp1",
 				DisplayName:    "tmp1",
 				PrimaryKey:     []string{},
@@ -185,7 +185,7 @@ func TestMockListTablesRequest(t *testing.T) {
 		expected := &[]*Table{
 			{
 				ID:             MustParseTableID("in.c-keboola-ex-http-6336016.tmp1"),
-				Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
+				URI:            "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				Name:           "tmp1",
 				DisplayName:    "tmp1",
 				PrimaryKey:     []string{},
@@ -218,7 +218,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				ColumnMetadata: nil,
 				Bucket: &Bucket{
 					ID:             MustParseBucketID("in.c-keboola-ex-http-6336016"),
-					Uri:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
+					URI:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
 					DisplayName:    "keboola-ex-http-6336016",
 					Description:    "",
 					Created:        parseDate("2021-10-15T11:29:09+0200"),

@@ -56,7 +56,7 @@ type StorageJob struct {
 type StorageJobError struct {
 	Code        string `json:"code"`
 	Message     string `json:"message"`
-	ExceptionId string `json:"exceptionId"`
+	ExceptionID string `json:"exceptionId"`
 }
 
 // GetStorageJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
@@ -91,7 +91,7 @@ func (a *API) WaitForStorageJob(ctx context.Context, job *StorageJob) error {
 		if job.Status == "success" {
 			return nil
 		} else if job.Status == "error" {
-			return fmt.Errorf(`job "%s" failed: %s (exception id: %s)`, job.ID, job.Error.Message, job.Error.ExceptionId)
+			return fmt.Errorf(`job "%s" failed: %s (exception id: %s)`, job.ID, job.Error.Message, job.Error.ExceptionID)
 		}
 
 		// Wait and check again

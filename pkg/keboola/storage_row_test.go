@@ -104,9 +104,9 @@ func TestConfigRowApiCalls(t *testing.T) {
 	components, err := api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
 	assert.NotNil(t, components)
 	assert.NoError(t, err)
-	componentsJson, err := json.MarshalIndent(components, "", "  ")
+	componentsJSON, err := json.MarshalIndent(components, "", "  ")
 	assert.NoError(t, err)
-	wildcards.Assert(t, expectedComponentsConfigRowTest(), string(componentsJson), "Unexpected components")
+	wildcards.Assert(t, expectedComponentsConfigRowTest(), string(componentsJSON), "Unexpected components")
 }
 
 func expectedComponentsConfigRowTest() string {

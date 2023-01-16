@@ -78,9 +78,9 @@ func TestBranchApiCalls(t *testing.T) {
 	branches, err := api.ListBranchesRequest().Send(ctx)
 	assert.NotNil(t, branches)
 	assert.NoError(t, err)
-	branchesJson, err := json.MarshalIndent(branches, "", "  ")
+	branchesJSON, err := json.MarshalIndent(branches, "", "  ")
 	assert.NoError(t, err)
-	wildcards.Assert(t, expectedBranchesAll(), string(branchesJson), "Unexpected branches state")
+	wildcards.Assert(t, expectedBranchesAll(), string(branchesJSON), "Unexpected branches state")
 
 	// Append branch metadata
 	_, err = api.AppendBranchMetadataRequest(branchFoo.BranchKey, map[string]string{"KBC.KaC.meta1": "value", "KBC.KaC.meta2": "value"}).Send(ctx)
@@ -117,9 +117,9 @@ func TestBranchApiCalls(t *testing.T) {
 	branches, err = api.ListBranchesRequest().Send(ctx)
 	assert.NotNil(t, branches)
 	assert.NoError(t, err)
-	branchesJson, err = json.MarshalIndent(branches, "", "  ")
+	branchesJSON, err = json.MarshalIndent(branches, "", "  ")
 	assert.NoError(t, err)
-	wildcards.Assert(t, expectedBranchesMain(), string(branchesJson), "Unexpected branches state")
+	wildcards.Assert(t, expectedBranchesMain(), string(branchesJSON), "Unexpected branches state")
 }
 
 func expectedBranchesAll() string {

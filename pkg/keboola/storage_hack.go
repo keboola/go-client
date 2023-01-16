@@ -37,7 +37,7 @@ func ignoreResourceNotFoundError() func(context.Context, client.HTTPResponse, er
 }
 
 func isResourceAlreadyExistsError(response *http.Response, err error) bool {
-	var storageApiError *StorageError
+	var storageAPIError *StorageError
 
 	// There must be an HTTP response
 	if response == nil {
@@ -55,7 +55,7 @@ func isResourceAlreadyExistsError(response *http.Response, err error) bool {
 	}
 
 	// It must be a Storage API error
-	if !errors.As(err, &storageApiError) {
+	if !errors.As(err, &storageAPIError) {
 		return false
 	}
 
@@ -65,7 +65,7 @@ func isResourceAlreadyExistsError(response *http.Response, err error) bool {
 	}
 
 	// The error code must match, for example "configurationAlreadyExists"
-	if !strings.HasSuffix(storageApiError.ErrCode, "AlreadyExists") {
+	if !strings.HasSuffix(storageAPIError.ErrCode, "AlreadyExists") {
 		return false
 	}
 
@@ -73,7 +73,7 @@ func isResourceAlreadyExistsError(response *http.Response, err error) bool {
 }
 
 func isResourceNotFoundError(response *http.Response, err error) bool {
-	var storageApiError *StorageError
+	var storageAPIError *StorageError
 
 	// There must be an HTTP response
 	if response == nil {
@@ -91,7 +91,7 @@ func isResourceNotFoundError(response *http.Response, err error) bool {
 	}
 
 	// It must be a Storage API error
-	if !errors.As(err, &storageApiError) {
+	if !errors.As(err, &storageAPIError) {
 		return false
 	}
 
@@ -101,7 +101,7 @@ func isResourceNotFoundError(response *http.Response, err error) bool {
 	}
 
 	// The error code must match, for example "storage.bucket.notFound"
-	if !strings.HasSuffix(storageApiError.ErrCode, "notFound") {
+	if !strings.HasSuffix(storageAPIError.ErrCode, "notFound") {
 		return false
 	}
 

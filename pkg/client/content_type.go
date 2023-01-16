@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	ContentTypeApplicationJson       = "application/json"
-	ContentTypeApplicationJsonRegexp = `^application/([a-zA-Z0-9\.\-]+\+)?json$`
+	ContentTypeApplicationJSON       = "application/json"
+	ContentTypeApplicationJSONRegexp = `^application/([a-zA-Z0-9\.\-]+\+)?json$`
 )
 
-var jsonContentTypeRegexp = regexp.MustCompile(ContentTypeApplicationJsonRegexp)
+var jsonContentTypeRegexp = regexp.MustCompile(ContentTypeApplicationJSONRegexp)
 
-func isJsonContentType(contentType string) bool {
+func isJSONContentType(contentType string) bool {
 	return jsonContentTypeRegexp.MatchString(contentType)
 }

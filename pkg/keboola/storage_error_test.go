@@ -12,18 +12,18 @@ import (
 
 func TestErrorMsg1(t *testing.T) {
 	t.Parallel()
-	reqUrl, _ := url.Parse("https://example.com")
+	reqURL, _ := url.Parse("https://example.com")
 	e := &StorageError{Message: "msg"}
-	e.SetRequest(&http.Request{URL: reqUrl, Method: http.MethodGet})
+	e.SetRequest(&http.Request{URL: reqURL, Method: http.MethodGet})
 	e.SetResponse(&http.Response{StatusCode: 404})
 	assert.Equal(t, `msg, method: "GET", url: "https://example.com", httpCode: "404"`, e.Error())
 }
 
 func TestErrorMsg2(t *testing.T) {
 	t.Parallel()
-	reqUrl, _ := url.Parse("https://example.com")
+	reqURL, _ := url.Parse("https://example.com")
 	e := &StorageError{Message: "msg", ErrCode: "errCode", ExceptionID: "exceptionId"}
-	e.SetRequest(&http.Request{URL: reqUrl, Method: http.MethodGet})
+	e.SetRequest(&http.Request{URL: reqURL, Method: http.MethodGet})
 	e.SetResponse(&http.Response{StatusCode: 404})
 	assert.Equal(t, `msg, method: "GET", url: "https://example.com", httpCode: "404", errCode: "errCode", exceptionId: "exceptionId"`, e.Error())
 }

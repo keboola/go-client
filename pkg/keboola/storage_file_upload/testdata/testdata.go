@@ -66,7 +66,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 
 		// Assert common fields
 		assert.NotEmpty(t, file.ID)
-		assert.NotEmpty(t, file.Url)
+		assert.NotEmpty(t, file.URL)
 		assert.NotEmpty(t, file.Created)
 		assert.Equal(t, tc.Permanent, file.IsPermanent)
 		assert.Equal(t, tc.Sliced, file.IsSliced)
@@ -90,7 +90,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			assert.Equal(t, tc.Encrypted, file.IsEncrypted)
 			assert.NotEmpty(t, file.S3UploadParams)
 			assert.NotEmpty(t, file.S3UploadParams.Bucket)
-			assert.NotEmpty(t, file.S3UploadParams.Credentials.AccessKeyId)
+			assert.NotEmpty(t, file.S3UploadParams.Credentials.AccessKeyID)
 			assert.NotEmpty(t, file.S3UploadParams.Credentials.SecretAccessKey)
 		default:
 			panic(fmt.Errorf(`unexpected storage provider "%s"`, file.Provider))
@@ -141,7 +141,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		assert.NoError(t, err)
 
 		// Request file content
-		resp, err := http.Get(fileFromRequest.Url)
+		resp, err := http.Get(fileFromRequest.URL)
 		assert.NoError(t, err)
 		defer resp.Body.Close()
 

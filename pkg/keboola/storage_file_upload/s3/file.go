@@ -19,7 +19,7 @@ const Provider = "aws"
 
 //nolint:tagliatelle
 type Credentials struct {
-	AccessKeyId     string       `json:"AccessKeyId"`
+	AccessKeyID     string       `json:"AccessKeyId"`
 	SecretAccessKey string       `json:"SecretAccessKey"`
 	SessionToken    string       `json:"SessionToken"`
 	Expiration      iso8601.Time `json:"Expiration"`
@@ -30,14 +30,14 @@ type UploadParams struct {
 	Key         string                       `json:"key"`
 	Bucket      string                       `json:"bucket"`
 	Credentials Credentials                  `json:"credentials"`
-	Acl         s3types.ObjectCannedACL      `json:"acl"`
+	ACL         s3types.ObjectCannedACL      `json:"acl"`
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
 }
 
 func NewUploadWriter(ctx context.Context, params *UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
-			params.Credentials.AccessKeyId,
+			params.Credentials.AccessKeyID,
 			params.Credentials.SecretAccessKey,
 			params.Credentials.SessionToken,
 		),
@@ -63,7 +63,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 		BeforeWrite: func(as func(interface{}) bool) error {
 			var req *s3.PutObjectInput
 			if as(&req) {
-				req.ACL = params.Acl
+				req.ACL = params.ACL
 				req.ServerSideEncryption = params.Encryption
 			}
 			return nil
@@ -78,7 +78,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 	return bw, nil
 }
 
-func NewSliceUrl(params *UploadParams, slice string) string {
+func NewSliceURL(params *UploadParams, slice string) string {
 	return fmt.Sprintf("s3://%s/%s", params.Bucket, sliceKey(params.Key, slice))
 }
 

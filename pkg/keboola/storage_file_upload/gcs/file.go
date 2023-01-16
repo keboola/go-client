@@ -17,7 +17,7 @@ const Provider = "gcp"
 
 //nolint:tagliatelle
 type UploadParams struct {
-	ProjectId   string `json:"projectId"`
+	ProjectID   string `json:"projectId"`
 	Key         string `json:"key"`
 	Bucket      string `json:"bucket"`
 	AccessToken string `json:"access_token"`
@@ -73,7 +73,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 	return bw, nil
 }
 
-func NewSliceUrl(params *UploadParams, slice string) string {
+func NewSliceURL(params *UploadParams, slice string) string {
 	return fmt.Sprintf(
 		"gs://%s/%s",
 		params.Bucket,

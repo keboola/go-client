@@ -23,7 +23,7 @@ type Workspace struct {
 	Shared   bool           `json:"shared"`
 	User     string         `json:"user"`
 	Host     string         `json:"host"`
-	Url      string         `json:"url"`
+	URL      string         `json:"url"`
 	Password string         `json:"password"`
 	Created  WorkspacesTime `json:"createdTimestamp"`
 	Updated  WorkspacesTime `json:"updatedTimestamp"`

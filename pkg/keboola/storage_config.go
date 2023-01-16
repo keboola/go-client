@@ -25,7 +25,7 @@ type ConfigKey struct {
 	ID          ConfigID    `json:"id" writeas:"configurationId" writeoptional:"true"`
 }
 
-func (k ConfigKey) ObjectId() any {
+func (k ConfigKey) ObjectID() any {
 	return k.ID
 }
 
@@ -110,17 +110,17 @@ func (a *API) ListConfigsAndRowsFrom(branch BranchKey) client.APIRequest[*[]*Com
 	return client.NewAPIRequest(&result, request)
 }
 
-func (a *API) ListConfigRequest(branchId BranchID, componentId ComponentID) client.APIRequest[*[]*Config] {
+func (a *API) ListConfigRequest(branchID BranchID, componentID ComponentID) client.APIRequest[*[]*Config] {
 	result := make([]*Config, 0)
 	request := a.newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("branch/{branchId}/components/{componentId}/configs").
-		AndPathParam("branchId", branchId.String()).
-		AndPathParam("componentId", componentId.String()).
+		AndPathParam("branchId", branchID.String()).
+		AndPathParam("componentId", componentID.String()).
 		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
 			for _, c := range result {
-				c.BranchID = branchId
-				c.ComponentID = componentId
+				c.BranchID = branchID
+				c.ComponentID = componentID
 			}
 			return nil
 		})

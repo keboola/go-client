@@ -21,10 +21,9 @@ const WaitGroupConcurrencyLimit = 8
 // If you need to schedule requests and send them later,
 // or if you want to stop at the first error, use client.RunGroup instead.
 type WaitGroup struct {
-	ctx    context.Context
-	sender Sender
-	wg     *sync.WaitGroup     // wait for all
-	sem    *semaphore.Weighted // limit concurrency
+	ctx context.Context
+	wg  *sync.WaitGroup     // wait for all
+	sem *semaphore.Weighted // limit concurrency
 
 	lock *sync.Mutex // for err
 	err  *multierror.Error

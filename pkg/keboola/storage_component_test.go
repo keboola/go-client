@@ -3,8 +3,9 @@ package keboola_test
 import (
 	"testing"
 
-	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/keboola"
 )
 
 func TestIsTransformationWithBlocks(t *testing.T) {

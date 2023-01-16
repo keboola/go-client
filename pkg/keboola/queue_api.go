@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+
 	"github.com/keboola/go-client/pkg/client"
 )
 
@@ -33,14 +34,14 @@ func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) 
 // Allows setting configData.
 //
 // `configId` can be set to an empty string, and it will be omitted.
-func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configId ConfigID, configData map[string]any) client.APIRequest[*QueueJob] {
+func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) client.APIRequest[*QueueJob] {
 	body := map[string]any{
 		"component":  componentID.String(),
 		"mode":       "run",
 		"configData": configData,
 	}
-	if len(configId.String()) > 0 {
-		body["config"] = configId.String()
+	if len(configID.String()) > 0 {
+		body["config"] = configID.String()
 	}
 
 	result := &QueueJob{}

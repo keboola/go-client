@@ -12,7 +12,7 @@ import (
 
 type Bucket struct {
 	ID             BucketID      `json:"id"`
-	Uri            string        `json:"uri"`
+	URI            string        `json:"uri"`
 	DisplayName    string        `json:"displayName"`
 	Description    string        `json:"description"`
 	Created        iso8601.Time  `json:"created"`

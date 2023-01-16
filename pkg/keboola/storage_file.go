@@ -25,7 +25,7 @@ type File struct {
 	IsSliced        bool              `json:"isSliced,omitempty"`
 	IsEncrypted     bool              `json:"isEncrypted,omitempty"`
 	Name            string            `json:"name"`
-	Url             string            `json:"url" readonly:"true"`
+	URL             string            `json:"url" readonly:"true"`
 	Provider        string            `json:"provider" readonly:"true"`
 	Region          string            `json:"region" readonly:"true"`
 	SizeBytes       uint64            `json:"sizeBytes,omitempty"`
@@ -46,7 +46,7 @@ type SlicedFileManifest struct {
 }
 
 type Slice struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
@@ -177,14 +177,14 @@ func UploadSlicedFileManifest(ctx context.Context, file *File, slices []string) 
 	return UploadSlice(ctx, file, "manifest", bytes.NewReader(marshaledManifest))
 }
 
-func NewSliceUrl(file *File, slice string) (string, error) {
+func NewSliceURL(file *File, slice string) (string, error) {
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewSliceUrl(file.ABSUploadParams, slice), nil
+		return abs.NewSliceURL(file.ABSUploadParams, slice), nil
 	case gcs.Provider:
-		return gcs.NewSliceUrl(file.GCSUploadParams, slice), nil
+		return gcs.NewSliceURL(file.GCSUploadParams, slice), nil
 	case s3.Provider:
-		return s3.NewSliceUrl(file.S3UploadParams, slice), nil
+		return s3.NewSliceURL(file.S3UploadParams, slice), nil
 	default:
 		return "", fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
@@ -193,11 +193,11 @@ func NewSliceUrl(file *File, slice string) (string, error) {
 func NewSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
 	m := &SlicedFileManifest{Entries: make([]Slice, 0)}
 	for _, s := range sliceNames {
-		url, err := NewSliceUrl(file, s)
+		url, err := NewSliceURL(file, s)
 		if err != nil {
 			return nil, err
 		}
-		m.Entries = append(m.Entries, Slice{Url: url})
+		m.Entries = append(m.Entries, Slice{URL: url})
 	}
 	return m, nil
 }

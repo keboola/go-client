@@ -45,7 +45,7 @@ type BucketPermission string
 // TokenAdmin - admin part of the token that should exist if the token is a master token.
 type TokenAdmin struct {
 	Name                 string   `json:"name"`
-	Id                   int      `json:"id"`
+	ID                   int      `json:"id"`
 	IsOrganizationMember bool     `json:"isOrganizationMember"`
 	Role                 string   `json:"role"`
 	Features             Features `json:"features"`

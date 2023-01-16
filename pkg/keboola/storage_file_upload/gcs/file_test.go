@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/keboola/go-utils/pkg/testproject"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
-	"github.com/keboola/go-utils/pkg/testproject"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
@@ -35,8 +36,8 @@ func TestCreateImportManifest(t *testing.T) {
 	assert.NoError(t, err)
 
 	e := &keboola.SlicedFileManifest{Entries: []keboola.Slice{
-		{Url: "gs://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1one"},
-		{Url: "gs://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1two"},
+		{URL: "gs://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1one"},
+		{URL: "gs://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1two"},
 	}}
 	assert.Equal(t, e, res)
 }
@@ -49,7 +50,7 @@ func TestTransportRetry(t *testing.T) {
 	transport.RegisterResponder("POST", `https://storage.googleapis.com/upload/storage/v1/b/bucket/o`, httpmock.NewStringResponder(504, "test"))
 
 	params := &gcs.UploadParams{
-		ProjectId:   "project",
+		ProjectID:   "project",
 		Key:         "key",
 		Bucket:      "bucket",
 		AccessToken: "token",

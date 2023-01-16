@@ -80,7 +80,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 	// Create mocked timeout
 	c, transport := client.NewMockedClient()
 	c = c.WithBaseURL("https://connection.test").AndTrace(client.LogTracer(&trace))
-	transport.RegisterResponder("GET", `https://connection.test/v2/storage/?exclude=components`, newJsonResponder(200, `{
+	transport.RegisterResponder("GET", `https://connection.test/v2/storage/?exclude=components`, newJSONResponder(200, `{
 		"services": [
 			{
 				"id": "queue",

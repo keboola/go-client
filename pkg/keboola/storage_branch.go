@@ -24,7 +24,7 @@ type BranchKey struct {
 	ID BranchID `json:"id" writeoptional:"true"`
 }
 
-func (k BranchKey) ObjectId() any {
+func (k BranchKey) ObjectID() any {
 	return k.ID
 }
 

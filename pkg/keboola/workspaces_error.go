@@ -7,13 +7,13 @@ import (
 
 // WorkspacesError represents the structure of Workspaces API error.
 type WorkspacesError struct {
-	Message   string `json:"messsage"`
+	Message   string `json:"message"`
 	ErrorInfo string `json:"error"`
 	request   *http.Request
 	response  *http.Response
 }
 
-func (e WorkspacesError) Error() string {
+func (e *WorkspacesError) Error() string {
 	if e.request == nil {
 		panic(fmt.Errorf("http request is not set"))
 	}
@@ -25,17 +25,17 @@ func (e WorkspacesError) Error() string {
 }
 
 // ErrorName returns a human-readable name of the error.
-func (e WorkspacesError) ErrorName() string {
+func (e *WorkspacesError) ErrorName() string {
 	return e.ErrorInfo
 }
 
 // ErrorUserMessage returns error message for end user.
-func (e WorkspacesError) ErrorUserMessage() string {
+func (e *WorkspacesError) ErrorUserMessage() string {
 	return e.Message
 }
 
 // StatusCode returns HTTP status code.
-func (e WorkspacesError) StatusCode() int {
+func (e *WorkspacesError) StatusCode() int {
 	return e.response.StatusCode
 }
 

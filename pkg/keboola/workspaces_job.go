@@ -60,9 +60,9 @@ func (p params) toMap() map[string]any {
 	return m
 }
 
-func (a *API) CreateWorkspaceJobRequest(configId ConfigID, workspaceType string, opts ...CreateWorkspaceOption) client.APIRequest[client.NoResult] {
+func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string, opts ...CreateWorkspaceOption) client.APIRequest[client.NoResult] {
 	params := newParams(workspaceType, opts...)
-	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configId, map[string]any{"parameters": params.toMap()}).
+	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configID, map[string]any{"parameters": params.toMap()}).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
 			return a.WaitForQueueJob(ctx, result)
 		})

@@ -253,7 +253,7 @@ func requestBody(r HTTPRequest) (io.ReadCloser, error) {
 		}
 		return io.NopCloser(v), nil
 	}
-	if body != nil && isJsonContentType(contentType) {
+	if body != nil && isJSONContentType(contentType) {
 		// Json body
 		c, err := json.Marshal(body)
 		if err != nil {
@@ -310,7 +310,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 		if _, err := io.Copy(v, decodedBody); err != nil {
 			return nil, nil, fmt.Errorf(`cannot read resonse body: %w`, err)
 		}
-	} else if isJsonContentType(contentType) {
+	} else if isJSONContentType(contentType) {
 		// Map JSON response
 		if r.StatusCode > 199 && r.StatusCode < 300 && resultDef != nil {
 			// Map JSON response to defined result

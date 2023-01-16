@@ -15,13 +15,15 @@ import (
 
 type ServiceType string
 
-const EncryptionAPI = ServiceType("encryption")
-const QueueAPI = ServiceType("queue")
-const SchedulerAPI = ServiceType("scheduler")
-const StorageAPI = ServiceType("storage")
-const WorkspacesAPI = ServiceType("sandboxes")
+const (
+	EncryptionAPI = ServiceType("encryption")
+	QueueAPI      = ServiceType("queue")
+	SchedulerAPI  = ServiceType("scheduler")
+	StorageAPI    = ServiceType("storage")
+	WorkspacesAPI = ServiceType("sandboxes")
+)
 
-// newRequest Creates request, sets base URL and default error type
+// newRequest Creates request, sets base URL and default error type.
 func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 	c := client.
 		NewHTTPRequest(a.sender)
@@ -85,7 +87,7 @@ func WithToken(token string) APIOption {
 }
 
 type Object interface {
-	ObjectId() any
+	ObjectID() any
 }
 
 func NewAPI(host string, opts ...APIOption) *API {

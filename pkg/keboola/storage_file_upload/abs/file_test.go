@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/keboola/go-client/pkg/keboola"
-	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
-	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/keboola"
+	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
+	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 )
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
@@ -36,8 +37,8 @@ func TestCreateImportManifest(t *testing.T) {
 	assert.NoError(t, err)
 
 	e := &keboola.SlicedFileManifest{Entries: []keboola.Slice{
-		{Url: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1one"},
-		{Url: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1two"},
+		{URL: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1one"},
+		{URL: "azure://kbcfshc7chguaeh2km.blob.core.windows.net/exp-15-files-4516-27298008-2022-11-08/test1two"},
 	}}
 	assert.Equal(t, e, res)
 }

@@ -64,7 +64,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 	return bw, nil
 }
 
-func NewSliceUrl(params *UploadParams, slice string) string {
+func NewSliceURL(params *UploadParams, slice string) string {
 	return fmt.Sprintf("azure://%s.blob.core.windows.net/%s/%s", params.AccountName, params.Container, sliceKey(params.BlobName, slice))
 }
 

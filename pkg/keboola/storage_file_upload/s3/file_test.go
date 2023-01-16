@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/keboola/go-client/pkg/keboola"
-	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
-	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/go-client/pkg/keboola"
+	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
+	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 )
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
@@ -36,8 +37,8 @@ func TestCreateImportManifest(t *testing.T) {
 	assert.NoError(t, err)
 
 	e := &keboola.SlicedFileManifest{Entries: []keboola.Slice{
-		{Url: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1one"},
-		{Url: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1two"},
+		{URL: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1one"},
+		{URL: "s3://kbc-sapi-files/exp-15-files-4516-27298008-2022-11-08.test1two"},
 	}}
 	assert.Equal(t, e, res)
 }
@@ -53,12 +54,12 @@ func TestTransportRetry(t *testing.T) {
 		Key:    "key",
 		Bucket: "bucket",
 		Credentials: s3.Credentials{
-			AccessKeyId:     "accessKeyId",
+			AccessKeyID:     "accessKeyId",
 			SecretAccessKey: "secretAccessKey",
 			SessionToken:    "sessionToken",
 			Expiration:      iso8601.Time{},
 		},
-		Acl: "private",
+		ACL: "private",
 	}
 	bw, err := s3.NewUploadWriter(context.Background(), params, "us-east-1", "", transport)
 	assert.NoError(t, err)

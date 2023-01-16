@@ -80,13 +80,13 @@ func WorkspaceSupportsSizes(typ string) bool {
 
 func (a *API) CreateWorkspace(
 	ctx context.Context,
-	branchId BranchID,
+	branchID BranchID,
 	workspaceName string,
 	workspaceType string,
 	opts ...CreateWorkspaceOption,
 ) (*WorkspaceWithConfig, error) {
 	// Create config
-	emptyConfig, err := a.CreateWorkspaceConfigRequest(branchId, workspaceName).Send(ctx)
+	emptyConfig, err := a.CreateWorkspaceConfigRequest(branchID, workspaceName).Send(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (a *API) CreateWorkspace(
 	}
 
 	// Get workspace
-	workspace, err := a.GetWorkspace(ctx, branchId, emptyConfig.ID)
+	workspace, err := a.GetWorkspace(ctx, branchID, emptyConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (a *API) GetWorkspace(
 
 func (a *API) ListWorkspaces(
 	ctx context.Context,
-	branchId BranchID,
+	branchID BranchID,
 ) ([]*WorkspaceWithConfig, error) {
 	// List configs and instances in parallel
 	var configs []*Config
@@ -168,7 +168,7 @@ func (a *API) ListWorkspaces(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		data, e := a.ListWorkspaceConfigRequest(branchId).Send(ctx)
+		data, e := a.ListWorkspaceConfigRequest(branchID).Send(ctx)
 		if e != nil {
 			m.Lock()
 			defer m.Unlock()

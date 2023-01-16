@@ -23,24 +23,24 @@ func GetWorkspaceID(c *Config) (WorkspaceID, error) {
 	return WorkspaceID(out), nil
 }
 
-func (a *API) GetWorkspaceConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[*Config] {
+func (a *API) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) client.APIRequest[*Config] {
 	key := ConfigKey{
-		BranchID:    branchId,
+		BranchID:    branchID,
 		ComponentID: WorkspacesComponent,
-		ID:          configId,
+		ID:          configID,
 	}
 	return a.GetConfigRequest(key)
 }
 
-func (a *API) ListWorkspaceConfigRequest(branchId BranchID) client.APIRequest[*[]*Config] {
-	return a.ListConfigRequest(branchId, WorkspacesComponent)
+func (a *API) ListWorkspaceConfigRequest(branchID BranchID) client.APIRequest[*[]*Config] {
+	return a.ListConfigRequest(branchID, WorkspacesComponent)
 }
 
-func (a *API) CreateWorkspaceConfigRequest(branchId BranchID, name string) client.APIRequest[*ConfigWithRows] {
+func (a *API) CreateWorkspaceConfigRequest(branchID BranchID, name string) client.APIRequest[*ConfigWithRows] {
 	config := &ConfigWithRows{
 		Config: &Config{
 			ConfigKey: ConfigKey{
-				BranchID:    branchId,
+				BranchID:    branchID,
 				ComponentID: WorkspacesComponent,
 			},
 			Name: name,
@@ -49,11 +49,11 @@ func (a *API) CreateWorkspaceConfigRequest(branchId BranchID, name string) clien
 	return a.CreateConfigRequest(config)
 }
 
-func (a *API) DeleteWorkspaceConfigRequest(branchId BranchID, configId ConfigID) client.APIRequest[client.NoResult] {
+func (a *API) DeleteWorkspaceConfigRequest(branchID BranchID, configID ConfigID) client.APIRequest[client.NoResult] {
 	request := a.DeleteConfigRequest(ConfigKey{
-		BranchID:    branchId,
+		BranchID:    branchID,
 		ComponentID: WorkspacesComponent,
-		ID:          configId,
+		ID:          configID,
 	})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }

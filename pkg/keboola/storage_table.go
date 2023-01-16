@@ -20,7 +20,7 @@ import (
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
 	ID             TableID          `json:"id"`
-	Uri            string           `json:"uri"`
+	URI            string           `json:"uri"`
 	Name           string           `json:"name"`
 	DisplayName    string           `json:"displayName"`
 	PrimaryKey     []string         `json:"primaryKey"`

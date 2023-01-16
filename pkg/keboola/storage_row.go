@@ -23,7 +23,7 @@ type ConfigRowKey struct {
 	ID          RowID       `json:"id" writeas:"rowId" writeoptional:"true"`
 }
 
-func (k ConfigRowKey) ObjectId() any {
+func (k ConfigRowKey) ObjectID() any {
 	return k.ID
 }
 
