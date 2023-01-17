@@ -170,7 +170,7 @@ func (a *API) CreateConfigRequest(config *ConfigWithRows) client.APIRequest[*Con
 				row.ConfigID = config.ID
 				wg.Send(a.CreateConfigRowRequest(row))
 			}
-			return nil
+			return wg.Wait()
 		})
 	return client.NewAPIRequest(config, request)
 }
