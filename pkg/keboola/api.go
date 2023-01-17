@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/keboola/go-client/pkg/client"
 )
@@ -48,6 +49,8 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 }
 
 func (a *API) baseURLForService(s ServiceType) string {
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	if a.services.Len() == 0 {
 		res, err := a.IndexRequest().Send(context.Background())
 		if err != nil {
@@ -63,6 +66,7 @@ func (a *API) baseURLForService(s ServiceType) string {
 }
 
 type API struct {
+	lock     *sync.Mutex
 	sender   client.Sender
 	services ServicesMap
 }
@@ -108,7 +112,7 @@ func NewAPI(host string, opts ...APIOption) *API {
 		c = c.WithHeader("X-StorageApi-Token", config.token)
 	}
 
-	return &API{sender: c.WithBaseURL(host)}
+	return &API{lock: &sync.Mutex{}, sender: c.WithBaseURL(host)}
 }
 
 func (a *API) Client() client.Sender {
