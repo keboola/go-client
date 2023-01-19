@@ -14,10 +14,10 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi/testdata"
 )
 
-func TestCreateFileResourceAndUpload(t *testing.T) {
+func TestUploadAndDownload(t *testing.T) {
 	t.Parallel()
 	storageApiClient := storageapi.ClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
-	for _, tc := range testdata.UploadTestCases() {
+	for _, tc := range testdata.UploadAndDownloadTestCases() {
 		tc.Run(t, storageApiClient)
 	}
 }

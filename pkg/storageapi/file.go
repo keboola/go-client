@@ -19,6 +19,8 @@ import (
 	"github.com/keboola/go-client/pkg/storageapi/s3"
 )
 
+const ManifestFileName = "manifest"
+
 type File struct {
 	ID              int               `json:"id" readonly:"true"`
 	Created         iso8601.Time      `json:"created" readonly:"true"`
@@ -170,7 +172,51 @@ func UploadSlicedFileManifest(ctx context.Context, file *File, slices []string) 
 		return 0, err
 	}
 
-	return UploadSlice(ctx, file, "manifest", bytes.NewReader(marshaledManifest))
+	return UploadSlice(ctx, file, ManifestFileName, bytes.NewReader(marshaledManifest))
+}
+
+func Download(ctx context.Context, file *File) ([]byte, error) {
+	return DownloadSlice(ctx, file, "")
+}
+
+func DownloadManifest(ctx context.Context, file *File) ([]byte, error) {
+	return DownloadSlice(ctx, file, ManifestFileName)
+}
+
+func DownloadSlice(ctx context.Context, file *File, slice string) (out []byte, err error) {
+	reader, err := DownloadSliceReader(ctx, file, slice)
+	if err != nil {
+		return nil, err
+	}
+	out, err = io.ReadAll(reader)
+	if closeErr := reader.Close(); err == nil && closeErr != nil {
+		err = closeErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func DownloadReader(ctx context.Context, file *File) (io.ReadCloser, error) {
+	return DownloadSliceReader(ctx, file, "")
+}
+
+func DownloadManifestReader(ctx context.Context, file *File) (io.ReadCloser, error) {
+	return DownloadSliceReader(ctx, file, ManifestFileName)
+}
+
+func DownloadSliceReader(ctx context.Context, file *File, slice string) (io.ReadCloser, error) {
+	switch file.Provider {
+	case abs.Provider:
+		return abs.NewDownloadReader(ctx, file.ABSUploadParams, slice)
+	case gcs.Provider:
+		return gcs.NewDownloadReader(ctx, file.GCSUploadParams, slice)
+	case s3.Provider:
+		return s3.NewDownloadReader(ctx, file.S3UploadParams, file.Region, slice)
+	default:
+		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
+	}
 }
 
 func NewSliceUrl(file *File, slice string) (string, error) {

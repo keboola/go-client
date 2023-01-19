@@ -5,8 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"testing"
 
 	"github.com/keboola/go-client/pkg/client"
@@ -26,7 +24,7 @@ type UploadTestCase struct {
 	Gzipped   bool
 }
 
-func UploadTestCases() (out []UploadTestCase) {
+func UploadAndDownloadTestCases() (out []UploadTestCase) {
 	// Test matrix, all combinations of attributes
 	for flags := 0b0000; flags <= 0b1111; flags++ {
 		out = append(out, UploadTestCase{
@@ -137,39 +135,20 @@ func (tc UploadTestCase) Run(t *testing.T, storageApiClient client.Sender) {
 			assert.NoError(t, err)
 		}
 
-		// Get file resource
-		fileFromRequest, err := storageapi.GetFileRequest(file.ID).Send(ctx, storageApiClient)
-		assert.NoError(t, err)
-
 		// Request file content
-		resp, err := http.Get(fileFromRequest.Url)
-		assert.NoError(t, err)
-		defer resp.Body.Close()
-
-		// Check that we didn't get error instead of the file
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		if resp.StatusCode != http.StatusOK {
-			data, _ := io.ReadAll(resp.Body)
-			t.Logf("Response body: \n%s\n", data)
-		}
-
-		// Get file reader
-		var fileReader io.Reader
-		if tc.Gzipped && !tc.Sliced {
-			fileReader, err = gzip.NewReader(resp.Body)
-			assert.NoError(t, err)
-		} else {
-			fileReader = resp.Body
-		}
-
-		// Get and compare file content
-		fileContent, err := io.ReadAll(fileReader)
-		assert.NoError(t, err)
 		if tc.Sliced {
 			// Check manifest content
-			wildcards.Assert(t, `{"entries":[{"url":"%sslice1"}]}`, string(fileContent))
+			manifestContent, err := storageapi.DownloadManifest(ctx, file)
+			assert.NoError(t, err)
+			wildcards.Assert(t, `{"entries":[{"url":"%sslice1"}]}`, string(manifestContent))
+
+			// Check slice content
+			fileContent, err := storageapi.DownloadSlice(ctx, file, "slice1")
+			assert.NoError(t, err)
+			assert.Equal(t, content, fileContent)
 		} else {
-			// Check file content
+			fileContent, err := storageapi.Download(ctx, file)
+			assert.NoError(t, err)
 			assert.Equal(t, content, fileContent)
 		}
 	})

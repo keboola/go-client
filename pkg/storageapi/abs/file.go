@@ -58,10 +58,35 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 
 	bw, err := b.NewWriter(ctx, sliceKey(params.BlobName, slice), nil)
 	if err != nil {
-		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
+		return nil, fmt.Errorf(`writer: opening blob "%s" failed: %w`, params.BlobName, err)
 	}
 
 	return bw, nil
+}
+
+func NewDownloadReader(ctx context.Context, params *UploadParams, slice string) (*blob.Reader, error) {
+	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	clientOptions := &azblob.ClientOptions{}
+	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := azureblob.OpenBucket(ctx, client, params.Container, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	br, err := b.NewReader(ctx, sliceKey(params.BlobName, slice), nil)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.BlobName, err)
+	}
+
+	return br, nil
 }
 
 func NewSliceUrl(params *UploadParams, slice string) string {
