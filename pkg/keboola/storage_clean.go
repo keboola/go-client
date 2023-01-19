@@ -50,15 +50,6 @@ func (a *API) CleanProjectRequest() client.APIRequest[*Branch] {
 							}
 							return wgMetadata.Wait()
 						}))
-					// Clear buckets
-					wg.Send(a.ListBucketsRequest().
-						WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
-							wgBuckets := client.NewWaitGroup(ctx)
-							for _, item := range *result {
-								wgBuckets.Send(a.DeleteBucketRequest(item.ID, WithForce()))
-							}
-							return wgBuckets.Wait()
-						}))
 				} else {
 					// If it is not default branch -> delete branch.
 					wg.Send(a.
