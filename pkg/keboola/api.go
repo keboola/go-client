@@ -48,7 +48,7 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 }
 
 func (a *API) baseURLForService(s ServiceType) string {
-	url, found := a.services.URLByID(ServiceID(s))
+	url, found := a.services.ToMap().URLByID(ServiceID(s))
 	if !found {
 		panic(fmt.Errorf(`service not found "%s"`, s))
 	}
@@ -57,7 +57,8 @@ func (a *API) baseURLForService(s ServiceType) string {
 
 type API struct {
 	sender   client.Sender
-	services ServicesMap
+	features Features
+	services Services
 }
 
 type apiConfig struct {
@@ -106,13 +107,22 @@ func NewAPI(ctx context.Context, host string, opts ...APIOption) *API {
 	if err != nil {
 		panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
 	}
-	api.services = res.Services.ToMap()
+	api.services = res.Services
+	api.features = res.Features
 
 	return api
 }
 
 func (a *API) Client() client.Sender {
 	return a.sender
+}
+
+func (a *API) Features() Features {
+	return a.features
+}
+
+func (a *API) Services() Services {
+	return a.services
 }
 
 // CreateRequest creates request to create object according its type.
