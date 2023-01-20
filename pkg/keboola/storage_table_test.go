@@ -17,8 +17,8 @@ import (
 	. "github.com/keboola/go-client/pkg/keboola"
 )
 
-func newJSONResponder(status int, response string) httpmock.Responder {
-	r := httpmock.NewStringResponse(status, response)
+func newJSONResponder(response string) httpmock.Responder {
+	r := httpmock.NewStringResponse(200, response)
 	r.Header.Set("Content-Type", "application/json")
 	return httpmock.ResponderFromResponse(r)
 }
@@ -35,10 +35,14 @@ func parseDate(value string) iso8601.Time {
 
 func mockedListTablesClient() client.Client {
 	c, transport := client.NewMockedClient()
+	transport.RegisterResponder("GET", `https://connection.north-europe.azure.keboola.com/v2/storage/?exclude=components`, newJSONResponder(`{
+		"services": [],
+		"features": []
+	}`))
 	transport.RegisterResponder(
 		"GET",
 		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=",
-		newJSONResponder(200, `[
+		newJSONResponder(`[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				"id": "in.c-keboola-ex-http-6336016.tmp1",
@@ -66,7 +70,7 @@ func mockedListTablesClient() client.Client {
 	transport.RegisterResponder(
 		"GET",
 		"https://connection.north-europe.azure.keboola.com/v2/storage/tables?include=buckets%2Cmetadata",
-		newJSONResponder(200, `[
+		newJSONResponder(`[
 			{
 				"uri": "https://connection.north-europe.azure.keboola.com/v2/storage/tables/in.c-keboola-ex-http-6336016.tmp1",
 				"id": "in.c-keboola-ex-http-6336016.tmp1",
@@ -140,7 +144,7 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	tables, err := api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
@@ -152,7 +156,7 @@ func TestMockListTablesRequest(t *testing.T) {
 
 	ctx := context.Background()
 	c := mockedListTablesClient()
-	api := NewAPI("https://connection.north-europe.azure.keboola.com", WithClient(&c))
+	api := NewAPI(ctx, "https://connection.north-europe.azure.keboola.com", WithClient(&c))
 	{
 		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{
@@ -239,7 +243,7 @@ func TestMockListTablesRequest(t *testing.T) {
 func TestTableApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())
@@ -302,7 +306,7 @@ func TestTableApiCalls(t *testing.T) {
 func TestTableApiCalls_Deprecated(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	bucket := &Bucket{
 		ID: BucketID{
@@ -344,7 +348,7 @@ func TestTableApiCalls_Deprecated(t *testing.T) {
 func TestTableCreateLoadDataFromFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
@@ -424,7 +428,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 func TestTableCreateFromSlicedFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, testproject.WithStagingStorageS3())
+	api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageS3())
 
 	bucketName := fmt.Sprintf("test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())

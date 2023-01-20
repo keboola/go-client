@@ -19,7 +19,7 @@ import (
 func TestQueueApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := keboola.APIClientForAnEmptyProject(t)
+	api := keboola.APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -80,7 +80,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 	// Create mocked timeout
 	c, transport := client.NewMockedClient()
 	c = c.WithBaseURL("https://connection.test").AndTrace(client.LogTracer(&trace))
-	transport.RegisterResponder("GET", `https://connection.test/v2/storage/?exclude=components`, newJSONResponder(200, `{
+	transport.RegisterResponder("GET", `https://connection.test/v2/storage/?exclude=components`, newJSONResponder(`{
 		"services": [
 			{
 				"id": "queue",
@@ -90,7 +90,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 		"features": []
 	}`))
 	transport.RegisterResponder("GET", `=~^https://queue.connection.test/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
-	api := keboola.NewAPI("https://connection.test", keboola.WithClient(&c))
+	api := keboola.NewAPI(context.Background(), "https://connection.test", keboola.WithClient(&c))
 
 	// Create context with deadline
 	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*10)

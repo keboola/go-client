@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/keboola/go-client/pkg/client"
 )
@@ -49,15 +48,6 @@ func (a *API) newRequest(s ServiceType) client.HTTPRequest {
 }
 
 func (a *API) baseURLForService(s ServiceType) string {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-	if a.services.Len() == 0 {
-		res, err := a.IndexRequest().Send(context.Background())
-		if err != nil {
-			panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
-		}
-		a.services = res.Services.ToMap()
-	}
 	url, found := a.services.URLByID(ServiceID(s))
 	if !found {
 		panic(fmt.Errorf(`service not found "%s"`, s))
@@ -66,7 +56,6 @@ func (a *API) baseURLForService(s ServiceType) string {
 }
 
 type API struct {
-	lock     *sync.Mutex
 	sender   client.Sender
 	services ServicesMap
 }
@@ -94,7 +83,7 @@ type Object interface {
 	ObjectID() any
 }
 
-func NewAPI(host string, opts ...APIOption) *API {
+func NewAPI(ctx context.Context, host string, opts ...APIOption) *API {
 	if !strings.HasPrefix(host, "https://") {
 		host = "https://" + host
 	}
@@ -112,7 +101,14 @@ func NewAPI(host string, opts ...APIOption) *API {
 		c = c.WithHeader("X-StorageApi-Token", config.token)
 	}
 
-	return &API{lock: &sync.Mutex{}, sender: c.WithBaseURL(host)}
+	api := &API{sender: c.WithBaseURL(host)}
+	res, err := api.IndexRequest().Send(ctx)
+	if err != nil {
+		panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
+	}
+	api.services = res.Services.ToMap()
+
+	return api
 }
 
 func (a *API) Client() client.Sender {

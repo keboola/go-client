@@ -12,7 +12,7 @@ func TestListAndDeleteFiles(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	// Create two files
 	file1 := &File{Name: "test1", IsEncrypted: true, FederationToken: true}

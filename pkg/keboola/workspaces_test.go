@@ -13,7 +13,7 @@ import (
 func TestWorkspacesCreateAndDeletePython(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := keboola.APIClientForAnEmptyProject(t)
+	api := keboola.APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -60,7 +60,7 @@ func TestWorkspacesCreateAndDeletePython(t *testing.T) {
 func TestWorkspacesCreateAndDeleteSnowflake(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := keboola.APIClientForAnEmptyProject(t)
+	api := keboola.APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)

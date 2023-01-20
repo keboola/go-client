@@ -65,6 +65,10 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder(http.MethodGet, `https://connection.keboola.com/v2/storage/?exclude=components`, httpmock.NewStringResponder(200, `{
+		"services": [],
+		"features": []
+	}`))
 	transport.RegisterResponder(
 		http.MethodPost,
 		`https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs`,
@@ -92,7 +96,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI("https://connection.keboola.com", WithClient(&c))
+	api := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
 
 	// Run request
 	config := &ConfigWithRows{Config: &Config{ConfigKey: ConfigKey{BranchID: 123, ComponentID: "foo.bar", ID: "123"}}}
@@ -104,6 +108,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
+		"GET https://connection.keboola.com/v2/storage/?exclude=components":                       1,
 		"POST https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs":    2,
 		"GET https://connection.keboola.com/v2/storage/branch/123/components/foo.bar/configs/123": 1,
 	}, transport.GetCallCountInfo())
@@ -113,6 +118,10 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder(http.MethodGet, `https://connection.keboola.com/v2/storage/?exclude=components`, httpmock.NewStringResponder(200, `{
+		"services": [],
+		"features": []
+	}`))
 	transport.RegisterResponder(
 		http.MethodDelete,
 		`https://connection.keboola.com/v2/storage/buckets/in.c-foo`,
@@ -131,7 +140,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI("https://connection.keboola.com", WithClient(&c))
+	api := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
 
 	// Run request
 	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
@@ -142,6 +151,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
+		"GET https://connection.keboola.com/v2/storage/?exclude=components": 1,
 		"DELETE https://connection.keboola.com/v2/storage/buckets/in.c-foo": 2,
 	}, transport.GetCallCountInfo())
 }

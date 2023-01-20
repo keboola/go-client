@@ -16,7 +16,7 @@ import (
 
 func TestCreateFileResourceAndUpload(t *testing.T) {
 	t.Parallel()
-	api := keboola.APIClientForAnEmptyProject(t, testproject.WithStagingStorageABS())
+	api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageABS())
 	for _, tc := range testdata.UploadTestCases() {
 		tc.Run(t, api)
 	}

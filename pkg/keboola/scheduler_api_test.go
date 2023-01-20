@@ -17,7 +17,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 	c := client.NewTestClient()
-	api := keboola.NewAPI(project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
+	api := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)

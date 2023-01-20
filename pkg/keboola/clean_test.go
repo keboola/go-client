@@ -3,6 +3,7 @@ package keboola_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,8 @@ import (
 func TestCleanProject(t *testing.T) {
 	t.Parallel()
 
-	ctx, project, api := deps(t)
+	ctx, cancelFn, project, api := deps(t)
+	defer cancelFn()
 
 	// Clean project
 	if err := keboola.CleanProject(ctx, api); err != nil {
@@ -55,14 +57,15 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *instances, 0)
 }
 
-func deps(t *testing.T) (context.Context, *testproject.Project, *keboola.API) {
+func deps(t *testing.T) (context.Context, context.CancelFunc, *testproject.Project, *keboola.API) {
 	t.Helper()
 
 	ctx := context.Background()
+	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
 	project, _ := testproject.GetTestProjectForTest(t)
 
 	c := client.NewTestClient()
-	api := keboola.NewAPI(project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
+	api := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
 
-	return ctx, project, api
+	return timeoutCtx, cancelFn, project, api
 }

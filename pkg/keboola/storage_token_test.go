@@ -16,7 +16,7 @@ import (
 func TestVerifyToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project, api := APIClientForRandomProject(t)
+	project, api := APIClientForRandomProject(t, ctx)
 
 	token, err := api.VerifyTokenRequest(project.StorageAPIToken()).Send(ctx)
 	assert.NoError(t, err)
@@ -34,7 +34,7 @@ func TestVerifyToken(t *testing.T) {
 func TestVerifyTokenEmpty(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForRandomProject(t)
+	_, api := APIClientForRandomProject(t, ctx)
 
 	token, err := api.VerifyTokenRequest("").Send(ctx)
 	assert.Error(t, err)
@@ -48,7 +48,7 @@ func TestVerifyTokenEmpty(t *testing.T) {
 func TestVerifyTokenInvalid(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForRandomProject(t)
+	_, api := APIClientForRandomProject(t, ctx)
 
 	token, err := api.VerifyTokenRequest("mytoken").Send(ctx)
 	assert.Error(t, err)
@@ -62,7 +62,7 @@ func TestVerifyTokenInvalid(t *testing.T) {
 func TestCreateToken_AllPerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForRandomProject(t)
+	_, api := APIClientForRandomProject(t, ctx)
 
 	description := "create token request all perms test"
 	token, err := api.CreateTokenRequest(
@@ -82,7 +82,7 @@ func TestCreateToken_AllPerms(t *testing.T) {
 func TestCreateToken_SomePerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForRandomProject(t)
+	_, api := APIClientForRandomProject(t, ctx)
 
 	rand.Seed(time.Now().Unix())
 
@@ -117,7 +117,7 @@ func TestCreateToken_SomePerms(t *testing.T) {
 func TestListAndDeleteToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	// Create tokens
 	token1, err := api.CreateTokenRequest(WithDescription("token1"), WithExpiresIn(5*time.Minute)).Send(ctx)
@@ -152,7 +152,7 @@ func TestListAndDeleteToken(t *testing.T) {
 func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForRandomProject(t)
+	_, api := APIClientForRandomProject(t, ctx)
 
 	created, err := api.CreateTokenRequest(
 		WithDescription("refresh token request test"),

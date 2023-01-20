@@ -14,7 +14,7 @@ import (
 func TestBucketApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := keboola.APIClientForAnEmptyProject(t)
+	api := keboola.APIClientForAnEmptyProject(t, ctx)
 
 	bucket := &keboola.Bucket{
 		ID: keboola.BucketID{
