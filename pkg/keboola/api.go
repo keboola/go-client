@@ -63,6 +63,7 @@ type API struct {
 
 type apiConfig struct {
 	client *client.Client
+	index  *Index
 	token  string
 }
 
@@ -71,6 +72,12 @@ type APIOption func(c *apiConfig)
 func WithClient(cl *client.Client) APIOption {
 	return func(c *apiConfig) {
 		c.client = cl
+	}
+}
+
+func WithIndex(idx *Index) APIOption {
+	return func(c *apiConfig) {
+		c.index = idx
 	}
 }
 
@@ -103,12 +110,18 @@ func NewAPI(ctx context.Context, host string, opts ...APIOption) *API {
 	}
 
 	api := &API{sender: c.WithBaseURL(host)}
-	res, err := api.IndexRequest().Send(ctx)
-	if err != nil {
-		panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
+	var idx *Index
+	var err error
+	if config.index != nil {
+		idx = config.index
+	} else {
+		idx, err = api.IndexRequest().Send(ctx)
+		if err != nil {
+			panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
+		}
 	}
-	api.services = res.Services
-	api.features = res.Features
+	api.services = idx.Services
+	api.features = idx.Features
 
 	return api
 }
