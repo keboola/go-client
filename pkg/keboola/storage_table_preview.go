@@ -1,6 +1,8 @@
 package keboola
 
 import (
+	"context"
+	"encoding/csv"
 	"fmt"
 	"strings"
 
@@ -8,14 +10,8 @@ import (
 )
 
 type TablePreview struct {
-	Columns []string          `json:"columns"`
-	Rows    []TablePreviewRow `json:"rows"`
-}
-
-type TablePreviewRow struct {
-	ColumnName  string `json:"columnName"`
-	Value       string `json:"value"`
-	IsTruncated bool   `json:"isTruncated"`
+	Columns []string
+	Rows    [][]string
 }
 
 type previewDataConfig struct {
@@ -98,7 +94,7 @@ func newWhereFilter(column string, op compareOp, values []string, ty ...dataType
 	}
 }
 
-func Values(values ...any) []string {
+func valuesToString(values ...any) []string {
 	out := []string{}
 	for _, v := range values {
 		out = append(out, fmt.Sprintf("%v", v))
@@ -109,16 +105,16 @@ func Values(values ...any) []string {
 // If the column contains a numeric type, `ty` may be used to specify the exact type.
 //
 // `ty` should be exactly one value, or empty.
-func Where(column string, op compareOp, values []string, ty ...dataType) *whereFilterBuilder {
+func Where(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
 	return &whereFilterBuilder{
 		whereFilters: []whereFilter{
-			newWhereFilter(column, op, values, ty...),
+			newWhereFilter(column, op, valuesToString(values...), ty...),
 		},
 	}
 }
 
-func (b *whereFilterBuilder) And(column string, op compareOp, values []string, ty ...dataType) *whereFilterBuilder {
-	b.whereFilters = append(b.whereFilters, newWhereFilter(column, op, values, ty...))
+func (b *whereFilterBuilder) And(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
+	b.whereFilters = append(b.whereFilters, newWhereFilter(column, op, valuesToString(values...), ty...))
 	return b
 }
 
@@ -253,14 +249,24 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client
 		opt.applyPreviewOption(&config)
 	}
 
-	var data *TablePreview
+	data := &TablePreview{}
 
 	request := a.
 		newRequest(StorageAPI).
 		WithGet("tables/{tableId}/data-preview").
 		AndPathParam("tableId", tableID.String()).
-		AndQueryParam("format", "json").
-		WithQueryParams(config.toQueryParams())
+		WithQueryParams(config.toQueryParams()).
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			records, err := csv.NewReader(response.RawResponse().Body).ReadAll()
+			if err != nil {
+				return fmt.Errorf("failed to read body csv: %s", err)
+			}
+
+			data.Columns = records[0]
+			data.Rows = records[1:]
+
+			return nil
+		})
 
 	return client.NewAPIRequest(data, request)
 }
