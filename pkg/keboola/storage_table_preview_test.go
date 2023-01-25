@@ -108,5 +108,4 @@ func TestTablePreviewOptions(t *testing.T) {
 			"&whereFilters[1][values][0]=100",
 		queryString,
 	)
-
 }

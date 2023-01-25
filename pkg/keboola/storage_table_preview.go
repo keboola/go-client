@@ -40,7 +40,7 @@ type whereFilter struct {
 
 type orderBy struct {
 	column   string
-	order    order // true = descending, false = ascending
+	order    order
 	dataType *dataType
 }
 
@@ -65,15 +65,15 @@ const (
 type dataType string
 
 const (
-	// For numbers without a decimal point (Snowflake, Teradata, Bigquery)
+	// For numbers without a decimal point (Snowflake, Teradata, Bigquery).
 	TypeInteger dataType = "INTEGER"
-	// For number with a decimal point (Snowflake, Bigquery)
+	// For number with a decimal point (Snowflake, Bigquery).
 	TypeDouble dataType = "DOUBLE"
-	// For number without a decimal point (Synapse, Bigquery)
+	// For number without a decimal point (Synapse, Bigquery).
 	TypeBigInt dataType = "BIGINT"
-	// For number with a decimal point (Synapse, Teradata, Bigquery)
+	// For number with a decimal point (Synapse, Teradata, Bigquery).
 	TypeReal dataType = "REAL"
-	// For numbers (Exasol, Bigquery)
+	// For numbers (Exasol, Bigquery).
 	TypeDecimal dataType = "DECIMAL"
 )
 
@@ -173,6 +173,7 @@ type withLimitRows uint
 func WithLimitRows(value uint) withLimitRows {
 	return withLimitRows(value)
 }
+
 func (v withLimitRows) applyPreviewOption(c *previewDataConfig) {
 	c.limit = uint(v)
 }
@@ -184,6 +185,7 @@ type withChangedSince string
 func WithChangedSince(value string) withChangedSince {
 	return withChangedSince(value)
 }
+
 func (v withChangedSince) applyPreviewOption(c *previewDataConfig) {
 	str := string(v)
 	c.changedSince = &str
@@ -196,6 +198,7 @@ type withChangedUntil string
 func WithChangedUntil(value string) withChangedUntil {
 	return withChangedUntil(value)
 }
+
 func (v withChangedUntil) applyPreviewOption(c *previewDataConfig) {
 	str := string(v)
 	c.changedUntil = &str
@@ -207,6 +210,7 @@ type withExportColumns []string
 func WithExportColumns(columns ...string) withExportColumns {
 	return withExportColumns(columns)
 }
+
 func (v withExportColumns) applyPreviewOption(c *previewDataConfig) {
 	c.columns = ([]string)(v)
 }
