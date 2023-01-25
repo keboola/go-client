@@ -1,6 +1,7 @@
 package keboola
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"fmt"
@@ -250,14 +251,15 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client
 	}
 
 	data := &TablePreview{}
-
+	responseBytes := []byte{}
 	request := a.
 		newRequest(StorageAPI).
+		WithResult(&responseBytes).
 		WithGet("tables/{tableId}/data-preview").
 		AndPathParam("tableId", tableID.String()).
 		WithQueryParams(config.toQueryParams()).
 		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
-			records, err := csv.NewReader(response.RawResponse().Body).ReadAll()
+			records, err := csv.NewReader(bytes.NewReader(responseBytes)).ReadAll()
 			if err != nil {
 				return fmt.Errorf("failed to read body csv: %w", err)
 			}
