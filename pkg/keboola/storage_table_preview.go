@@ -259,7 +259,7 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client
 		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
 			records, err := csv.NewReader(response.RawResponse().Body).ReadAll()
 			if err != nil {
-				return fmt.Errorf("failed to read body csv: %s", err)
+				return fmt.Errorf("failed to read body csv: %w", err)
 			}
 
 			data.Columns = records[0]

@@ -115,8 +115,6 @@ func TestPreviewTableRequestOptions(t *testing.T) {
 	)
 }
 
-// TODO: actual request test according to `./storage_table_test.go:348`
-
 func TestPreviewTableRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
