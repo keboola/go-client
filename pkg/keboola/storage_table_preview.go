@@ -105,7 +105,7 @@ func valuesToString(values ...any) []string {
 // If the column contains a numeric type, `ty` may be used to specify the exact type.
 //
 // `ty` should be exactly one value, or empty.
-func Where(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
+func WithWhere(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
 	return &whereFilterBuilder{
 		whereFilters: []whereFilter{
 			newWhereFilter(column, op, valuesToString(values...), ty...),
@@ -142,7 +142,7 @@ func newOrderBy(column string, order order, ty ...dataType) orderBy {
 	}
 }
 
-func OrderBy(column string, order order, ty ...dataType) *orderByBuilder {
+func WithOrderBy(column string, order order, ty ...dataType) *orderByBuilder {
 	return &orderByBuilder{
 		orderBy: []orderBy{
 			newOrderBy(column, order, ty...),

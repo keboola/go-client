@@ -21,9 +21,9 @@ func TestPreviewTableRequestOptions(t *testing.T) {
 		WithChangedSince("-4 days"),
 		WithChangedUntil("-2 days"),
 		WithExportColumns("a", "b"),
-		Where("a", CompareEq, []any{"value"}).
+		WithWhere("a", CompareEq, []any{"value"}).
 			And("b", CompareGt, []any{100}, TypeInteger),
-		OrderBy("a", OrderAsc).
+		WithOrderBy("a", OrderAsc).
 			And("b", OrderDesc, TypeInteger),
 	)
 
@@ -166,9 +166,9 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	// Preview table
 	preview, err := api.PreviewTableRequest(tableID,
-		Where("value", CompareGe, []any{10}, TypeInteger).
+		WithWhere("value", CompareGe, []any{10}, TypeInteger).
 			And("value", CompareLe, []any{15}, TypeInteger),
-		OrderBy("value", OrderDesc, TypeInteger),
+		WithOrderBy("value", OrderDesc, TypeInteger),
 	).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t,
