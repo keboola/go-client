@@ -16,7 +16,8 @@ func TestEncryptRequest(t *testing.T) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 	c := client.NewTestClient()
-	api := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	assert.NoError(t, err)
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
 	encryptedMapPtr, err := api.EncryptRequest(1234, "keboola.ex-generic-v2", mapToEncrypt).Send(ctx)
@@ -31,7 +32,8 @@ func TestError(t *testing.T) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 	c := client.NewTestClient()
-	api := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	assert.NoError(t, err)
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
 	assert.PanicsWithError(t, "the componentId parameter is required", func() {

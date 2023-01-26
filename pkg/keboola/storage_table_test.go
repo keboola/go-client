@@ -156,7 +156,8 @@ func TestMockListTablesRequest(t *testing.T) {
 
 	ctx := context.Background()
 	c := mockedListTablesClient()
-	api := NewAPI(ctx, "https://connection.north-europe.azure.keboola.com", WithClient(&c))
+	api, err := NewAPI(ctx, "https://connection.north-europe.azure.keboola.com", WithClient(&c))
+	assert.NoError(t, err)
 	{
 		lastChangedDate := parseDate("2021-10-15T13:41:59+0200")
 		expected := &[]*Table{

@@ -90,14 +90,15 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 		"features": []
 	}`))
 	transport.RegisterResponder("GET", `=~^https://queue.connection.test/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
-	api := keboola.NewAPI(context.Background(), "https://connection.test", keboola.WithClient(&c))
+	api, err := keboola.NewAPI(context.Background(), "https://connection.test", keboola.WithClient(&c))
+	assert.NoError(t, err)
 
 	// Create context with deadline
 	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancelFn()
 
 	// Error - deadline exceeded
-	err := api.WaitForQueueJob(ctx, &job)
+	err = api.WaitForQueueJob(ctx, &job)
 	assert.Error(t, err)
 	assert.Equal(t, `error while waiting for the job "1234" to complete: context deadline exceeded`, err.Error())
 

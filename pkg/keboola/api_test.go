@@ -17,7 +17,8 @@ func TestNewAPI_WithoutIndex(t *testing.T) {
 	c, transport := mockedClient()
 
 	ctx := context.Background()
-	api := keboola.NewAPI(ctx, "https://connection.keboola.mock", keboola.WithClient(&c))
+	api, err := keboola.NewAPI(ctx, "https://connection.keboola.mock", keboola.WithClient(&c))
+	assert.NoError(t, err)
 	assert.Equal(t, keboola.Services{{ID: "queue", URL: "https://queue.keboola.mock"}, {ID: "scheduler", URL: "https://scheduler.keboola.mock"}}, api.Index().Services)
 	assert.Equal(t, keboola.Features{"dynamic-backend-size"}, api.Index().Features)
 
@@ -39,8 +40,7 @@ func TestNewAPI_WithIndex(t *testing.T) {
 		Features: keboola.Features{"project-read-only-role-enabled"},
 	}
 
-	ctx := context.Background()
-	api := keboola.NewAPI(ctx, "https://connection.keboola.mock", keboola.WithClient(&c), keboola.WithIndex(idx))
+	api := keboola.NewAPIFromIndex("https://connection.keboola.mock", idx, keboola.WithClient(&c))
 	assert.Equal(t, idx.Services, api.Index().Services)
 	assert.Equal(t, idx.Features, api.Index().Features)
 
