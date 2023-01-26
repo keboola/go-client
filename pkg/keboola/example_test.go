@@ -23,7 +23,7 @@ func ExampleNewAPI() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	fmt.Printf("%#v", branches)
 }
 
