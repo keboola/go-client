@@ -87,6 +87,7 @@ linters:
     #- rowserrcheck # Not compatible with go 1.18, temporary disable
     #- sqlclosecheck # Not compatible with go 1.18, temporary disable
     - staticcheck
+    - stylecheck
     - tagliatelle
     - thelper
     - tparallel

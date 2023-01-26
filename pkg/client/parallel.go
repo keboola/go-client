@@ -11,8 +11,8 @@ func Parallel(requests ...Sendable) ParallelAPIRequests {
 	return requests
 }
 
-func (v ParallelAPIRequests) SendOrErr(ctx context.Context, sender Sender) error {
-	wg := NewWaitGroup(ctx, sender)
+func (v ParallelAPIRequests) SendOrErr(ctx context.Context) error {
+	wg := NewWaitGroup(ctx)
 	for _, r := range v {
 		wg.Send(r)
 	}

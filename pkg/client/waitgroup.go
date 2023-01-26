@@ -21,23 +21,22 @@ const WaitGroupConcurrencyLimit = 8
 // If you need to schedule requests and send them later,
 // or if you want to stop at the first error, use client.RunGroup instead.
 type WaitGroup struct {
-	ctx    context.Context
-	sender Sender
-	wg     *sync.WaitGroup     // wait for all
-	sem    *semaphore.Weighted // limit concurrency
+	ctx context.Context
+	wg  *sync.WaitGroup     // wait for all
+	sem *semaphore.Weighted // limit concurrency
 
 	lock *sync.Mutex // for err
 	err  *multierror.Error
 }
 
 // NewWaitGroup creates new WaitGroup.
-func NewWaitGroup(ctx context.Context, sender Sender) *WaitGroup {
-	return NewWaitGroupWithLimit(ctx, sender, WaitGroupConcurrencyLimit)
+func NewWaitGroup(ctx context.Context) *WaitGroup {
+	return NewWaitGroupWithLimit(ctx, WaitGroupConcurrencyLimit)
 }
 
 // NewWaitGroupWithLimit creates new WaitGroup with given concurrent requests  limit.
-func NewWaitGroupWithLimit(ctx context.Context, sender Sender, limit int64) *WaitGroup {
-	return &WaitGroup{ctx: ctx, sender: sender, wg: &sync.WaitGroup{}, sem: semaphore.NewWeighted(limit), lock: &sync.Mutex{}}
+func NewWaitGroupWithLimit(ctx context.Context, limit int64) *WaitGroup {
+	return &WaitGroup{ctx: ctx, wg: &sync.WaitGroup{}, sem: semaphore.NewWeighted(limit), lock: &sync.Mutex{}}
 }
 
 // Wait for all requests to complete. All errors that have occurred will be returned.
@@ -63,7 +62,7 @@ func (g *WaitGroup) Send(request Sendable) {
 		}
 		defer g.sem.Release(1)
 
-		if err := request.SendOrErr(g.ctx, g.sender); err != nil {
+		if err := request.SendOrErr(g.ctx); err != nil {
 			g.lock.Lock()
 			defer g.lock.Unlock()
 			g.err = multierror.Append(g.err, err)

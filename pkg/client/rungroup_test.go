@@ -20,25 +20,25 @@ func TestRunGroup(t *testing.T) {
 	g := client.NewRunGroup(context.Background(), c)
 
 	// Add requests
-	g.Add(client.NewHTTPRequest().WithGet("foo1"))
-	g.Add(client.NewHTTPRequest().WithGet("foo2"))
+	g.Add(client.NewHTTPRequest(c).WithGet("foo1"))
+	g.Add(client.NewHTTPRequest(c).WithGet("foo2"))
 	g.Add(client.
-		NewHTTPRequest().
+		NewHTTPRequest(c).
 		WithGet("foo3").
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
-			g.Add(client.NewHTTPRequest().WithGet("foo5"))
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			g.Add(client.NewHTTPRequest(c).WithGet("foo5"))
 			return nil
 		}).
-		WithOnError(func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
-			g.Add(client.NewHTTPRequest().WithGet("err"))
+		WithOnError(func(ctx context.Context, response client.HTTPResponse, err error) error {
+			g.Add(client.NewHTTPRequest(c).WithGet("err"))
 			return err
 		}),
 	)
 	g.Add(client.
-		NewHTTPRequest().
+		NewHTTPRequest(c).
 		WithGet("foo4").
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
-			g.Add(client.NewHTTPRequest().WithGet("foo6"))
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			g.Add(client.NewHTTPRequest(c).WithGet("foo6"))
 			return nil
 		}),
 	)
@@ -74,7 +74,7 @@ func TestRunGroup_HandleError(t *testing.T) {
 	requestsCount := 100
 	assert.Greater(t, requestsCount, client.RunGroupConcurrencyLimit)
 	for i := 1; i <= requestsCount; i++ {
-		g.Add(client.NewHTTPRequest().WithGet("foo"))
+		g.Add(client.NewHTTPRequest(c).WithGet("foo"))
 	}
 
 	// No requests have been sent yet

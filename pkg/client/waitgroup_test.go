@@ -18,28 +18,28 @@ func TestWaitGroup(t *testing.T) {
 	transport.RegisterResponder("GET", `=~^https://example.com/`, httpmock.NewStringResponder(200, "OK"))
 
 	// Create run group
-	g := client.NewWaitGroup(context.Background(), c)
+	g := client.NewWaitGroup(context.Background())
 
 	// Send requests
-	g.Send(client.NewHTTPRequest().WithGet("foo1"))
-	g.Send(client.NewHTTPRequest().WithGet("foo2"))
+	g.Send(client.NewHTTPRequest(c).WithGet("foo1"))
+	g.Send(client.NewHTTPRequest(c).WithGet("foo2"))
 	g.Send(client.
-		NewHTTPRequest().
+		NewHTTPRequest(c).
 		WithGet("foo3").
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
-			g.Send(client.NewHTTPRequest().WithGet("foo5"))
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			g.Send(client.NewHTTPRequest(c).WithGet("foo5"))
 			return nil
 		}).
-		WithOnError(func(ctx context.Context, sender client.Sender, response client.HTTPResponse, err error) error {
-			g.Send(client.NewHTTPRequest().WithGet("err"))
+		WithOnError(func(ctx context.Context, response client.HTTPResponse, err error) error {
+			g.Send(client.NewHTTPRequest(c).WithGet("err"))
 			return err
 		}),
 	)
 	g.Send(client.
-		NewHTTPRequest().
+		NewHTTPRequest(c).
 		WithGet("foo4").
-		WithOnSuccess(func(ctx context.Context, sender client.Sender, response client.HTTPResponse) error {
-			g.Send(client.NewHTTPRequest().WithGet("foo6"))
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			g.Send(client.NewHTTPRequest(c).WithGet("foo6"))
 			return nil
 		}),
 	)
@@ -70,13 +70,13 @@ func TestWaitGroup_HandleError(t *testing.T) {
 	transport.RegisterResponder("GET", `=~^https://example.com/`, httpmock.NewStringResponder(401, "Forbidden"))
 
 	// Create run group
-	g := client.NewWaitGroup(context.Background(), c)
+	g := client.NewWaitGroup(context.Background())
 
 	// Send requests
 	requestsCount := 100
 	assert.Greater(t, requestsCount, client.RunGroupConcurrencyLimit)
 	for i := 1; i <= requestsCount; i++ {
-		g.Send(client.NewHTTPRequest().WithGet("foo"))
+		g.Send(client.NewHTTPRequest(c).WithGet("foo"))
 	}
 
 	// All errors are returned

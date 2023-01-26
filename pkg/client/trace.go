@@ -81,7 +81,7 @@ type logTrace struct {
 func LogTracer(wr io.Writer) TraceFactory {
 	var idGenerator uint64
 	return func() *Trace {
-		requestId := atomic.AddUint64(&idGenerator, 1)
+		requestID := atomic.AddUint64(&idGenerator, 1)
 
 		var request *http.Request
 		var connStartTime time.Time
@@ -104,12 +104,12 @@ func LogTracer(wr io.Writer) TraceFactory {
 			} else {
 				infoStr = fmt.Sprintf("new conn | %s", time.Since(connStartTime))
 			}
-			t.log(requestId, fmt.Sprintf(`CONN  %s "%s" | %s`, request.Method, request.URL.String(), infoStr))
+			t.log(requestID, fmt.Sprintf(`CONN  %s "%s" | %s`, request.Method, request.URL.String(), infoStr))
 		}
 		t.HTTPRequestStart = func(r *http.Request) {
 			request = r
 			startTime = time.Now()
-			t.log(requestId, fmt.Sprintf(`START %s "%s"`, request.Method, request.URL.String()))
+			t.log(requestID, fmt.Sprintf(`START %s "%s"`, request.Method, request.URL.String()))
 		}
 		t.HTTPRequestDone = func(r *http.Response, err error) {
 			doneTime = time.Now()
@@ -119,24 +119,24 @@ func LogTracer(wr io.Writer) TraceFactory {
 			} else {
 				errorStr = fmt.Sprintf(" | error=%s", err)
 			}
-			t.log(requestId, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, request.Method, request.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
+			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, request.Method, request.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
 		}
 		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
-			t.log(requestId, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, request.Method, request.URL.String(), attempt, delay))
+			t.log(requestID, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, request.Method, request.URL.String(), attempt, delay))
 		}
 		t.RequestProcessed = func(result any, err error) {
 			var errorStr string
 			if err != nil {
 				errorStr = fmt.Sprintf(" | error=%s", err)
 			}
-			t.log(requestId, fmt.Sprintf(`BODY  %s "%s" | %s%s`, request.Method, request.URL.String(), time.Since(doneTime).String(), errorStr))
+			t.log(requestID, fmt.Sprintf(`BODY  %s "%s" | %s%s`, request.Method, request.URL.String(), time.Since(doneTime).String(), errorStr))
 		}
 		return &t.Trace
 	}
 }
 
-func (t *logTrace) log(requestId uint64, a ...any) {
-	a = append([]any{fmt.Sprintf("HTTP_REQUEST[%04d]", requestId)}, a...)
+func (t *logTrace) log(requestID uint64, a ...any) {
+	a = append([]any{fmt.Sprintf("HTTP_REQUEST[%04d]", requestID)}, a...)
 	fmt.Fprintln(t.wr, a...)
 }
 
@@ -149,7 +149,7 @@ type dumpTrace struct {
 // Output may contain unmasked tokens, do not use it in production!
 func DumpTracer(wr io.Writer) TraceFactory {
 	return func() *Trace {
-		var requestMethod, requestUri string
+		var requestMethod, requestURI string
 		var responseStatusCode int
 		var requestDump []byte
 		var responseErr error
@@ -159,7 +159,7 @@ func DumpTracer(wr io.Writer) TraceFactory {
 		t.HTTPRequestStart = func(r *http.Request) {
 			startTime = time.Now()
 			requestMethod = r.Method
-			requestUri = r.URL.RequestURI()
+			requestURI = r.URL.RequestURI()
 			requestDump, _ = httputil.DumpRequestOut(r, true)
 		}
 		t.HTTPRequestDone = func(r *http.Response, err error) {
@@ -212,11 +212,11 @@ func DumpTracer(wr io.Writer) TraceFactory {
 		}
 		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
 			t.log()
-			t.log(">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr)
+			t.log(">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestURI, responseStatusCode, "| ERROR:", responseErr)
 		}
 		t.RequestProcessed = func(result any, err error) {
 			t.log()
-			t.log(">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestUri, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
+			t.log(">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestURI, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
 		}
 		return &t.Trace
 	}
