@@ -96,11 +96,12 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	api, err := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	assert.NoError(t, err)
 
 	// Run request
 	config := &ConfigWithRows{Config: &Config{ConfigKey: ConfigKey{BranchID: 123, ComponentID: "foo.bar", ID: "123"}}}
-	_, err := api.CreateConfigRequest(config).Send(context.Background())
+	_, err = api.CreateConfigRequest(config).Send(context.Background())
 
 	// The request ended without an error, the config was loaded via a GET request
 	assert.NoError(t, err)
@@ -140,11 +141,12 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	api, err := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	assert.NoError(t, err)
 
 	// Run request
 	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
-	_, err := api.DeleteBucketRequest(id).Send(context.Background())
+	_, err = api.DeleteBucketRequest(id).Send(context.Background())
 
 	// The request ended without an error
 	assert.NoError(t, err)

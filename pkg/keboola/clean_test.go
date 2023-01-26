@@ -65,7 +65,8 @@ func deps(t *testing.T) (context.Context, context.CancelFunc, *testproject.Proje
 	project, _ := testproject.GetTestProjectForTest(t)
 
 	c := client.NewTestClient()
-	api := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
+	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
+	assert.NoError(t, err)
 
 	return timeoutCtx, cancelFn, project, api
 }

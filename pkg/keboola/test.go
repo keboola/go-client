@@ -16,7 +16,8 @@ func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testpr
 	project, err := testproject.GetTestProjectForTest(t, opts...)
 	assert.NoError(t, err)
 	c := client.NewTestClient()
-	api := NewAPI(ctx, project.StorageAPIHost(), WithToken(project.StorageAPIToken()), WithClient(&c))
+	api, err := NewAPI(ctx, project.StorageAPIHost(), WithToken(project.StorageAPIToken()), WithClient(&c))
+	assert.NoError(t, err)
 	return project, api
 }
 
@@ -26,7 +27,7 @@ func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testp
 	project, api := APIClientForRandomProject(t, ctx, opts...)
 	_, err := api.CleanProjectRequest().Send(ctx)
 	if err != nil {
-		t.Fatalf(`cannot clear project "%d": %s`, project.ID(), err)
+		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
 	return api
 }

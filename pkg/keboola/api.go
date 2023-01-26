@@ -62,7 +62,6 @@ type API struct {
 
 type apiConfig struct {
 	client *client.Client
-	index  *Index
 	token  string
 }
 
@@ -71,12 +70,6 @@ type APIOption func(c *apiConfig)
 func WithClient(cl *client.Client) APIOption {
 	return func(c *apiConfig) {
 		c.client = cl
-	}
-}
-
-func WithIndex(idx *Index) APIOption {
-	return func(c *apiConfig) {
-		c.index = idx
 	}
 }
 
@@ -90,7 +83,30 @@ type Object interface {
 	ObjectID() any
 }
 
-func NewAPI(ctx context.Context, host string, opts ...APIOption) *API {
+func APIIndex(ctx context.Context, host string, opts ...APIOption) (*Index, error) {
+	c := newClient(host, opts)
+	return (&API{sender: c}).IndexRequest().Send(ctx)
+}
+
+func APIIndexWithComponents(ctx context.Context, host string, opts ...APIOption) (*IndexComponents, error) {
+	c := newClient(host, opts)
+	return (&API{sender: c}).IndexComponentsRequest().Send(ctx)
+}
+
+func NewAPI(ctx context.Context, host string, opts ...APIOption) (*API, error) {
+	index, err := APIIndex(ctx, host, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return NewAPIFromIndex(host, index, opts...), nil
+}
+
+func NewAPIFromIndex(host string, index *Index, opts ...APIOption) *API {
+	c := newClient(host, opts)
+	return &API{sender: c, index: index}
+}
+
+func newClient(host string, opts []APIOption) client.Client {
 	if !strings.HasPrefix(host, "https://") {
 		host = "https://" + host
 	}
@@ -107,21 +123,8 @@ func NewAPI(ctx context.Context, host string, opts ...APIOption) *API {
 	if config.token != "" {
 		c = c.WithHeader("X-StorageApi-Token", config.token)
 	}
-
-	api := &API{sender: c.WithBaseURL(host)}
-	var idx *Index
-	var err error
-	if config.index != nil {
-		idx = config.index
-	} else {
-		idx, err = api.IndexRequest().Send(ctx)
-		if err != nil {
-			panic(fmt.Errorf(`service list cannot be downloaded: %w`, err))
-		}
-	}
-	api.index = idx
-
-	return api
+	c = c.WithBaseURL(host)
+	return c
 }
 
 func (a *API) Client() client.Sender {
