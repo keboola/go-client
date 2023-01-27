@@ -246,7 +246,7 @@ func TestTableApiCalls(t *testing.T) {
 	ctx := context.Background()
 	api := APIClientForAnEmptyProject(t, ctx)
 
-	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	bucketName := fmt.Sprintf("c-test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())
 
 	bucket := &Bucket{
@@ -312,7 +312,7 @@ func TestTableApiCalls_Deprecated(t *testing.T) {
 	bucket := &Bucket{
 		ID: BucketID{
 			Stage:      BucketStageIn,
-			BucketName: fmt.Sprintf("test_%d", rand.Int()),
+			BucketName: fmt.Sprintf("c-test_%d", rand.Int()),
 		},
 	}
 	tableID := TableID{
@@ -353,7 +353,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("bucket_%d", rand.Int()),
+		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
 	}
 	tableID := TableID{
 		BucketID:  bucketID,
@@ -431,7 +431,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	ctx := context.Background()
 	api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageS3())
 
-	bucketName := fmt.Sprintf("test_%d", rand.Int())
+	bucketName := fmt.Sprintf("c-test_%d", rand.Int())
 	tableName := fmt.Sprintf("test_%d", rand.Int())
 
 	bucket := &Bucket{

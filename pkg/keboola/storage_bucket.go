@@ -2,6 +2,7 @@ package keboola
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -68,6 +69,13 @@ func (a *API) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
 func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
+	// Validate
+	if !strings.HasPrefix(bucket.ID.BucketName, magicBucketNamePrefix) {
+		return client.NewAPIRequest(bucket, client.NewReqDefinitionError(fmt.Errorf(
+			`bucket must start with "%s", found "%s"`, magicBucketNamePrefix, bucket.ID.BucketName,
+		)))
+	}
+
 	// Create config
 	params := client.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
@@ -75,7 +83,7 @@ func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	}
 
 	params["stage"] = bucket.ID.Stage
-	params["name"] = bucket.ID.BucketName
+	params["name"] = strings.TrimPrefix(bucket.ID.BucketName, magicBucketNamePrefix)
 
 	request := a.
 		newRequest(StorageAPI).

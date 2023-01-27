@@ -28,7 +28,7 @@ type BucketID struct {
 }
 
 func (v BucketID) String() string {
-	return fmt.Sprintf("%s.%s%s", v.Stage, magicBucketNamePrefix, v.BucketName)
+	return fmt.Sprintf("%s.%s", v.Stage, v.BucketName)
 }
 
 func (v BucketID) MarshalJSON() ([]byte, error) {
@@ -57,6 +57,14 @@ func MustParseBucketID(v string) BucketID {
 }
 
 func ParseBucketID(v string) (BucketID, error) {
+	return parseBucketID(v, false)
+}
+
+func ParseBucketIDExpectMagicPrefix(v string) (BucketID, error) {
+	return parseBucketID(v, true)
+}
+
+func parseBucketID(v string, magicPrefix bool) (BucketID, error) {
 	if len(v) == 0 {
 		return BucketID{}, errors.New(`bucket ID cannot be empty`)
 	}
@@ -72,13 +80,13 @@ func ParseBucketID(v string) (BucketID, error) {
 		return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": unexpected stage "%s"`, v, stage)
 	}
 
-	if !strings.HasPrefix(bucket, magicBucketNamePrefix) {
-		return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": missing expected prefix "c-"`, v)
+	if magicPrefix {
+		if !strings.HasPrefix(bucket, magicBucketNamePrefix) {
+			return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": missing expected prefix "c-"`, v)
+		}
 	}
 
-	bucket = strings.TrimPrefix(bucket, magicBucketNamePrefix)
-
-	if len(bucket) == 0 {
+	if len(bucket) == 0 || bucket == magicBucketNamePrefix {
 		return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": bucket ID cannot be empty`, v)
 	}
 
