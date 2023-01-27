@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/relvacode/iso8601"
 
@@ -94,6 +95,22 @@ func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
 func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
+	request := a.
+		DeleteBucketAsyncRequest(bucketID, opts...).
+		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
+			// Wait for storage job
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			defer waitCancelFn()
+			if err := a.WaitForStorageJob(waitCtx, job); err != nil {
+				return err
+			}
+			return nil
+		})
+	return client.NewAPIRequest(client.NoResult{}, request)
+}
+
+// DeleteBucketAsyncRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
+func (a *API) DeleteBucketAsyncRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[*StorageJob] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -101,15 +118,17 @@ func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) clien
 		opt(c)
 	}
 
+	result := &StorageJob{}
 	request := a.
 		newRequest(StorageAPI).
+		WithResult(result).
 		WithDelete("buckets/{bucketId}").
 		AndPathParam("bucketId", bucketID.String()).
-		WithOnError(ignoreResourceNotFoundError())
+		AndQueryParam("async", "1")
 
 	if c.force {
 		request = request.AndQueryParam("force", "true")
 	}
 
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return client.NewAPIRequest(result, request)
 }
