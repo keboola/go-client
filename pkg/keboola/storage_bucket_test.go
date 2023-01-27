@@ -19,7 +19,7 @@ func TestBucketApiCalls(t *testing.T) {
 	bucket := &keboola.Bucket{
 		ID: keboola.BucketID{
 			Stage:      keboola.BucketStageIn,
-			BucketName: fmt.Sprintf("test_%d", rand.Int()),
+			BucketName: fmt.Sprintf("c-test_%d", rand.Int()),
 		},
 	}
 
