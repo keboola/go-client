@@ -61,7 +61,7 @@ func TestIsResourceNotFoundError(t *testing.T) {
 	))
 }
 
-func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
+func TestHack_CreateConfigRequest_AlreadyExists(t *testing.T) {
 	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
@@ -115,7 +115,7 @@ func TestCreateConfigRequest_AlreadyExists(t *testing.T) {
 	}, transport.GetCallCountInfo())
 }
 
-func TestDeleteBucketRequest_NotFound(t *testing.T) {
+func TestHack_DeleteTableRequest_NotFound(t *testing.T) {
 	t.Parallel()
 	// Mocked response
 	transport := httpmock.NewMockTransport()
@@ -125,7 +125,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	}`))
 	transport.RegisterResponder(
 		http.MethodDelete,
-		`https://connection.keboola.com/v2/storage/buckets/in.c-foo`,
+		`https://connection.keboola.com/v2/storage/tables/in.c-bucket.table`,
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
@@ -134,7 +134,7 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 			{
 				StatusCode: http.StatusNotFound,
 				Header:     map[string][]string{"Content-Type": {"application/json"}},
-				Body:       io.NopCloser(strings.NewReader(`{"code": "storage.bucket.notFound"}`)),
+				Body:       io.NopCloser(strings.NewReader(`{"code": "storage.table.notFound"}`)),
 			},
 		}),
 	)
@@ -145,15 +145,15 @@ func TestDeleteBucketRequest_NotFound(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Run request
-	id := BucketID{Stage: BucketStageIn, BucketName: "foo"}
-	_, err = api.DeleteBucketRequest(id).Send(context.Background())
+	id := MustParseTableID("in.c-bucket.table")
+	_, err = api.DeleteTableRequest(id).Send(context.Background())
 
 	// The request ended without an error
 	assert.NoError(t, err)
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
-		"GET https://connection.keboola.com/v2/storage/?exclude=components": 1,
-		"DELETE https://connection.keboola.com/v2/storage/buckets/in.c-foo": 2,
+		"GET https://connection.keboola.com/v2/storage/?exclude=components":         1,
+		"DELETE https://connection.keboola.com/v2/storage/tables/in.c-bucket.table": 2,
 	}, transport.GetCallCountInfo())
 }

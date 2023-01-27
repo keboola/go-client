@@ -19,12 +19,12 @@ func ExampleNewAPI() {
 	}
 
 	// Send request
-	branches, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest().Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v", branches)
+	fmt.Printf("%#v", buckets)
 }
 
 func ExampleNewAPIFromIndex() {
@@ -41,12 +41,12 @@ func ExampleNewAPIFromIndex() {
 	api := keboola.NewAPIFromIndex(host, index)
 
 	// Send request
-	branches, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest().Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v", branches)
+	fmt.Printf("%#v", buckets)
 }
 
 func Example_newAPIFromIndexWithComponents() {
@@ -63,10 +63,10 @@ func Example_newAPIFromIndexWithComponents() {
 	api := keboola.NewAPIFromIndex(host, &index.Index, keboola.WithToken("<my-token>"))
 
 	// Send request
-	branches, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest().Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v", branches)
+	fmt.Printf("%#v", buckets)
 }
