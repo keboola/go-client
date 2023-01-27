@@ -20,6 +20,21 @@ type Result = any
 // NoResult type.
 type NoResult struct{}
 
+// ReqDefinitionError can be used as the Sendable interface.
+// So the error will be returned when you try to send the request.
+// This simplifies usage, the error is checked only once, in one place.
+type ReqDefinitionError struct {
+	error
+}
+
+func (v ReqDefinitionError) SendOrErr(_ context.Context) error {
+	return v
+}
+
+func (v ReqDefinitionError) Unwrap() error {
+	return v.error
+}
+
 // Sendable is HTTPRequest or APIRequest.
 type Sendable interface {
 	SendOrErr(ctx context.Context) error
@@ -166,6 +181,10 @@ func NewAPIRequest[R Result](result R, requests ...Sendable) APIRequest[R] {
 // It is handy in situations where there is no work to be done.
 func NewNoOperationAPIRequest[R Result](result R) APIRequest[R] {
 	return &apiRequest[R]{result: result}
+}
+
+func NewReqDefinitionError(err error) Sendable {
+	return ReqDefinitionError{error: err}
 }
 
 // httpRequest implements HTTPRequest interface.
