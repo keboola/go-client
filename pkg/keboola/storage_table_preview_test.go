@@ -124,7 +124,7 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("bucket_%d", rand.Int()),
+		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
 	}
 	tableID := TableID{
 		BucketID:  bucketID,
