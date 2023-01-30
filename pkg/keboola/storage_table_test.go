@@ -438,20 +438,20 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 		TableName: tableName,
 	}
 
-	// Create file1
-	file1, err := api.CreateFileResourceRequest(tableName, WithDisableEncryption()).Send(ctx)
+	// Create whole file
+	wholeFile, err := api.CreateFileResourceRequest(tableName, WithDisableEncryption()).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file1.ID)
+	assert.NotEmpty(t, wholeFile.ID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
-	written, err := Upload(ctx, file1, bytes.NewReader(content))
+	written, err := Upload(ctx, wholeFile, bytes.NewReader(content))
 	assert.NoError(t, err)
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	_, err = api.CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableID, wholeFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
@@ -460,28 +460,28 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.Equal(t, uint64(1), table.RowsCount)
 
 	// Create sliced file
-	file2, err := api.CreateFileResourceRequest(tableName).Send(ctx)
+	slicedFile, err := api.CreateFileResourceRequest(tableName, WithIsSliced(true)).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file2.ID)
+	assert.NotEmpty(t, slicedFile.ID)
 
 	// Upload slice 1 file
 	content = []byte("val3,val4\nval5,val6\n")
-	_, err = UploadSlice(ctx, file1, "slice1", bytes.NewReader(content))
+	_, err = UploadSlice(ctx, slicedFile, "slice1", bytes.NewReader(content))
 	assert.NoError(t, err)
 
 	// Upload slice 2 file
 	content = []byte("val7,val8\nval9,val10\n")
-	_, err = UploadSlice(ctx, file1, "slice2", bytes.NewReader(content))
+	_, err = UploadSlice(ctx, slicedFile, "slice2", bytes.NewReader(content))
 	assert.NoError(t, err)
 
 	// Upload manifest
-	_, err = UploadSlicedFileManifest(ctx, file1, []string{"slice1", "slice2"})
+	_, err = UploadSlicedFileManifest(ctx, slicedFile, []string{"slice1", "slice2"})
 	assert.NoError(t, err)
 
 	// Load data to table
 	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn()
-	job, err := api.LoadDataFromFileRequest(tableID, file2.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableID, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx, job))
 
