@@ -370,7 +370,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	fileName1 := fmt.Sprintf("file_%d", rand.Int())
-	file1, err := api.CreateFileResourceRequest(fileName1, WithDisableEncryption()).Send(ctx)
+	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
 
@@ -386,7 +386,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	fileName2 := fmt.Sprintf("file_%d", rand.Int())
-	file2, err := api.CreateFileResourceRequest(fileName2, WithDisableEncryption()).Send(ctx)
+	file2, err := api.CreateFileResourceRequest(fileName2).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file2.ID)
 
@@ -439,7 +439,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	}
 
 	// Create whole file
-	wholeFile, err := api.CreateFileResourceRequest(tableName, WithDisableEncryption()).Send(ctx)
+	wholeFile, err := api.CreateFileResourceRequest(tableName).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, wholeFile.ID)
 

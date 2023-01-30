@@ -50,14 +50,14 @@ type Slice struct {
 }
 
 type createFileConfig struct {
-	name           string
-	sizeBytes      uint64
-	contentType    string
-	isPermanent    bool
-	notify         bool
-	tags           []string
-	isSliced       bool
-	isNotEncrypted bool
+	name              string
+	sizeBytes         uint64
+	contentType       string
+	isPermanent       bool
+	notify            bool
+	tags              []string
+	isSliced          bool
+	disableEncryption bool
 }
 
 type CreateFileOption interface {
@@ -124,14 +124,14 @@ func (v withIsSliced) applyCreateFileOption(c *createFileConfig) {
 	c.isSliced = bool(v)
 }
 
-type withIsNotEncrypted bool
+type withDisableEncryption bool
 
-func WithDisableEncryption() withIsNotEncrypted {
-	return withIsNotEncrypted(true)
+func WithDisableEncryption() withDisableEncryption {
+	return withDisableEncryption(true)
 }
 
-func (v withIsNotEncrypted) applyCreateFileOption(c *createFileConfig) {
-	c.isNotEncrypted = bool(v)
+func (v withDisableEncryption) applyCreateFileOption(c *createFileConfig) {
+	c.disableEncryption = bool(v)
 }
 
 func (c *createFileConfig) toMap() map[string]any {
@@ -156,7 +156,7 @@ func (c *createFileConfig) toMap() map[string]any {
 	if c.isSliced {
 		m["isSliced"] = true
 	}
-	if c.isNotEncrypted {
+	if c.disableEncryption {
 		m["isEncrypted"] = false
 	}
 	return m
