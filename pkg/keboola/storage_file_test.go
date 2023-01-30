@@ -15,12 +15,10 @@ func TestListAndDeleteFiles(t *testing.T) {
 	api := APIClientForAnEmptyProject(t, ctx)
 
 	// Create two files
-	file1 := &File{Name: "test1", IsEncrypted: true, FederationToken: true}
-	_, err := api.CreateFileResourceRequest(file1).Send(ctx)
+	file1, err := api.CreateFileResourceRequest("test1").Send(ctx)
 	assert.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
-	file2 := &File{Name: "test2", IsEncrypted: true, FederationToken: true}
-	_, err = api.CreateFileResourceRequest(file2).Send(ctx)
+	file2, err := api.CreateFileResourceRequest("test2").Send(ctx)
 	assert.NoError(t, err)
 
 	// List

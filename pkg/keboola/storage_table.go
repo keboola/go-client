@@ -142,7 +142,7 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 // CreateTable creates an empty table with given columns.
 func (a *API) CreateTable(ctx context.Context, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
 	// Create file resource
-	file, err := a.CreateFileResourceRequest(&File{Name: tableID.TableName}).Send(ctx)
+	file, err := a.CreateFileResourceRequest(tableID.TableName).Send(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating file failed: %w", err)
 	}

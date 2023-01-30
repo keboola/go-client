@@ -61,7 +61,15 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 
 		// Create file resource
 		ctx := context.Background()
-		_, err := api.CreateFileResourceRequest(file).Send(ctx)
+		opts := []keboola.CreateFileOption{
+			keboola.WithIsPermanent(tc.Permanent),
+			keboola.WithIsSliced(tc.Sliced),
+			keboola.WithTags("tag1", "tag2"),
+		}
+		if !tc.Encrypted {
+			opts = append(opts, keboola.WithDisableEncryption())
+		}
+		file, err := api.CreateFileResourceRequest("test", opts...).Send(ctx)
 		assert.NoError(t, err)
 
 		// Assert common fields
