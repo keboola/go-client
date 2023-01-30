@@ -49,14 +49,139 @@ type Slice struct {
 	URL string `json:"url"`
 }
 
+type createFileConfig struct {
+	name              string
+	sizeBytes         uint64
+	contentType       string
+	isPermanent       bool
+	notify            bool
+	tags              []string
+	isSliced          bool
+	disableEncryption bool
+}
+
+type CreateFileOption interface {
+	applyCreateFileOption(c *createFileConfig)
+}
+
+type withSizeBytes uint64
+
+func WithSizeBytes(v uint64) withSizeBytes {
+	return withSizeBytes(v)
+}
+
+func (v withSizeBytes) applyCreateFileOption(c *createFileConfig) {
+	c.sizeBytes = uint64(v)
+}
+
+type withContentType string
+
+func WithContentType(v string) withContentType {
+	return withContentType(v)
+}
+
+func (v withContentType) applyCreateFileOption(c *createFileConfig) {
+	c.contentType = string(v)
+}
+
+type withIsPermanent bool
+
+func WithIsPermanent(v bool) withIsPermanent {
+	return withIsPermanent(v)
+}
+
+func (v withIsPermanent) applyCreateFileOption(c *createFileConfig) {
+	c.isPermanent = bool(v)
+}
+
+type withNotify bool
+
+func WithNotify(v bool) withNotify {
+	return withNotify(v)
+}
+
+func (v withNotify) applyCreateFileOption(c *createFileConfig) {
+	c.notify = bool(v)
+}
+
+type withTags []string
+
+func WithTags(v ...string) withTags {
+	return withTags(v)
+}
+
+func (v withTags) applyCreateFileOption(c *createFileConfig) {
+	c.tags = append(c.tags, v...)
+}
+
+type withIsSliced bool
+
+func WithIsSliced(v bool) withIsSliced {
+	return withIsSliced(v)
+}
+
+func (v withIsSliced) applyCreateFileOption(c *createFileConfig) {
+	c.isSliced = bool(v)
+}
+
+type withDisableEncryption bool
+
+func WithDisableEncryption() withDisableEncryption {
+	return withDisableEncryption(true)
+}
+
+func (v withDisableEncryption) applyCreateFileOption(c *createFileConfig) {
+	c.disableEncryption = bool(v)
+}
+
+func (c *createFileConfig) toMap() map[string]any {
+	m := map[string]any{"name": c.name, "federationToken": true, "isEncrypted": true}
+	if c.sizeBytes > 0 {
+		m["sizeBytes"] = c.sizeBytes
+	}
+	if len(c.contentType) > 0 {
+		m["contentType"] = c.contentType
+	}
+	if c.isPermanent {
+		m["isPermanent"] = true
+	}
+	if c.notify {
+		m["notify"] = true
+	}
+	if len(c.tags) > 0 {
+		for i, tag := range c.tags {
+			m[fmt.Sprintf("tags[%d]", i)] = tag
+		}
+	}
+	if c.isSliced {
+		m["isSliced"] = true
+	}
+	if c.disableEncryption {
+		m["isEncrypted"] = false
+	}
+	return m
+}
+
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *API) CreateFileResourceRequest(file *File) client.APIRequest[*File] {
-	file.FederationToken = true
+func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) client.APIRequest[*File] {
+	c := createFileConfig{name: name}
+	for _, opt := range opts {
+		opt.applyCreateFileOption(&c)
+	}
+
+	file := &File{}
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithPost("files/prepare").
-		WithFormBody(client.ToFormBody(client.StructToMap(file, nil)))
+		WithFormBody(client.ToFormBody(c.toMap())).
+		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+			file.ContentType = c.contentType
+			file.FederationToken = true
+			file.IsPermanent = c.isPermanent
+			file.Notify = c.notify
+			return nil
+		})
 	return client.NewAPIRequest(file, request)
 }
 

@@ -370,13 +370,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	fileName1 := fmt.Sprintf("file_%d", rand.Int())
-	file1 := &File{
-		IsPermanent: false,
-		IsSliced:    false,
-		IsEncrypted: false,
-		Name:        fileName1,
-	}
-	_, err = api.CreateFileResourceRequest(file1).Send(ctx)
+	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
 
@@ -392,13 +386,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	// Create file
 	fileName2 := fmt.Sprintf("file_%d", rand.Int())
-	file2 := &File{
-		IsPermanent: false,
-		IsSliced:    false,
-		IsEncrypted: false,
-		Name:        fileName2,
-	}
-	_, err = api.CreateFileResourceRequest(file2).Send(ctx)
+	file2, err := api.CreateFileResourceRequest(fileName2).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file2.ID)
 
@@ -450,26 +438,20 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 		TableName: tableName,
 	}
 
-	// Create file
-	file := &File{
-		IsPermanent: false,
-		IsSliced:    false,
-		IsEncrypted: false,
-		Name:        tableName,
-	}
-	_, err = api.CreateFileResourceRequest(file).Send(ctx)
+	// Create whole file
+	wholeFile, err := api.CreateFileResourceRequest(tableName).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file.ID)
+	assert.NotEmpty(t, wholeFile.ID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
-	written, err := Upload(ctx, file, bytes.NewReader(content))
+	written, err := Upload(ctx, wholeFile, bytes.NewReader(content))
 	assert.NoError(t, err)
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	_, err = api.CreateTableFromFileRequest(tableID, file.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableID, wholeFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
@@ -478,34 +460,28 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.Equal(t, uint64(1), table.RowsCount)
 
 	// Create sliced file
-	file = &File{
-		IsPermanent: false,
-		IsSliced:    true,
-		IsEncrypted: true,
-		Name:        tableName,
-	}
-	resFile, err := api.CreateFileResourceRequest(file).Send(ctx)
+	slicedFile, err := api.CreateFileResourceRequest(tableName, WithIsSliced(true)).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, resFile.ID)
+	assert.NotEmpty(t, slicedFile.ID)
 
 	// Upload slice 1 file
 	content = []byte("val3,val4\nval5,val6\n")
-	_, err = UploadSlice(ctx, file, "slice1", bytes.NewReader(content))
+	_, err = UploadSlice(ctx, slicedFile, "slice1", bytes.NewReader(content))
 	assert.NoError(t, err)
 
 	// Upload slice 2 file
 	content = []byte("val7,val8\nval9,val10\n")
-	_, err = UploadSlice(ctx, file, "slice2", bytes.NewReader(content))
+	_, err = UploadSlice(ctx, slicedFile, "slice2", bytes.NewReader(content))
 	assert.NoError(t, err)
 
 	// Upload manifest
-	_, err = UploadSlicedFileManifest(ctx, file, []string{"slice1", "slice2"})
+	_, err = UploadSlicedFileManifest(ctx, slicedFile, []string{"slice1", "slice2"})
 	assert.NoError(t, err)
 
 	// Load data to table
 	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
 	defer waitCancelFn()
-	job, err := api.LoadDataFromFileRequest(tableID, resFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableID, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx, job))
 

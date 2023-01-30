@@ -141,13 +141,7 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	// Create file
 	fileName1 := fmt.Sprintf("file_%d", rand.Int())
-	file1 := &File{
-		IsPermanent: false,
-		IsSliced:    false,
-		IsEncrypted: false,
-		Name:        fileName1,
-	}
-	_, err = api.CreateFileResourceRequest(file1).Send(ctx)
+	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
 
