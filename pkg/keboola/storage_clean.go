@@ -34,7 +34,8 @@ func (a *API) CleanProjectRequest() client.APIRequest[*Branch] {
 					// Reset description
 					if branch.Description != mainBranchDescription {
 						branch.Description = mainBranchDescription
-						wg.Send(a.UpdateBranchRequest(branch, []string{"description"}))
+						branchClone := *branch // prevent data race, update op updates also the struct
+						wg.Send(a.UpdateBranchRequest(&branchClone, []string{"description"}))
 					}
 					// Store default branch
 					*defaultBranch = *branch
