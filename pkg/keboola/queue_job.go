@@ -2,6 +2,7 @@ package keboola
 
 import (
 	jsonLib "encoding/json"
+	"fmt"
 
 	"github.com/relvacode/iso8601"
 )
@@ -11,6 +12,21 @@ type JobID string
 
 func (j JobID) String() string {
 	return string(j)
+}
+
+func (j *JobID) UnmarshalJSON(b []byte) error {
+	var asString string
+	err := jsonLib.Unmarshal(b, &asString)
+	if err != nil {
+		var asInt int
+		err = jsonLib.Unmarshal(b, &asInt)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal int or string")
+		}
+		asString = fmt.Sprint(asInt)
+	}
+	*j = JobID(asString)
+	return nil
 }
 
 // JobKey is a unique identifier of QueueJob.
