@@ -26,7 +26,7 @@ type ProjectDetail struct {
 }
 
 type TokenDetail struct {
-	Id          int    `json:"id"`
+	Id          string `json:"id"`
 	Description string `json:"description"`
 }
 
@@ -83,9 +83,9 @@ type CreateJobResult struct {
 }
 
 type oldQueueJobConfig struct {
-	ImageTag           string
-	Branch             BranchID
-	Component          ComponentID
+	ImageTag           string              `json:"-"`
+	Branch             BranchID            `json:"-"`
+	Component          ComponentID         `json:"-"`
 	Config             ConfigID            `json:"config"`
 	Row                RowID               `json:"row,omitempty"`
 	ConfigData         map[string]any      `json:"configData,omitempty"`
@@ -159,35 +159,35 @@ func (a *API) CreateOldQueueJobRequest(
 	return client.NewAPIRequest(result, request)
 }
 
-type oldQueueJobDetailConfig struct {
+type getOldQueueJobConfig struct {
 	includeMetrics bool
 }
 
-type OldQueueJobDetailOption func(c *oldQueueJobDetailConfig)
+type GetOldQueueJobOption func(c *getOldQueueJobConfig)
 
-func WithMetrics() OldQueueJobDetailOption {
-	return func(c *oldQueueJobDetailConfig) {
+func WithMetrics() GetOldQueueJobOption {
+	return func(c *getOldQueueJobConfig) {
 		c.includeMetrics = true
 	}
 }
 
-// Deprecated: CreateOldQueueJobDetailRequest is deprecated because the old queue should no longer be used.
+// Deprecated: GetOldQueueJobRequest is deprecated because the old queue should no longer be used.
 // See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 //
-// CreateOldQueueJobDetailRequest https://syrupqueue.docs.apiary.io/#reference/jobs/job/view-job-detail
-func (a *API) CreateOldQueueJobDetailRequest(
+// GetOldQueueJobRequest https://syrupqueue.docs.apiary.io/#reference/jobs/job/view-job-detail
+func (a *API) GetOldQueueJobRequest(
 	jobID JobID,
-	opts ...OldQueueJobDetailOption,
+	opts ...GetOldQueueJobOption,
 ) client.APIRequest[*JobDetail] {
-	config := oldQueueJobDetailConfig{}
+	config := getOldQueueJobConfig{}
 	for _, opt := range opts {
 		opt(&config)
 	}
 	result := &JobDetail{}
 	request := a.newRequest(SyrupAPI).
 		WithResult(result).
-		WithGet("queue/jobs/{jobId}").
-		AndPathParam("jobId", jobID.String())
+		WithGet("queue/jobs/{job}").
+		AndPathParam("job", jobID.String())
 	if config.includeMetrics {
 		request = request.AndQueryParam("include", "metrics")
 	}

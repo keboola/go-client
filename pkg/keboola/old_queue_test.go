@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,9 +24,20 @@ func TestCreateOldQueueJobRequest(t *testing.T) {
 		Config: &Config{
 			ConfigKey: ConfigKey{
 				BranchID:    branch.ID,
-				ComponentID: "ex-sample-data",
+				ComponentID: "keboola-test.ex-connection-revision",
 			},
 			Name: "Create old queue job test config",
+			Content: orderedmap.FromPairs([]orderedmap.Pair{
+				{
+					Key: "parameters",
+					Value: orderedmap.FromPairs([]orderedmap.Pair{
+						{
+							Key:   "host",
+							Value: "https://connection.keboola.com",
+						},
+					}),
+				},
+			}),
 		},
 	}).Send(ctx)
 	assert.NoError(t, err)
@@ -34,7 +46,7 @@ func TestCreateOldQueueJobRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 
-	detail, err := api.CreateOldQueueJobDetailRequest(job.Id, WithMetrics()).Send(ctx)
+	detail, err := api.GetOldQueueJobRequest(job.Id, WithMetrics()).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, job.Id, detail.Id)
 	assert.NotNil(t, detail.Metrics)
