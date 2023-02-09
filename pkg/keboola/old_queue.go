@@ -245,7 +245,7 @@ func (a *API) WaitForOldQueueJob(ctx context.Context, id JobID) error {
 
 		// Check status
 		if job.EndTime != nil {
-			if job.Status == "success" {
+			if job.Status == OldQueueJobStatusSuccess {
 				return nil
 			}
 			return fmt.Errorf(`job "%s" failed: %v (exceptionId=%v)`, job.ID, job.Result.Message, job.Result.ExceptionID)
