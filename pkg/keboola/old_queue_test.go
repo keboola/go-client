@@ -3,6 +3,7 @@ package keboola
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/keboola/go-utils/pkg/testproject"
@@ -45,6 +46,11 @@ func TestCreateOldQueueJobRequest(t *testing.T) {
 	job, err := api.CreateOldQueueJobRequest(config.ComponentID, config.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
+
+	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancelFn()
+	err = api.WaitForOldQueueJob(timeoutCtx, job.ID)
+	assert.NoError(t, err)
 
 	detail, err := api.GetOldQueueJobRequest(job.ID, WithMetrics()).Send(ctx)
 	assert.NoError(t, err)

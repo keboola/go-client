@@ -1,8 +1,10 @@
 package keboola
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/relvacode/iso8601"
@@ -33,7 +35,7 @@ type TokenDetail struct {
 
 type OldQueueJobResult struct {
 	ExceptionID string `json:"exceptionId"`
-	Messages    string `json:"message"`
+	Message     string `json:"message"`
 }
 
 type ProcessDetail struct {
@@ -70,8 +72,8 @@ type JobDetail struct {
 	Status          string                 `json:"status"`
 	Process         ProcessDetail          `json:"process"`
 	CreatedTime     iso8601.Time           `json:"createdTime"`
-	StartTime       iso8601.Time           `json:"startTime"`
-	EndTime         iso8601.Time           `json:"endTime"`
+	StartTime       *iso8601.Time          `json:"startTime"`
+	EndTime         *iso8601.Time          `json:"endTime"`
 	DurationSeconds uint64                 `json:"durationSeconds"`
 	WaitSeconds     uint64                 `json:"waitSeconds"`
 	Metrics         *JobMetrics            `json:"metrics"`
@@ -221,4 +223,40 @@ func (c oldQueueJobConfig) getURL() string {
 	}
 
 	return out
+}
+
+// Deprecated: WaitForOldQueueJob is deprecated because the old queue should no longer be used.
+// See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
+//
+// WaitForOldQueueJob pulls job status until it is completed.
+func (a *API) WaitForOldQueueJob(ctx context.Context, id JobID) error {
+	_, ok := ctx.Deadline()
+	if !ok {
+		return fmt.Errorf("timeout for the job was not set")
+	}
+
+	retry := newQueueJobBackoff()
+	for {
+		// Get job status
+		job, err := a.GetOldQueueJobRequest(id).Send(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Check status
+		if job.EndTime != nil {
+			if job.Status == "success" {
+				return nil
+			}
+			return fmt.Errorf(`job "%s" failed: %v (exceptionId=%v)`, job.ID, job.Result.Message, job.Result.ExceptionID)
+		}
+
+		// Wait and check again
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf(`error while waiting for the job "%s" to complete: %w`, job.ID, ctx.Err())
+		case <-time.After(retry.NextBackOff()):
+			// try again
+		}
+	}
 }
