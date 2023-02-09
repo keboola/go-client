@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/relvacode/iso8601"
+
+	"github.com/keboola/go-client/pkg/client"
 )
 
 const (
@@ -21,12 +22,12 @@ const (
 )
 
 type ProjectDetail struct {
-	Id   int    `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
 type TokenDetail struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Description string `json:"description"`
 }
 
@@ -57,7 +58,7 @@ type StorageMetrics struct {
 }
 
 type JobDetail struct {
-	Id              JobID                  `json:"id"`
+	ID              JobID                  `json:"id"`
 	RunID           string                 `json:"runId"`
 	LockName        string                 `json:"lockName"`
 	Project         ProjectDetail          `json:"project"`
@@ -77,8 +78,8 @@ type JobDetail struct {
 }
 
 type CreateJobResult struct {
-	Id     JobID  `json:"id"`
-	Url    string `json:"url"`
+	ID     JobID  `json:"id"`
+	URL    string `json:"url"`
 	Status string `json:"status"`
 }
 
@@ -89,7 +90,7 @@ type oldQueueJobConfig struct {
 	Config             ConfigID            `json:"config"`
 	Row                RowID               `json:"row,omitempty"`
 	ConfigData         map[string]any      `json:"configData,omitempty"`
-	VariableValuesID   string              `json:"variableValuesID,omitempty"`
+	VariableValuesID   string              `json:"variableValuesId,omitempty"`
 	VariableValuesData *VariableValuesData `json:"variableValuesData,omitempty"`
 }
 

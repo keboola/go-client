@@ -1,7 +1,6 @@
 package keboola
 
 import (
-	"encoding/json"
 	jsonLib "encoding/json"
 	"fmt"
 
@@ -17,10 +16,10 @@ func (j JobID) String() string {
 
 func (j *JobID) UnmarshalJSON(b []byte) error {
 	var asString string
-	err := json.Unmarshal(b, &asString)
+	err := jsonLib.Unmarshal(b, &asString)
 	if err != nil {
 		var asInt int
-		err = json.Unmarshal(b, &asInt)
+		err = jsonLib.Unmarshal(b, &asInt)
 		if err != nil {
 			return fmt.Errorf("failed to unmarshal int or string")
 		}

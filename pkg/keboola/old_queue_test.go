@@ -46,9 +46,9 @@ func TestCreateOldQueueJobRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 
-	detail, err := api.GetOldQueueJobRequest(job.Id, WithMetrics()).Send(ctx)
+	detail, err := api.GetOldQueueJobRequest(job.ID, WithMetrics()).Send(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, job.Id, detail.Id)
+	assert.Equal(t, job.ID, detail.ID)
 	assert.NotNil(t, detail.Metrics)
 }
 
