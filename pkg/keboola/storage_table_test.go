@@ -274,8 +274,9 @@ func TestTableApiCalls(t *testing.T) {
 	}
 
 	// Create table
-	_, err = api.CreateTable(ctx, tableID, table.Columns)
+	res, err := api.CreateTableRequest(tableID, table.Columns).Send(ctx)
 	assert.NoError(t, err)
+	assert.Equal(t, table.Name, res.Name)
 
 	// List tables
 	resList, err := api.ListTablesRequest().Send(ctx)
@@ -302,48 +303,6 @@ func TestTableApiCalls(t *testing.T) {
 		}
 	}
 	assert.False(t, tableFound)
-}
-
-func TestTableApiCalls_Deprecated(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
-
-	bucket := &Bucket{
-		ID: BucketID{
-			Stage:      BucketStageIn,
-			BucketName: fmt.Sprintf("c-test_%d", rand.Int()),
-		},
-	}
-	tableID := TableID{
-		BucketID:  bucket.ID,
-		TableName: fmt.Sprintf("test_%d", rand.Int()),
-	}
-	columns := []string{"first", "second", "third", "fourth"}
-
-	// Create bucket
-	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, bucket, resBucket)
-
-	// Create table
-	req, err := api.CreateTableDeprecatedSyncRequest(tableID, columns, WithPrimaryKey([]string{"first", "second"}))
-	assert.NoError(t, err)
-	table, err := req.Send(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, columns, table.Columns)
-	assert.Equal(t, []string{"first", "second"}, table.PrimaryKey)
-
-	// List tables
-	resList, err := api.ListTablesRequest().Send(ctx)
-	assert.NoError(t, err)
-	tableFound := false
-	for _, t := range *resList {
-		if t.ID == tableID {
-			tableFound = true
-		}
-	}
-	assert.True(t, tableFound)
 }
 
 func TestTableCreateLoadDataFromFile(t *testing.T) {

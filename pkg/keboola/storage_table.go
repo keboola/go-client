@@ -6,8 +6,6 @@ import (
 	"encoding/csv"
 	jsonLib "encoding/json"
 	"fmt"
-	"mime/multipart"
-	"net/textproto"
 	"sort"
 	"strings"
 	"time"
@@ -139,21 +137,23 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 	return str.Bytes(), nil
 }
 
-// CreateTable creates an empty table with given columns.
-func (a *API) CreateTable(ctx context.Context, tableID TableID, columns []string, opts ...CreateTableOption) (*Table, error) {
-	// Create file resource
-	file, err := a.CreateFileResourceRequest(tableID.TableName).Send(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("creating file failed: %w", err)
-	}
+// CreateTableRequest creates an empty table with given columns.
+func (a *API) CreateTableRequest(tableID TableID, columns []string, opts ...CreateTableOption) client.APIRequest[*Table] {
+	table := &Table{}
+	request := a.
+		CreateFileResourceRequest(tableID.TableName).
+		WithOnSuccess(func(ctx context.Context, file *File) error {
+			// Upload file with the header
+			if err := writeHeaderToCSV(ctx, file, columns); err != nil {
+				return fmt.Errorf("error writing header to csv: %w", err)
+			}
 
-	// Upload file with the header
-	if err := writeHeaderToCSV(ctx, file, columns); err != nil {
-		return nil, fmt.Errorf("error writing header to csv: %w", err)
-	}
-
-	// Create the table from the header file
-	return a.CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx)
+			// Create the table from the header file
+			res, err := a.CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx)
+			*table = *res
+			return err
+		})
+	return client.NewAPIRequest(table, request)
 }
 
 // loadDataFromFileConfig contains common params to load data from file resource.
@@ -204,59 +204,6 @@ func (o primaryKeyOption) applyCreateTableOption(c *createTableConfig) {
 
 func WithPrimaryKey(pk []string) primaryKeyOption {
 	return primaryKeyOption(strings.Join(pk, ","))
-}
-
-// CreateTableDeprecatedSyncRequest https://keboola.docs.apiary.io/#reference/tables/create-or-list-tables/create-new-table-from-csv-file
-func (a *API) CreateTableDeprecatedSyncRequest(tableID TableID, columns []string, opts ...CreateTableOption) (client.APIRequest[*Table], error) {
-	c := &createTableConfig{}
-	for _, o := range opts {
-		o.applyCreateTableOption(c)
-	}
-
-	body := bytes.NewBufferString("")
-	mp := multipart.NewWriter(body)
-
-	// Write params
-	params := client.ToFormBody(client.StructToMap(c, nil))
-	params["name"] = tableID.TableName
-	for k, v := range params {
-		_ = mp.WriteField(k, v)
-	}
-
-	// Write CSV header
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", `form-data; name="data"; filename="data.csv"`)
-	h.Set("Content-Type", "text/csv")
-	if wr, err := mp.CreatePart(h); err != nil {
-		return nil, fmt.Errorf(`could not add binary to multipart: %w`, err)
-	} else if csvHeader, err := columnsToCSVHeader(columns); err != nil {
-		return nil, fmt.Errorf(`could not convert columns to CSV header: %w`, err)
-	} else if _, err := wr.Write(csvHeader); err != nil {
-		return nil, fmt.Errorf(`could not write CSV header to multipart: %w`, err)
-	}
-
-	// Close body
-	if err := mp.Close(); err != nil {
-		return nil, fmt.Errorf(`could not close multipart: %w`, err)
-	}
-
-	table := &Table{}
-	request := a.
-		newRequest(StorageAPI).
-		WithResult(table).
-		WithPost("buckets/{bucketId}/tables").
-		AndPathParam("bucketId", tableID.BucketID.String()).
-		WithBody(bytes.NewReader(body.Bytes())).
-		WithContentType(fmt.Sprintf("multipart/form-data;boundary=%v", mp.Boundary())).
-		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
-			if result, err := a.GetTableRequest(table.ID).Send(ctx); err == nil {
-				*table = *result
-				return nil
-			} else {
-				return err
-			}
-		}))
-	return client.NewAPIRequest(table, request), nil
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
