@@ -103,7 +103,7 @@ func (a *API) ListTablesRequest(opts ...Option) client.APIRequest[*[]*Table] {
 	return client.NewAPIRequest(&result, request)
 }
 
-func writeHeaderToCSV(ctx context.Context, file *File, columns []string) (err error) {
+func writeHeaderToCSV(ctx context.Context, file *FileUploadCredentials, columns []string) (err error) {
 	// Upload file with the header
 	bw, err := NewUploadWriter(ctx, file)
 	if err != nil {
@@ -142,7 +142,7 @@ func (a *API) CreateTableRequest(tableID TableID, columns []string, opts ...Crea
 	table := &Table{}
 	request := a.
 		CreateFileResourceRequest(tableID.TableName).
-		WithOnSuccess(func(ctx context.Context, file *File) error {
+		WithOnSuccess(func(ctx context.Context, file *FileUploadCredentials) error {
 			// Upload file with the header
 			if err := writeHeaderToCSV(ctx, file, columns); err != nil {
 				return fmt.Errorf("error writing header to csv: %w", err)

@@ -15,14 +15,27 @@ import (
 
 const Provider = "gcp"
 
+type Path struct {
+	Key    string `json:"key"`
+	Bucket string `json:"bucket"`
+}
+
 //nolint:tagliatelle
-type UploadParams struct {
+type Credentials struct {
 	ProjectID   string `json:"projectId"`
-	Key         string `json:"key"`
-	Bucket      string `json:"bucket"`
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in"`
+}
+
+type UploadParams struct {
+	Path
+	Credentials
+}
+
+type DownloadParams struct {
+	Credentials Credentials `json:"gcsCredentials"`
+	Path        Path        `json:"gcsPath"`
 }
 
 type uploadConfig struct {

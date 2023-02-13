@@ -19,26 +19,43 @@ import (
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
 )
 
-type File struct {
-	ID              int               `json:"id" readonly:"true"`
-	Created         iso8601.Time      `json:"created" readonly:"true"`
-	IsSliced        bool              `json:"isSliced,omitempty"`
-	IsEncrypted     bool              `json:"isEncrypted,omitempty"`
-	Name            string            `json:"name"`
-	URL             string            `json:"url" readonly:"true"`
-	Provider        string            `json:"provider" readonly:"true"`
-	Region          string            `json:"region" readonly:"true"`
-	SizeBytes       uint64            `json:"sizeBytes,omitempty"`
-	Tags            []string          `json:"tags,omitempty"`
-	MaxAgeDays      uint              `json:"maxAgeDays" readonly:"true"`
-	ABSUploadParams *abs.UploadParams `json:"absUploadParams,omitempty" readonly:"true"`
-	GCSUploadParams *gcs.UploadParams `json:"gcsUploadParams,omitempty" readonly:"true"`
-	S3UploadParams  *s3.UploadParams  `json:"uploadParams,omitempty" readonly:"true"`
+const ManifestFileName = "manifest"
 
-	ContentType     string `json:"contentType,omitempty"`
-	FederationToken bool   `json:"federationToken,omitempty"`
-	IsPermanent     bool   `json:"isPermanent,omitempty"`
-	Notify          bool   `json:"notify,omitempty"`
+type File struct {
+	ID              int          `json:"id" readonly:"true"`
+	Created         iso8601.Time `json:"created" readonly:"true"`
+	IsSliced        bool         `json:"isSliced,omitempty"`
+	IsEncrypted     bool         `json:"isEncrypted,omitempty"`
+	Name            string       `json:"name"`
+	URL             string       `json:"url" readonly:"true"`
+	Provider        string       `json:"provider" readonly:"true"`
+	Region          string       `json:"region" readonly:"true"`
+	SizeBytes       uint64       `json:"sizeBytes,omitempty"`
+	Tags            []string     `json:"tags,omitempty"`
+	MaxAgeDays      uint         `json:"maxAgeDays" readonly:"true"`
+	ContentType     string       `json:"contentType,omitempty"`
+	FederationToken bool         `json:"federationToken,omitempty"`
+	IsPermanent     bool         `json:"isPermanent,omitempty"`
+	Notify          bool         `json:"notify,omitempty"`
+}
+type S3DownloadParams = s3.DownloadParams
+
+type ABSDownloadParams = abs.DownloadParams
+
+type GCSDownloadParams = gcs.DownloadParams
+
+type FileUploadCredentials struct {
+	File
+	ABSUploadParams *abs.UploadParams `json:"absUploadParams,omitempty"`
+	GCSUploadParams *gcs.UploadParams `json:"gcsUploadParams,omitempty"`
+	S3UploadParams  *s3.UploadParams  `json:"uploadParams,omitempty"`
+}
+
+type FileDownloadCredentials struct {
+	File
+	*S3DownloadParams
+	*ABSDownloadParams
+	*GCSDownloadParams
 }
 
 type SlicedFileManifest struct {
@@ -163,13 +180,13 @@ func (c *createFileConfig) toMap() map[string]any {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) client.APIRequest[*File] {
+func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) client.APIRequest[*FileUploadCredentials] {
 	c := createFileConfig{name: name}
 	for _, opt := range opts {
 		opt.applyCreateFileOption(&c)
 	}
 
-	file := &File{}
+	file := &FileUploadCredentials{}
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(file).
@@ -242,12 +259,12 @@ func WithUploadTransport(transport http.RoundTripper) UploadOptions {
 }
 
 // NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
-func NewUploadWriter(ctx context.Context, file *File, opts ...UploadOptions) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, file *FileUploadCredentials, opts ...UploadOptions) (*blob.Writer, error) {
 	return NewUploadSliceWriter(ctx, file, "", opts...)
 }
 
 // NewUploadSliceWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource and to the specified slice.
-func NewUploadSliceWriter(ctx context.Context, file *File, slice string, opts ...UploadOptions) (*blob.Writer, error) {
+func NewUploadSliceWriter(ctx context.Context, file *FileUploadCredentials, slice string, opts ...UploadOptions) (*blob.Writer, error) {
 	uploadConfig := uploadConfig{}
 	for _, opt := range opts {
 		opt(&uploadConfig)
@@ -266,13 +283,13 @@ func NewUploadSliceWriter(ctx context.Context, file *File, slice string, opts ..
 
 // Upload instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes there
 // content of the reader.
-func Upload(ctx context.Context, file *File, fr io.Reader) (written int64, err error) {
+func Upload(ctx context.Context, file *FileUploadCredentials, fr io.Reader) (written int64, err error) {
 	return UploadSlice(ctx, file, "", fr)
 }
 
 // UploadSlice instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes
 // content of the reader to the specified slice.
-func UploadSlice(ctx context.Context, file *File, slice string, fr io.Reader) (written int64, err error) {
+func UploadSlice(ctx context.Context, file *FileUploadCredentials, slice string, fr io.Reader) (written int64, err error) {
 	bw, err := NewUploadSliceWriter(ctx, file, slice)
 	if err != nil {
 		return 0, fmt.Errorf("cannot open bucket writer: %w", err)
@@ -289,7 +306,7 @@ func UploadSlice(ctx context.Context, file *File, slice string, fr io.Reader) (w
 
 // UploadSlicedFileManifest instantiates a Writer to the Storage given by cloud provider specified in the File resource and writes
 // content of the reader to the specified slice manifest.
-func UploadSlicedFileManifest(ctx context.Context, file *File, slices []string) (written int64, err error) {
+func UploadSlicedFileManifest(ctx context.Context, file *FileUploadCredentials, slices []string) (written int64, err error) {
 	manifest, err := NewSlicedFileManifest(file, slices)
 	if err != nil {
 		return 0, err
@@ -315,7 +332,7 @@ func NewSliceURL(file *File, slice string) (string, error) {
 	}
 }
 
-func NewSlicedFileManifest(file *File, sliceNames []string) (*SlicedFileManifest, error) {
+func NewSlicedFileManifest(file *FileUploadCredentials, sliceNames []string) (*SlicedFileManifest, error) {
 	m := &SlicedFileManifest{Entries: make([]Slice, 0)}
 	for _, s := range sliceNames {
 		url, err := NewSliceURL(file, s)

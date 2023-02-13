@@ -14,6 +14,11 @@ import (
 
 const Provider = "azure"
 
+type ConnectionString struct {
+	BlobEndpoint          string
+	SharedAccessSignature string
+}
+
 //nolint:tagliatelle
 type Credentials struct {
 	SASConnectionString string       `json:"SASConnectionString"`
@@ -27,9 +32,12 @@ type UploadParams struct {
 	Credentials Credentials `json:"absCredentials"`
 }
 
-type ConnectionString struct {
-	BlobEndpoint          string
-	SharedAccessSignature string
+type DownloadParams struct {
+	Credentials Credentials `json:"absCredentials"`
+	Path        struct {
+		BlobName  string `json:"name"`
+		Container string `json:"container"`
+	} `json:"absPath"`
 }
 
 func (cs *ConnectionString) ServiceURL() string {

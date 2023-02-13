@@ -17,6 +17,11 @@ import (
 
 const Provider = "aws"
 
+type Path struct {
+	Key    string `json:"key"`
+	Bucket string `json:"bucket"`
+}
+
 //nolint:tagliatelle
 type Credentials struct {
 	AccessKeyID     string       `json:"AccessKeyId"`
@@ -27,11 +32,15 @@ type Credentials struct {
 
 //nolint:tagliatelle
 type UploadParams struct {
-	Key         string                       `json:"key"`
-	Bucket      string                       `json:"bucket"`
+	Path
 	Credentials Credentials                  `json:"credentials"`
 	ACL         s3types.ObjectCannedACL      `json:"acl"`
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
+}
+
+type DownloadParams struct {
+	Credentials Credentials `json:"credentials"`
+	Path        Path        `json:"s3Path"`
 }
 
 func NewUploadWriter(ctx context.Context, params *UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
