@@ -87,7 +87,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 	return bw, nil
 }
 
-func NewDownloadReader(ctx context.Context, params *DownloadParams, region string, slice string) (*blob.Reader, error) {
+func NewDownloadReader(ctx context.Context, params *DownloadParams, region string, slice string, transport http.RoundTripper) (*blob.Reader, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
 			params.Credentials.AccessKeyID,
@@ -96,10 +96,17 @@ func NewDownloadReader(ctx context.Context, params *DownloadParams, region strin
 		),
 	)
 
-	cfg, err := config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	var cfg aws.Config
+	var err error
+	if transport != nil {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region), config.WithHTTPClient(&http.Client{Transport: transport}))
+	} else {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	client := s3.NewFromConfig(cfg)
 	b, err := s3blob.OpenBucketV2(ctx, client, params.Path.Bucket, nil)
 	if err != nil {

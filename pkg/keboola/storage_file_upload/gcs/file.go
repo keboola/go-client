@@ -86,13 +86,16 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 	return bw, nil
 }
 
-func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string) (*blob.Reader, error) {
+func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Reader, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: params.Credentials.AccessToken,
 		TokenType:   params.Credentials.TokenType,
 	})
 
-	client, err := gcp.NewHTTPClient(gcp.DefaultTransport(), tokenSource)
+	if transport == nil {
+		transport = gcp.DefaultTransport()
+	}
+	client, err := gcp.NewHTTPClient(transport, tokenSource)
 	if err != nil {
 		return nil, err
 	}

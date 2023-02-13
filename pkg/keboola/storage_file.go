@@ -262,32 +262,44 @@ type uploadConfig struct {
 	transport http.RoundTripper
 }
 
-type UploadOptions func(c *uploadConfig)
+type UploadOption func(c *uploadConfig)
 
-func WithUploadTransport(transport http.RoundTripper) UploadOptions {
+func WithUploadTransport(transport http.RoundTripper) UploadOption {
 	return func(c *uploadConfig) {
 		c.transport = transport
 	}
 }
 
+type downloadConfig struct {
+	transport http.RoundTripper
+}
+
+type DownloadOption func(c *downloadConfig)
+
+func WithDownloadTransport(transport http.RoundTripper) DownloadOption {
+	return func(c *downloadConfig) {
+		c.transport = transport
+	}
+}
+
 // NewUploadWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource.
-func NewUploadWriter(ctx context.Context, file *FileUploadCredentials, opts ...UploadOptions) (*blob.Writer, error) {
+func NewUploadWriter(ctx context.Context, file *FileUploadCredentials, opts ...UploadOption) (*blob.Writer, error) {
 	return NewUploadSliceWriter(ctx, file, "", opts...)
 }
 
 // NewUploadSliceWriter instantiates a Writer to the Storage given by cloud provider specified in the File resource and to the specified slice.
-func NewUploadSliceWriter(ctx context.Context, file *FileUploadCredentials, slice string, opts ...UploadOptions) (*blob.Writer, error) {
-	uploadConfig := uploadConfig{}
+func NewUploadSliceWriter(ctx context.Context, file *FileUploadCredentials, slice string, opts ...UploadOption) (*blob.Writer, error) {
+	c := uploadConfig{}
 	for _, opt := range opts {
-		opt(&uploadConfig)
+		opt(&c)
 	}
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice, uploadConfig.transport)
+		return abs.NewUploadWriter(ctx, file.ABSUploadParams, slice, c.transport)
 	case gcs.Provider:
-		return gcs.NewUploadWriter(ctx, file.GCSUploadParams, slice, uploadConfig.transport)
+		return gcs.NewUploadWriter(ctx, file.GCSUploadParams, slice, c.transport)
 	case s3.Provider:
-		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice, uploadConfig.transport)
+		return s3.NewUploadWriter(ctx, file.S3UploadParams, file.Region, slice, c.transport)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
@@ -362,14 +374,18 @@ func DownloadManifestReader(ctx context.Context, file *FileDownloadCredentials) 
 	return DownloadSliceReader(ctx, file, ManifestFileName)
 }
 
-func DownloadSliceReader(ctx context.Context, file *FileDownloadCredentials, slice string) (io.ReadCloser, error) {
+func DownloadSliceReader(ctx context.Context, file *FileDownloadCredentials, slice string, opts ...DownloadOption) (io.ReadCloser, error) {
+	c := downloadConfig{}
+	for _, opt := range opts {
+		opt(&c)
+	}
 	switch file.Provider {
 	case abs.Provider:
-		return abs.NewDownloadReader(ctx, file.ABSDownloadParams, slice)
+		return abs.NewDownloadReader(ctx, file.ABSDownloadParams, slice, c.transport)
 	case gcs.Provider:
-		return gcs.NewDownloadReader(ctx, file.GCSDownloadParams, slice)
+		return gcs.NewDownloadReader(ctx, file.GCSDownloadParams, slice, c.transport)
 	case s3.Provider:
-		return s3.NewDownloadReader(ctx, file.S3DownloadParams, file.Region, slice)
+		return s3.NewDownloadReader(ctx, file.S3DownloadParams, file.Region, slice, c.transport)
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}

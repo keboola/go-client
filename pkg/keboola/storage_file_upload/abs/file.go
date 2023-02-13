@@ -72,13 +72,16 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 	return bw, nil
 }
 
-func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string) (*blob.Reader, error) {
+func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Reader, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
 	}
 
 	clientOptions := &azblob.ClientOptions{}
+	if transport != nil {
+		clientOptions.Transport = &http.Client{Transport: transport}
+	}
 	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
 	if err != nil {
 		return nil, err
