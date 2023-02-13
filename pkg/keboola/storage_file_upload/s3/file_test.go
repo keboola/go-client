@@ -14,10 +14,10 @@ import (
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 )
 
-func TestCreateFileResourceAndUpload(t *testing.T) {
+func TestUploadAndDownload(t *testing.T) {
 	t.Parallel()
 	api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageS3())
-	for _, tc := range testdata.UploadTestCases() {
+	for _, tc := range testdata.UploadAndDownloadTestCases() {
 		tc.Run(t, api)
 	}
 }
@@ -25,11 +25,15 @@ func TestCreateFileResourceAndUpload(t *testing.T) {
 func TestCreateImportManifest(t *testing.T) {
 	t.Parallel()
 
-	f := &keboola.File{
-		Provider: "aws",
+	f := &keboola.FileUploadCredentials{
+		File: keboola.File{
+			Provider: "aws",
+		},
 		S3UploadParams: &s3.UploadParams{
-			Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
-			Bucket: "kbc-sapi-files",
+			Path: s3.Path{
+				Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
+				Bucket: "kbc-sapi-files",
+			},
 		},
 	}
 
@@ -51,8 +55,10 @@ func TestTransportRetry(t *testing.T) {
 	transport.RegisterResponder("PUT", `https://bucket.s3.us-east-1.amazonaws.com/key`, httpmock.NewStringResponder(504, "test"))
 
 	params := &s3.UploadParams{
-		Key:    "key",
-		Bucket: "bucket",
+		Path: s3.Path{
+			Key:    "key",
+			Bucket: "bucket",
+		},
 		Credentials: s3.Credentials{
 			AccessKeyID:     "accessKeyId",
 			SecretAccessKey: "secretAccessKey",

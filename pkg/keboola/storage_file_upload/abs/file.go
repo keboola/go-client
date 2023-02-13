@@ -14,6 +14,11 @@ import (
 
 const Provider = "azure"
 
+type ConnectionString struct {
+	BlobEndpoint          string
+	SharedAccessSignature string
+}
+
 //nolint:tagliatelle
 type Credentials struct {
 	SASConnectionString string       `json:"SASConnectionString"`
@@ -27,9 +32,12 @@ type UploadParams struct {
 	Credentials Credentials `json:"absCredentials"`
 }
 
-type ConnectionString struct {
-	BlobEndpoint          string
-	SharedAccessSignature string
+type DownloadParams struct {
+	Credentials Credentials `json:"absCredentials"`
+	Path        struct {
+		BlobName  string `json:"name"`
+		Container string `json:"container"`
+	} `json:"absPath"`
 }
 
 func (cs *ConnectionString) ServiceURL() string {
@@ -62,6 +70,34 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 	}
 
 	return bw, nil
+}
+
+func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Reader, error) {
+	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	clientOptions := &azblob.ClientOptions{}
+	if transport != nil {
+		clientOptions.Transport = &http.Client{Transport: transport}
+	}
+	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := azureblob.OpenBucket(ctx, client, params.Path.Container, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	br, err := b.NewReader(ctx, sliceKey(params.Path.BlobName, slice), nil)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.BlobName, err)
+	}
+
+	return br, nil
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {

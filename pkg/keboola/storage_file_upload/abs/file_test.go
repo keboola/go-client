@@ -14,18 +14,20 @@ import (
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 )
 
-func TestCreateFileResourceAndUpload(t *testing.T) {
+func TestUploadAndDownload(t *testing.T) {
 	t.Parallel()
 	api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageABS())
-	for _, tc := range testdata.UploadTestCases() {
+	for _, tc := range testdata.UploadAndDownloadTestCases() {
 		tc.Run(t, api)
 	}
 }
 
 func TestCreateImportManifest(t *testing.T) {
 	t.Parallel()
-	f := &keboola.File{
-		Provider: "azure",
+	f := &keboola.FileUploadCredentials{
+		File: keboola.File{
+			Provider: "azure",
+		},
 		ABSUploadParams: &abs.UploadParams{
 			BlobName:    "test1",
 			AccountName: "kbcfshc7chguaeh2km",

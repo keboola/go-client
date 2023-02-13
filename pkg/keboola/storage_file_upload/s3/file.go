@@ -17,6 +17,11 @@ import (
 
 const Provider = "aws"
 
+type Path struct {
+	Key    string `json:"key"`
+	Bucket string `json:"bucket"`
+}
+
 //nolint:tagliatelle
 type Credentials struct {
 	AccessKeyID     string       `json:"AccessKeyId"`
@@ -27,11 +32,15 @@ type Credentials struct {
 
 //nolint:tagliatelle
 type UploadParams struct {
-	Key         string                       `json:"key"`
-	Bucket      string                       `json:"bucket"`
+	Path
 	Credentials Credentials                  `json:"credentials"`
 	ACL         s3types.ObjectCannedACL      `json:"acl"`
 	Encryption  s3types.ServerSideEncryption `json:"x-amz-server-side-encryption"`
+}
+
+type DownloadParams struct {
+	Credentials Credentials `json:"credentials"`
+	Path        Path        `json:"s3Path"`
 }
 
 func NewUploadWriter(ctx context.Context, params *UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
@@ -76,6 +85,40 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 	}
 
 	return bw, nil
+}
+
+func NewDownloadReader(ctx context.Context, params *DownloadParams, region string, slice string, transport http.RoundTripper) (*blob.Reader, error) {
+	cred := config.WithCredentialsProvider(
+		credentials.NewStaticCredentialsProvider(
+			params.Credentials.AccessKeyID,
+			params.Credentials.SecretAccessKey,
+			params.Credentials.SessionToken,
+		),
+	)
+
+	var cfg aws.Config
+	var err error
+	if transport != nil {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region), config.WithHTTPClient(&http.Client{Transport: transport}))
+	} else {
+		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	client := s3.NewFromConfig(cfg)
+	b, err := s3blob.OpenBucketV2(ctx, client, params.Path.Bucket, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &blob.ReaderOptions{}
+	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), opts)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.Key, err)
+	}
+	return br, nil
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {
