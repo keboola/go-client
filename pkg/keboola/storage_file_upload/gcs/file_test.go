@@ -13,10 +13,10 @@ import (
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/testdata"
 )
 
-func TestCreateFileResourceAndUpload(t *testing.T) {
+func TestUploadAndDownload(t *testing.T) {
 	t.Parallel()
 	api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageGCS())
-	for _, tc := range testdata.UploadTestCases() {
+	for _, tc := range testdata.UploadAndDownloadTestCases() {
 		tc.Run(t, api)
 	}
 }
@@ -24,11 +24,15 @@ func TestCreateFileResourceAndUpload(t *testing.T) {
 func TestCreateImportManifest(t *testing.T) {
 	t.Parallel()
 
-	f := &keboola.File{
-		Provider: "gcp",
+	f := &keboola.FileUploadCredentials{
+		File: keboola.File{
+			Provider: "gcp",
+		},
 		GCSUploadParams: &gcs.UploadParams{
-			Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
-			Bucket: "kbc-sapi-files",
+			Path: gcs.Path{
+				Key:    "exp-15-files-4516-27298008-2022-11-08.test1",
+				Bucket: "kbc-sapi-files",
+			},
 		},
 	}
 
@@ -50,12 +54,16 @@ func TestTransportRetry(t *testing.T) {
 	transport.RegisterResponder("POST", `https://storage.googleapis.com/upload/storage/v1/b/bucket/o`, httpmock.NewStringResponder(504, "test"))
 
 	params := &gcs.UploadParams{
-		ProjectID:   "project",
-		Key:         "key",
-		Bucket:      "bucket",
-		AccessToken: "token",
-		TokenType:   "Bearer",
-		ExpiresIn:   0,
+		Path: gcs.Path{
+			Key:    "key",
+			Bucket: "bucket",
+		},
+		Credentials: gcs.Credentials{
+			ProjectID:   "project",
+			AccessToken: "token",
+			TokenType:   "Bearer",
+			ExpiresIn:   0,
+		},
 	}
 	bw, err := gcs.NewUploadWriter(context.Background(), params, "", transport)
 	assert.NoError(t, err)
