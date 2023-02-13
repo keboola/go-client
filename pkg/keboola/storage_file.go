@@ -230,6 +230,18 @@ func (a *API) GetFileRequest(id int) client.APIRequest[*File] {
 	return client.NewAPIRequest(file, request)
 }
 
+// GetFileWithCredentialsRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
+func (a *API) GetFileWithCredentialsRequest(id int) client.APIRequest[*FileDownloadCredentials] {
+	file := &FileDownloadCredentials{}
+	request := a.
+		newRequest(StorageAPI).
+		WithResult(file).
+		WithGet("files/{fileId}").
+		AndPathParam("fileId", strconv.Itoa(id)).
+		AndQueryParam("federationToken", "1")
+	return client.NewAPIRequest(file, request)
+}
+
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
 func (a *API) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
 	request := a.
@@ -316,10 +328,54 @@ func UploadSlicedFileManifest(ctx context.Context, file *FileUploadCredentials, 
 		return 0, err
 	}
 
-	return UploadSlice(ctx, file, "manifest", bytes.NewReader(marshaledManifest))
+	return UploadSlice(ctx, file, ManifestFileName, bytes.NewReader(marshaledManifest))
 }
 
-func NewSliceURL(file *File, slice string) (string, error) {
+func Download(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	return DownloadSlice(ctx, file, "")
+}
+
+func DownloadManifest(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	return DownloadSlice(ctx, file, ManifestFileName)
+}
+
+func DownloadSlice(ctx context.Context, file *FileDownloadCredentials, slice string) (out []byte, err error) {
+	reader, err := DownloadSliceReader(ctx, file, slice)
+	if err != nil {
+		return nil, err
+	}
+	out, err = io.ReadAll(reader)
+	if closeErr := reader.Close(); err == nil && closeErr != nil {
+		err = closeErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func DownloadReader(ctx context.Context, file *FileDownloadCredentials) (io.ReadCloser, error) {
+	return DownloadSliceReader(ctx, file, "")
+}
+
+func DownloadManifestReader(ctx context.Context, file *FileDownloadCredentials) (io.ReadCloser, error) {
+	return DownloadSliceReader(ctx, file, ManifestFileName)
+}
+
+func DownloadSliceReader(ctx context.Context, file *FileDownloadCredentials, slice string) (io.ReadCloser, error) {
+	switch file.Provider {
+	case abs.Provider:
+		return abs.NewDownloadReader(ctx, file.ABSDownloadParams, slice)
+	case gcs.Provider:
+		return gcs.NewDownloadReader(ctx, file.GCSDownloadParams, slice)
+	case s3.Provider:
+		return s3.NewDownloadReader(ctx, file.S3DownloadParams, file.Region, slice)
+	default:
+		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
+	}
+}
+
+func NewSliceURL(file *FileUploadCredentials, slice string) (string, error) {
 	switch file.Provider {
 	case abs.Provider:
 		return abs.NewSliceURL(file.ABSUploadParams, slice), nil

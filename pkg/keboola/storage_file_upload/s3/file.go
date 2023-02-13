@@ -87,6 +87,33 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 	return bw, nil
 }
 
+func NewDownloadReader(ctx context.Context, params *DownloadParams, region string, slice string) (*blob.Reader, error) {
+	cred := config.WithCredentialsProvider(
+		credentials.NewStaticCredentialsProvider(
+			params.Credentials.AccessKeyID,
+			params.Credentials.SecretAccessKey,
+			params.Credentials.SessionToken,
+		),
+	)
+
+	cfg, err := config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
+	client := s3.NewFromConfig(cfg)
+	b, err := s3blob.OpenBucketV2(ctx, client, params.Path.Bucket, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &blob.ReaderOptions{}
+	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), opts)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.Key, err)
+	}
+	return br, nil
+}
+
 func NewSliceURL(params *UploadParams, slice string) string {
 	return fmt.Sprintf("s3://%s/%s", params.Bucket, sliceKey(params.Key, slice))
 }
