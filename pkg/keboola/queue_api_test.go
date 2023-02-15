@@ -108,7 +108,6 @@ func TestCreateQueueJobRequestBuilder(t *testing.T) {
 }`,
 		string(data),
 	)
-
 }
 
 func TestQueueWaitForQueueJobTimeout(t *testing.T) {
