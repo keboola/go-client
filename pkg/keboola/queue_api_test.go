@@ -1,8 +1,9 @@
-package keboola_test
+package keboola
 
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -13,13 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
-	"github.com/keboola/go-client/pkg/keboola"
 )
 
 func TestQueueApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := keboola.APIClientForAnEmptyProject(t, ctx)
+	api := APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -32,9 +32,9 @@ func TestQueueApiCalls(t *testing.T) {
 	assert.Empty(t, components)
 
 	// Create config
-	config := &keboola.ConfigWithRows{
-		Config: &keboola.Config{
-			ConfigKey: keboola.ConfigKey{
+	config := &ConfigWithRows{
+		Config: &Config{
+			ConfigKey: ConfigKey{
 				BranchID:    branch.ID,
 				ComponentID: "ex-generic-v2",
 			},
@@ -45,7 +45,7 @@ func TestQueueApiCalls(t *testing.T) {
 				{Key: "foo", Value: "bar"},
 			}),
 		},
-		Rows: []*keboola.ConfigRow{},
+		Rows: []*ConfigRow{},
 	}
 	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
 	assert.NoError(t, err)
@@ -53,23 +53,69 @@ func TestQueueApiCalls(t *testing.T) {
 	assert.NotEmpty(t, config.ID)
 
 	// Run a job on the config
-	resJob, err := api.CreateQueueJobRequest("ex-generic-v2", config.ID).Send(ctx)
+	resJob, err := api.NewCreateJobRequest("ex-generic-v2").WithConfig(config.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resJob.ID)
 
 	// Wait for the job
 	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancelFn()
-	err = api.WaitForQueueJob(timeoutCtx, resJob)
+	err = api.WaitForQueueJob(timeoutCtx, resJob.ID)
 	// The job payload is malformed, so it fails. We are checking just that it finished.
 	assert.ErrorContains(t, err, "Unrecognized option \"foo\" under \"container\"")
+}
+
+func TestCreateQueueJobRequestBuilder(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	api := APIClientForAnEmptyProject(t, ctx)
+
+	builder := api.NewCreateJobRequest("ex-generic-v2").
+		WithTag("latest").
+		WithBranch(1234).
+		WithConfig("987654321").
+		WithConfigRowIDs([]string{"config-row-a", "config-row-b"}).
+		WithConfigData(map[string]any{"a": "b"}).
+		WithBackendSize("xsmall").
+		WithVariableValuesID("variable-values-id").
+		WithVariableValuesData([]VariableData{{Name: "a", Value: "b"}})
+
+	data, err := json.MarshalIndent(builder.config, "", "  ")
+	assert.NoError(t, err)
+	assert.Equal(t,
+		`{
+  "tag": "latest",
+  "branchId": 1234,
+  "component": "ex-generic-v2",
+  "config": "987654321",
+  "configRowIds": [
+    "config-row-a",
+    "config-row-b"
+  ],
+  "configData": {
+    "a": "b"
+  },
+  "variableValuesId": "variable-values-id",
+  "variableValuesData": {
+    "values": [
+      {
+        "name": "a",
+        "value": "b"
+      }
+    ]
+  },
+  "backend": "xsmall"
+}`,
+		string(data),
+	)
+
 }
 
 func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 	t.Parallel()
 
-	job := keboola.QueueJob{
-		JobKey:     keboola.JobKey{ID: "1234"},
+	job := QueueJob{
+		JobKey:     JobKey{ID: "1234"},
 		Status:     "waiting",
 		IsFinished: false,
 	}
@@ -90,7 +136,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 		"features": []
 	}`))
 	transport.RegisterResponder("GET", `=~^https://queue.connection.test/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
-	api, err := keboola.NewAPI(context.Background(), "https://connection.test", keboola.WithClient(&c))
+	api, err := NewAPI(context.Background(), "https://connection.test", WithClient(&c))
 	assert.NoError(t, err)
 
 	// Create context with deadline
@@ -98,7 +144,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 	defer cancelFn()
 
 	// Error - deadline exceeded
-	err = api.WaitForQueueJob(ctx, &job)
+	err = api.WaitForQueueJob(ctx, job.ID)
 	assert.Error(t, err)
 	assert.Equal(t, `error while waiting for the job "1234" to complete: context deadline exceeded`, err.Error())
 
@@ -120,4 +166,59 @@ HTTP_REQUEST[0004] START GET "https://queue.connection.test/jobs/1234"
 HTTP_REQUEST[0004] DONE  GET "https://queue.connection.test/jobs/1234" | 200 | %s
 HTTP_REQUEST[0004] BODY  GET "https://queue.connection.test/jobs/1234" | %s
 `), trace.String())
+}
+
+func TestDeprecatedQueueApiCalls(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	api := APIClientForAnEmptyProject(t, ctx)
+
+	// Get default branch
+	branch, err := api.GetDefaultBranchRequest().Send(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, branch)
+
+	// List - no component/config
+	components, err := api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, components)
+
+	// Create config
+	config := &ConfigWithRows{
+		Config: &Config{
+			ConfigKey: ConfigKey{
+				BranchID:    branch.ID,
+				ComponentID: "ex-generic-v2",
+			},
+			Name:              "Test",
+			Description:       "Test description",
+			ChangeDescription: "My test",
+			Content: orderedmap.FromPairs([]orderedmap.Pair{
+				{Key: "foo", Value: "bar"},
+			}),
+		},
+		Rows: []*ConfigRow{},
+	}
+	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
+	assert.NoError(t, err)
+	assert.Same(t, config, resConfig)
+	assert.NotEmpty(t, config.ID)
+
+	// Run a job on the config
+	job, err := api.NewCreateJobRequest("ex-generic-v2").WithConfig(config.ID).Send(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, job.ID)
+
+	// Wait for the job
+	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancelFn()
+	err = api.WaitForQueueJob(timeoutCtx, job.ID)
+	// The job payload is malformed, so it fails. We are checking just that it finished.
+	assert.ErrorContains(t, err, "Unrecognized option \"foo\" under \"container\"")
+}
+
+func newJSONResponder(response string) httpmock.Responder {
+	r := httpmock.NewStringResponse(200, response)
+	r.Header.Set("Content-Type", "application/json")
+	return httpmock.ResponderFromResponse(r)
 }

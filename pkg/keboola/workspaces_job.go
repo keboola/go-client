@@ -64,7 +64,7 @@ func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string,
 	params := newParams(workspaceType, opts...)
 	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configID, map[string]any{"parameters": params.toMap()}).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
-			return a.WaitForQueueJob(ctx, result)
+			return a.WaitForQueueJob(ctx, result.ID)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
@@ -78,7 +78,7 @@ func (a *API) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) client.APIReque
 	}
 	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, "", configData).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
-			return a.WaitForQueueJob(ctx, result)
+			return a.WaitForQueueJob(ctx, result.ID)
 		})
 	return client.NewAPIRequest(client.NoResult{}, request)
 }
