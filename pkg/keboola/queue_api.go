@@ -13,6 +13,143 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
+type JobBackendSize string
+
+const (
+	JobBackendXSmall JobBackendSize = "xsmall"
+	JobBackendSmall  JobBackendSize = "small"
+	JobBackendMedium JobBackendSize = "medium"
+	JobBackendLarge  JobBackendSize = "large"
+)
+
+type JobMode string
+
+const (
+	JobModeRun      JobMode = "run"      // JobModeRun is the default mode, runs the job as usual.
+	JobModeDebug    JobMode = "debug"    // JobModeDebug outputs a snapshot of configuration and a snapshot of output as storage files, but does not perform output mapping to storage.
+	JobModeForceRun JobMode = "forceRun" // JobModeForceRun forces a configuration to run even if it is disabled.
+)
+
+type jobConfig struct {
+	Tag                string              `json:"tag,omitempty"`
+	BranchID           BranchID            `json:"branchId,omitempty"`
+	ComponentID        ComponentID         `json:"component"`
+	ConfigID           ConfigID            `json:"config,omitempty"`
+	ConfigRowIDs       []string            `json:"configRowIds,omitempty"`
+	ConfigData         map[string]any      `json:"configData,omitempty"`
+	Mode               string              `json:"mode,omitempty"`
+	VariableValuesID   string              `json:"variableValuesId,omitempty"`
+	VariableValuesData *VariableValuesData `json:"variableValuesData,omitempty"`
+	BackendSize        string              `json:"backend,omitempty"`
+}
+
+type CreateQueueJobRequestBuilder struct {
+	config jobConfig
+	api    *API
+}
+
+// NewCreateJobRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
+func (a *API) NewCreateJobRequest(componentID ComponentID) *CreateQueueJobRequestBuilder {
+	return &CreateQueueJobRequestBuilder{
+		config: jobConfig{
+			ComponentID: componentID,
+		},
+		api: a,
+	}
+}
+
+// WithTag causes the component job to be run with a specific version of the component's docker image.
+//
+// If not provided, defaults to the latest tag.
+func (b *CreateQueueJobRequestBuilder) WithTag(tag string) *CreateQueueJobRequestBuilder {
+	b.config.Tag = tag
+	return b
+}
+
+// WithBranch starts the component job in a dev branch.
+//
+// If not provided, defaults to the main branch.
+func (b *CreateQueueJobRequestBuilder) WithBranch(id BranchID) *CreateQueueJobRequestBuilder {
+	b.config.BranchID = id
+	return b
+}
+
+// WithConfig starts the component job using a configuration.
+//
+// At least one of `WithConfig`, `WithConfigData` is required.
+// If both are provided, `configData` overrides the `config`.
+func (b *CreateQueueJobRequestBuilder) WithConfig(id ConfigID) *CreateQueueJobRequestBuilder {
+	b.config.ConfigID = id
+	return b
+}
+
+// WithConfigRowIDs starts the component job using only the specified row IDs.
+func (b *CreateQueueJobRequestBuilder) WithConfigRowIDs(ids []string) *CreateQueueJobRequestBuilder {
+	b.config.ConfigRowIDs = ids
+	return b
+}
+
+// WithConfigData starts the component job using configuration data.
+//
+// At least one of `WithConfig`, `WithConfigData` is required.
+// If both are provided, `configData` overrides the `config`.
+func (b *CreateQueueJobRequestBuilder) WithConfigData(data map[string]any) *CreateQueueJobRequestBuilder {
+	b.config.ConfigData = data
+	return b
+}
+
+// WithMode starts the component job in a different mode.
+//
+// The available modes are:
+//
+// - Debug, which outputs a snapshot of configuration and a snapshot of output as storage files, but does not perform output mapping to storage.
+//
+// - ForceRun, which forces a configuration to run even if it is disabled.
+func (b *CreateQueueJobRequestBuilder) WithMode(mode JobMode) *CreateQueueJobRequestBuilder {
+	b.config.Mode = string(mode)
+	return b
+}
+
+func (b *CreateQueueJobRequestBuilder) WithVariableValuesID(id string) *CreateQueueJobRequestBuilder {
+	b.config.VariableValuesID = id
+	return b
+}
+
+func (b *CreateQueueJobRequestBuilder) WithVariableValuesData(values []VariableData) *CreateQueueJobRequestBuilder {
+	b.config.VariableValuesData = &VariableValuesData{Values: values}
+	return b
+}
+
+// WithMode starts the component job with a specific backend size.
+//
+// The available sizes are: xsmall, small, medium, large.
+func (b *CreateQueueJobRequestBuilder) WithBackendSize(size JobBackendSize) *CreateQueueJobRequestBuilder {
+	b.config.BackendSize = string(size)
+	return b
+}
+
+// Build finalizes and builds the request.
+//
+// This is useful if you want to send many of these requests in parallel.
+func (b *CreateQueueJobRequestBuilder) Build() client.APIRequest[*QueueJob] {
+	result := &QueueJob{}
+	request := b.api.newRequest(QueueAPI).
+		WithResult(&result).
+		WithMethod(http.MethodPost).
+		WithURL("jobs").
+		WithJSONBody(b.config)
+	return client.NewAPIRequest(result, request)
+}
+
+// Send builds the request and immediately sends it.
+//
+// This is a convenience method that simply calls Build() followed by Send(ctx).
+func (b *CreateQueueJobRequestBuilder) Send(ctx context.Context) (*QueueJob, error) {
+	return b.Build().Send(ctx)
+}
+
+// Deprecated: Use `NewCreateJobRequest` instead.
+//
 // CreateQueueJobRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
 func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) client.APIRequest[*QueueJob] {
 	data := map[string]string{
@@ -29,6 +166,8 @@ func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) 
 	return client.NewAPIRequest(&result, request)
 }
 
+// Deprecated: Use `NewCreateJobRequest` instead.
+//
 // CreateQueueJobConfigDataRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
 //
 // Allows setting configData.
@@ -53,21 +192,22 @@ func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID 
 	return client.NewAPIRequest(result, request)
 }
 
-// GetQueueJobRequest https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/getJob
+// GetJobRequest https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/getJob
 func (a *API) GetQueueJobRequest(key JobKey) client.APIRequest[*QueueJob] {
-	return a.getQueueJobRequest(&QueueJob{JobKey: key})
+	return a.getQueueJobRequest(key.ID)
 }
 
-func (a *API) getQueueJobRequest(job *QueueJob) client.APIRequest[*QueueJob] {
+func (a *API) getQueueJobRequest(id JobID) client.APIRequest[*QueueJob] {
+	job := &QueueJob{}
 	request := a.newRequest(QueueAPI).
 		WithResult(job).
 		WithGet("jobs/{jobId}").
-		AndPathParam("jobId", job.ID.String())
+		AndPathParam("jobId", id.String())
 	return client.NewAPIRequest(job, request)
 }
 
 // WaitForQueueJob pulls job status until it is completed.
-func (a *API) WaitForQueueJob(ctx context.Context, job *QueueJob) error {
+func (a *API) WaitForQueueJob(ctx context.Context, id JobID) error {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")
@@ -76,7 +216,8 @@ func (a *API) WaitForQueueJob(ctx context.Context, job *QueueJob) error {
 	retry := newQueueJobBackoff()
 	for {
 		// Get job status
-		if err := a.getQueueJobRequest(job).SendOrErr(ctx); err != nil {
+		job, err := a.getQueueJobRequest(id).Send(ctx)
+		if err != nil {
 			return err
 		}
 
