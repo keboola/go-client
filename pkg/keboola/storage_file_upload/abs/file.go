@@ -40,6 +40,15 @@ type DownloadParams struct {
 	} `json:"absPath"`
 }
 
+func (p *DownloadParams) DestinationURL() (string, error) {
+	cs, err := parseConnectionString(p.Credentials.SASConnectionString)
+	if err != nil {
+		return "", err
+	}
+	blobEndpoint := strings.ReplaceAll(cs.BlobEndpoint, "https://", "azure://")
+	return fmt.Sprintf("%s/%s/%s", blobEndpoint, p.Path.Container, p.Path.BlobName), nil
+}
+
 func (cs *ConnectionString) ServiceURL() string {
 	return fmt.Sprintf("%s?%s", cs.BlobEndpoint, cs.SharedAccessSignature)
 }
