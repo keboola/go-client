@@ -43,6 +43,10 @@ type DownloadParams struct {
 	Path        Path        `json:"s3Path"`
 }
 
+func (p *DownloadParams) DestinationURL() (string, error) {
+	return fmt.Sprintf("s3://%s/%s", p.Path.Bucket, p.Path.Key), nil
+}
+
 func NewUploadWriter(ctx context.Context, params *UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(

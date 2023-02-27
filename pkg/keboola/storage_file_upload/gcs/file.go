@@ -38,6 +38,10 @@ type DownloadParams struct {
 	Path        Path        `json:"gcsPath"`
 }
 
+func (p *DownloadParams) DestinationURL() (string, error) {
+	return fmt.Sprintf("gs://%s/%s", p.Path.Bucket, p.Path.Key), nil
+}
+
 type uploadConfig struct {
 	transport http.RoundTripper
 }

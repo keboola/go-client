@@ -2,9 +2,11 @@ package keboola
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
@@ -27,8 +29,30 @@ func Download(ctx context.Context, file *FileDownloadCredentials) ([]byte, error
 	return DownloadSlice(ctx, file, "")
 }
 
-func DownloadManifest(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
-	return DownloadSlice(ctx, file, ManifestFileName)
+func DownloadManifest(ctx context.Context, file *FileDownloadCredentials) (SlicesList, error) {
+	rawManifest, err := DownloadSlice(ctx, file, ManifestFileName)
+	if err != nil {
+		return nil, fmt.Errorf("cannot download manifest: %w", err)
+	}
+
+	manifest := &SlicedFileManifest{}
+	err = json.Unmarshal(rawManifest, manifest)
+	if err != nil {
+		return nil, fmt.Errorf("cannot map file contents to manifest: %w", err)
+	}
+
+	dstURL, err := file.DestinationURL()
+	if err != nil {
+		return nil, err
+	}
+	res := SlicesList{}
+	for _, slice := range manifest.Entries {
+		if !strings.HasPrefix(slice.URL, dstURL) {
+			return nil, fmt.Errorf(`slice URL "%s" seems wrong: %w`, slice.URL, err)
+		}
+		res = append(res, strings.TrimPrefix(slice.URL, dstURL))
+	}
+	return res, nil
 }
 
 func DownloadSlice(ctx context.Context, file *FileDownloadCredentials, slice string) (out []byte, err error) {

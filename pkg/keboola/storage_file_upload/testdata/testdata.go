@@ -12,7 +12,6 @@ import (
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
-	"github.com/keboola/go-utils/pkg/wildcards"
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob"
 )
@@ -141,9 +140,10 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		// Request file content
 		if tc.Sliced {
 			// Check manifest content
-			manifestContent, err := keboola.DownloadManifest(ctx, credentials)
+			slicesList, err := keboola.DownloadManifest(ctx, credentials)
 			assert.NoError(t, err)
-			wildcards.Assert(t, `{"entries":[{"url":"%sslice1"}]}`, string(manifestContent))
+			assert.Len(t, slicesList, 1)
+			assert.Equal(t, "slice1", slicesList[0])
 
 			// Read slice
 			var reader io.ReadCloser

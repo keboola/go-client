@@ -54,6 +54,21 @@ type FileDownloadCredentials struct {
 	*GCSDownloadParams
 }
 
+func (f *FileDownloadCredentials) DestinationURL() (string, error) {
+	switch f.Provider {
+	case abs.Provider:
+		return f.ABSDownloadParams.DestinationURL()
+	case gcs.Provider:
+		return f.GCSDownloadParams.DestinationURL()
+	case s3.Provider:
+		return f.S3DownloadParams.DestinationURL()
+	default:
+		return "", fmt.Errorf(`unsupported provider "%s"`, f.Provider)
+	}
+}
+
+type SlicesList []string
+
 type SlicedFileManifest struct {
 	Entries []Slice `json:"entries"`
 }
