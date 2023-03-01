@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"gocloud.dev/blob"
+
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
@@ -93,4 +95,31 @@ func DownloadSliceReader(ctx context.Context, file *FileDownloadCredentials, sli
 	default:
 		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
 	}
+}
+
+func GetFileAttributes(ctx context.Context, file *FileDownloadCredentials, slice string, opts ...DownloadOption) (*FileAttributes, error) {
+	c := downloadConfig{}
+	for _, opt := range opts {
+		opt(&c)
+	}
+	var attrs *blob.Attributes
+	var err error
+	switch file.Provider {
+	case abs.Provider:
+		attrs, err = abs.GetFileAttributes(ctx, file.ABSDownloadParams, slice, c.transport)
+	case gcs.Provider:
+		attrs, err = gcs.GetFileAttributes(ctx, file.GCSDownloadParams, slice, c.transport)
+	case s3.Provider:
+		attrs, err = s3.GetFileAttributes(ctx, file.S3DownloadParams, file.Region, slice, c.transport)
+	default:
+		return nil, fmt.Errorf(`unsupported provider "%s"`, file.Provider)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &FileAttributes{
+		ContentType: attrs.ContentType,
+		ModTime:     attrs.ModTime,
+		Size:        attrs.Size,
+	}, nil
 }

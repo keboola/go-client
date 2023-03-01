@@ -82,6 +82,29 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 }
 
 func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Reader, error) {
+	b, err := openBucketForDownload(ctx, params, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	br, err := b.NewReader(ctx, sliceKey(params.Path.BlobName, slice), nil)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.BlobName, err)
+	}
+
+	return br, nil
+}
+
+func GetFileAttributes(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Attributes, error) {
+	b, err := openBucketForDownload(ctx, params, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Attributes(ctx, sliceKey(params.Path.BlobName, slice))
+}
+
+func openBucketForDownload(ctx context.Context, params *DownloadParams, transport http.RoundTripper) (*blob.Bucket, error) {
 	cs, err := parseConnectionString(params.Credentials.SASConnectionString)
 	if err != nil {
 		return nil, err
@@ -96,17 +119,7 @@ func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string
 		return nil, err
 	}
 
-	b, err := azureblob.OpenBucket(ctx, client, params.Path.Container, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	br, err := b.NewReader(ctx, sliceKey(params.Path.BlobName, slice), nil)
-	if err != nil {
-		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.BlobName, err)
-	}
-
-	return br, nil
+	return azureblob.OpenBucket(ctx, client, params.Path.Container, nil)
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {

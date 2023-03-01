@@ -91,6 +91,29 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 }
 
 func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Reader, error) {
+	b, err := openBucketForDownload(ctx, params, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), nil)
+	if err != nil {
+		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.Path.Key, err)
+	}
+
+	return br, nil
+}
+
+func GetFileAttributes(ctx context.Context, params *DownloadParams, slice string, transport http.RoundTripper) (*blob.Attributes, error) {
+	b, err := openBucketForDownload(ctx, params, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Attributes(ctx, sliceKey(params.Path.Key, slice))
+}
+
+func openBucketForDownload(ctx context.Context, params *DownloadParams, transport http.RoundTripper) (*blob.Bucket, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: params.Credentials.AccessToken,
 		TokenType:   params.Credentials.TokenType,
@@ -118,12 +141,7 @@ func NewDownloadReader(ctx context.Context, params *DownloadParams, slice string
 		panic("Unable to access storage.Client through Bucket.As")
 	}
 
-	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), nil)
-	if err != nil {
-		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.Path.Key, err)
-	}
-
-	return br, nil
+	return b, nil
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {
