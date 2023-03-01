@@ -21,10 +21,10 @@ func TestPreviewTableRequestOptions(t *testing.T) {
 		WithChangedSince("-4 days"),
 		WithChangedUntil("-2 days"),
 		WithExportColumns("a", "b"),
-		WithWhere("a", CompareEq, []any{"value"}).
-			And("b", CompareGt, []any{100}, TypeInteger),
-		WithOrderBy("a", OrderAsc).
-			And("b", OrderDesc, TypeInteger),
+		WithWhere("a", CompareEq, []any{"value"}),
+		WithWhere("b", CompareGt, []any{100}, TypeInteger),
+		WithOrderBy("a", OrderAsc),
+		WithOrderBy("b", OrderDesc, TypeInteger),
 	)
 
 	config := previewDataConfig{}
@@ -115,6 +115,88 @@ func TestPreviewTableRequestOptions(t *testing.T) {
 	)
 }
 
+func TestPreviewTable_ParseColumnOrder(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseColumnOrder("unknown")
+	assert.Error(t, err)
+
+	type testCase struct {
+		input    string
+		expected ColumnOrder
+	}
+
+	cases := []testCase{
+		{input: "ASC", expected: OrderAsc},
+		{input: "DESC", expected: OrderDesc},
+	}
+
+	for _, c := range cases {
+		actual, err := ParseColumnOrder(c.input)
+		assert.NoError(t, err)
+		assert.Equal(t, c.expected, actual)
+	}
+}
+
+func TestPreviewTable_ParseDataType(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseDataType("unknown")
+	assert.Error(t, err)
+
+	type testCase struct {
+		input    string
+		expected DataType
+	}
+
+	cases := []testCase{
+		{input: "INTEGER", expected: TypeInteger},
+		{input: "DOUBLE", expected: TypeDouble},
+		{input: "BIGINT", expected: TypeBigInt},
+		{input: "REAL", expected: TypeReal},
+		{input: "DECIMAL", expected: TypeDecimal},
+	}
+
+	for _, c := range cases {
+		actual, err := ParseDataType(c.input)
+		assert.NoError(t, err)
+		assert.Equal(t, c.expected, actual)
+	}
+}
+
+func TestPreviewTable_ParseCompareOp(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseCompareOp("unknown")
+	assert.Error(t, err)
+
+	type testCase struct {
+		input    string
+		expected CompareOp
+	}
+
+	cases := []testCase{
+		{input: "eq", expected: CompareEq},
+		{input: "ne", expected: CompareNe},
+		{input: "lt", expected: CompareLt},
+		{input: "le", expected: CompareLe},
+		{input: "gt", expected: CompareGt},
+		{input: "ge", expected: CompareGe},
+		{input: "=", expected: CompareEq},
+		{input: "!=", expected: CompareNe},
+		{input: "<", expected: CompareLt},
+		{input: "<=", expected: CompareLe},
+		{input: ">", expected: CompareGt},
+		{input: ">=", expected: CompareGe},
+	}
+
+	for _, c := range cases {
+		actual, err := ParseCompareOp(c.input)
+		assert.NoError(t, err)
+		assert.Equal(t, c.expected, actual)
+	}
+}
+
 func TestPreviewTableRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -160,8 +242,8 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	// Preview table
 	preview, err := api.PreviewTableRequest(tableID,
-		WithWhere("value", CompareGe, []any{10}, TypeInteger).
-			And("value", CompareLe, []any{15}, TypeInteger),
+		WithWhere("value", "ge", []int{10}, TypeInteger),
+		WithWhere("value", CompareLe, []any{15}, TypeInteger),
 		WithOrderBy("value", OrderDesc, TypeInteger),
 	).Send(ctx)
 	assert.NoError(t, err)
