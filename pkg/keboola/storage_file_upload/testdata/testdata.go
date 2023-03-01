@@ -145,6 +145,16 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			assert.Len(t, slicesList, 1)
 			assert.Equal(t, "slice1", slicesList[0])
 
+			// Check slice attributes
+			attrs, err := keboola.GetFileAttributes(ctx, credentials, "slice1")
+			assert.NotEmpty(t, attrs.ModTime)
+			if tc.Gzipped {
+				assert.Equal(t, "application/x-gzip", attrs.ContentType)
+			} else {
+				assert.Equal(t, "text/plain; charset=utf-8", attrs.ContentType)
+			}
+			assert.NotZero(t, attrs.Size)
+
 			// Read slice
 			var reader io.ReadCloser
 			sliceReader, err := keboola.DownloadSliceReader(ctx, credentials, "slice1")
@@ -170,6 +180,16 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			assert.NoError(t, err)
 			assert.Equal(t, content, fileContent)
 		} else {
+			// Check attributes
+			attrs, err := keboola.GetFileAttributes(ctx, credentials, "")
+			assert.NotEmpty(t, attrs.ModTime)
+			if tc.Gzipped {
+				assert.Equal(t, "application/x-gzip", attrs.ContentType)
+			} else {
+				assert.Equal(t, "text/plain; charset=utf-8", attrs.ContentType)
+			}
+			assert.NotZero(t, attrs.Size)
+
 			var reader io.ReadCloser
 			fileReader, err := keboola.DownloadReader(ctx, credentials)
 			assert.NoError(t, err)

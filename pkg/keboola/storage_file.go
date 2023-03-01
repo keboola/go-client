@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/relvacode/iso8601"
 
@@ -65,6 +66,12 @@ func (f *FileDownloadCredentials) DestinationURL() (string, error) {
 	default:
 		return "", fmt.Errorf(`unsupported provider "%s"`, f.Provider)
 	}
+}
+
+type FileAttributes struct {
+	ContentType string
+	ModTime     time.Time
+	Size        int64
 }
 
 type SlicesList []string

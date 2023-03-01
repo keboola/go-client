@@ -92,6 +92,29 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 }
 
 func NewDownloadReader(ctx context.Context, params *DownloadParams, region string, slice string, transport http.RoundTripper) (*blob.Reader, error) {
+	b, err := openBucketForDownload(ctx, params, region, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &blob.ReaderOptions{}
+	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), opts)
+	if err != nil {
+		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.Key, err)
+	}
+	return br, nil
+}
+
+func GetFileAttributes(ctx context.Context, params *DownloadParams, region string, slice string, transport http.RoundTripper) (*blob.Attributes, error) {
+	b, err := openBucketForDownload(ctx, params, region, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Attributes(ctx, sliceKey(params.Path.Key, slice))
+}
+
+func openBucketForDownload(ctx context.Context, params *DownloadParams, region string, transport http.RoundTripper) (*blob.Bucket, error) {
 	cred := config.WithCredentialsProvider(
 		credentials.NewStaticCredentialsProvider(
 			params.Credentials.AccessKeyID,
@@ -112,17 +135,7 @@ func NewDownloadReader(ctx context.Context, params *DownloadParams, region strin
 	}
 
 	client := s3.NewFromConfig(cfg)
-	b, err := s3blob.OpenBucketV2(ctx, client, params.Path.Bucket, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := &blob.ReaderOptions{}
-	br, err := b.NewReader(ctx, sliceKey(params.Path.Key, slice), opts)
-	if err != nil {
-		return nil, fmt.Errorf(`reader: opening blob "%s" failed: %w`, params.Path.Key, err)
-	}
-	return br, nil
+	return s3blob.OpenBucketV2(ctx, client, params.Path.Bucket, nil)
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {
