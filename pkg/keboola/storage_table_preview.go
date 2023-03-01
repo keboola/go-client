@@ -60,12 +60,10 @@ const (
 // If you know the column order ahead of time, you can use the associated
 // constant instead of parsing it from a string.
 func ParseColumnOrder(s string) (ColumnOrder, error) {
-	s = strings.ToUpper(s)
-	switch s {
-	case string(OrderAsc):
-		fallthrough
-	case string(OrderDesc):
-		return ColumnOrder(s), nil
+	v := ColumnOrder(strings.ToUpper(s))
+	switch v {
+	case OrderAsc, OrderDesc:
+		return v, nil
 	default:
 		return "", fmt.Errorf(`invalid column order "%s"`, s)
 	}
@@ -101,36 +99,18 @@ const (
 func ParseCompareOp(s string) (CompareOp, error) {
 	s = strings.ToLower(s)
 	switch s {
-	case "=":
-		fallthrough
-	case string(CompareEq):
+	case "=", string(CompareEq):
 		return CompareEq, nil
-
-	case "!=":
-		fallthrough
-	case string(CompareNe):
+	case "!=", string(CompareNe):
 		return CompareNe, nil
-
-	case "<":
-		fallthrough
-	case string(CompareLt):
+	case "<", string(CompareLt):
 		return CompareLt, nil
-
-	case "<=":
-		fallthrough
-	case string(CompareLe):
+	case "<=", string(CompareLe):
 		return CompareLe, nil
-
-	case ">":
-		fallthrough
-	case string(CompareGt):
+	case ">", string(CompareGt):
 		return CompareGt, nil
-
-	case ">=":
-		fallthrough
-	case string(CompareGe):
+	case ">=", string(CompareGe):
 		return CompareGe, nil
-
 	default:
 		return "", fmt.Errorf(`invalid comparison operator "%s"`, s)
 	}
@@ -166,18 +146,10 @@ const (
 // If you know the data type ahead of time, you can use the associated
 // constant instead of parsing it from a string.
 func ParseDataType(s string) (DataType, error) {
-	s = strings.ToUpper(s)
-	switch s {
-	case string(TypeInteger):
-		fallthrough
-	case string(TypeDouble):
-		fallthrough
-	case string(TypeBigInt):
-		fallthrough
-	case string(TypeReal):
-		fallthrough
-	case string(TypeDecimal):
-		return DataType(s), nil
+	v := DataType(strings.ToUpper(s))
+	switch v {
+	case TypeInteger, TypeDouble, TypeBigInt, TypeReal, TypeDecimal:
+		return v, nil
 	default:
 		return "", fmt.Errorf(`invalid data type "%s"`, s)
 	}
