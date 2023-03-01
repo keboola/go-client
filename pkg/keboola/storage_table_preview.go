@@ -30,56 +30,133 @@ type PreviewOption interface {
 
 type whereFilter struct {
 	column   string
-	operator compareOp
+	operator CompareOp
 	values   []string
-	dataType *dataType
+	dataType *DataType
 }
 
 type orderBy struct {
 	column   string
-	order    order
-	dataType *dataType
+	order    ColumnOrder
+	dataType *DataType
 }
 
-type order string
+type ColumnOrder string
 
 const (
-	OrderAsc  order = "ASC"
-	OrderDesc order = "DESC"
+	OrderAsc  ColumnOrder = "ASC"
+	OrderDesc ColumnOrder = "DESC"
 )
 
-type compareOp string
+// ParseColumnOrder parses a column order from a string.
+//
+// Available column order types:
+//
+//	 name | constant name
+//	------|---------------
+//	 ASC  | OrderAsc
+//	 DESC | OrderDesc
+//
+// If you know the column order ahead of time, you can use the associated
+// constant instead of parsing it from a string.
+func ParseColumnOrder(s string) (ColumnOrder, error) {
+	v := ColumnOrder(strings.ToUpper(s))
+	switch v {
+	case OrderAsc, OrderDesc:
+		return v, nil
+	default:
+		return "", fmt.Errorf(`invalid column order "%s"`, s)
+	}
+}
+
+type CompareOp string
 
 const (
-	CompareEq compareOp = "eq"
-	CompareNe compareOp = "ne"
-	CompareGt compareOp = "gt"
-	CompareGe compareOp = "ge"
-	CompareLt compareOp = "lt"
-	CompareLe compareOp = "le"
+	CompareEq CompareOp = "eq"
+	CompareNe CompareOp = "ne"
+	CompareGt CompareOp = "gt"
+	CompareGe CompareOp = "ge"
+	CompareLt CompareOp = "lt"
+	CompareLe CompareOp = "le"
 )
 
-type dataType string
+// ParseCompareOp parses a comparison operator from a string.
+//
+// Available comparison operators:
+//
+//	 identifier | symbol | constant name
+//	------------|--------|---------------
+//	 eq         | =      | CompareEq
+//	 ne         | !=     | CompareNe
+//	 lt         | <      | CompareLt
+//	 le         | <=     | CompareLe
+//	 gt         | >      | CompareGt
+//	 ge         | >=     | CompareGe
+//
+// This function accepts either the identifier or the symbol as valid input.
+// If you know the comparison operator ahead of time, you can use the associated
+// constant instead of parsing it from a string.
+func ParseCompareOp(s string) (CompareOp, error) {
+	s = strings.ToLower(s)
+	switch s {
+	case "=", string(CompareEq):
+		return CompareEq, nil
+	case "!=", string(CompareNe):
+		return CompareNe, nil
+	case "<", string(CompareLt):
+		return CompareLt, nil
+	case "<=", string(CompareLe):
+		return CompareLe, nil
+	case ">", string(CompareGt):
+		return CompareGt, nil
+	case ">=", string(CompareGe):
+		return CompareGe, nil
+	default:
+		return "", fmt.Errorf(`invalid comparison operator "%s"`, s)
+	}
+}
+
+type DataType string
 
 const (
 	// For numbers without a decimal point (Snowflake, Teradata, Bigquery).
-	TypeInteger dataType = "INTEGER"
+	TypeInteger DataType = "INTEGER"
 	// For number with a decimal point (Snowflake, Bigquery).
-	TypeDouble dataType = "DOUBLE"
+	TypeDouble DataType = "DOUBLE"
 	// For number without a decimal point (Synapse, Bigquery).
-	TypeBigInt dataType = "BIGINT"
+	TypeBigInt DataType = "BIGINT"
 	// For number with a decimal point (Synapse, Teradata, Bigquery).
-	TypeReal dataType = "REAL"
+	TypeReal DataType = "REAL"
 	// For numbers (Exasol, Bigquery).
-	TypeDecimal dataType = "DECIMAL"
+	TypeDecimal DataType = "DECIMAL"
 )
 
-type whereFilterBuilder struct {
-	whereFilters []whereFilter
+// ParseDataType parses a numeric data type from a string.
+//
+// Available data types:
+//
+//	 type    | constant name
+//	---------|---------------
+//	 INTEGER | TypeInteger
+//	 DOUBLE  | TypeDouble
+//	 BIGINT  | TypeBigInt
+//	 REAL    | TypeReal
+//	 DECIMAL | TypeDecimal
+//
+// If you know the data type ahead of time, you can use the associated
+// constant instead of parsing it from a string.
+func ParseDataType(s string) (DataType, error) {
+	v := DataType(strings.ToUpper(s))
+	switch v {
+	case TypeInteger, TypeDouble, TypeBigInt, TypeReal, TypeDecimal:
+		return v, nil
+	default:
+		return "", fmt.Errorf(`invalid data type "%s"`, s)
+	}
 }
 
-func newWhereFilter(column string, op compareOp, values []string, ty ...dataType) whereFilter {
-	var typeName *dataType
+func newWhereFilter(column string, op CompareOp, values []string, ty ...DataType) whereFilter {
+	var typeName *DataType
 	if len(ty) > 1 {
 		panic("where filter `ty` parameter only accepts a single value")
 	}
@@ -95,7 +172,7 @@ func newWhereFilter(column string, op compareOp, values []string, ty ...dataType
 	}
 }
 
-func valuesToString(values ...any) []string {
+func valuesToString[T any](values ...T) []string {
 	out := []string{}
 	for _, v := range values {
 		out = append(out, fmt.Sprintf("%v", v))
@@ -106,29 +183,16 @@ func valuesToString(values ...any) []string {
 // If the column contains a numeric type, `ty` may be used to specify the exact type.
 //
 // `ty` should be exactly one value, or empty.
-func WithWhere(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
-	return &whereFilterBuilder{
-		whereFilters: []whereFilter{
-			newWhereFilter(column, op, valuesToString(values...), ty...),
-		},
-	}
+func WithWhere[T any](column string, op CompareOp, values []T, ty ...DataType) whereFilter {
+	return newWhereFilter(column, op, valuesToString(values...), ty...)
 }
 
-func (b *whereFilterBuilder) And(column string, op compareOp, values []any, ty ...dataType) *whereFilterBuilder {
-	b.whereFilters = append(b.whereFilters, newWhereFilter(column, op, valuesToString(values...), ty...))
-	return b
+func (v whereFilter) applyPreviewOption(c *previewDataConfig) {
+	c.whereFilters = append(c.whereFilters, v)
 }
 
-func (b *whereFilterBuilder) applyPreviewOption(c *previewDataConfig) {
-	c.whereFilters = append(c.whereFilters, b.whereFilters...)
-}
-
-type orderByBuilder struct {
-	orderBy []orderBy
-}
-
-func newOrderBy(column string, order order, ty ...dataType) orderBy {
-	var typeName *dataType
+func newOrderBy(column string, order ColumnOrder, ty ...DataType) orderBy {
+	var typeName *DataType
 	if len(ty) > 1 {
 		panic("order by filter `ty` parameter only accepts a single value")
 	}
@@ -143,21 +207,12 @@ func newOrderBy(column string, order order, ty ...dataType) orderBy {
 	}
 }
 
-func WithOrderBy(column string, order order, ty ...dataType) *orderByBuilder {
-	return &orderByBuilder{
-		orderBy: []orderBy{
-			newOrderBy(column, order, ty...),
-		},
-	}
+func WithOrderBy(column string, order ColumnOrder, ty ...DataType) orderBy {
+	return newOrderBy(column, order, ty...)
 }
 
-func (b *orderByBuilder) And(column string, order order, ty ...dataType) *orderByBuilder {
-	b.orderBy = append(b.orderBy, newOrderBy(column, order, ty...))
-	return b
-}
-
-func (b *orderByBuilder) applyPreviewOption(c *previewDataConfig) {
-	c.orderBy = append(c.orderBy, b.orderBy...)
+func (v orderBy) applyPreviewOption(c *previewDataConfig) {
+	c.orderBy = append(c.orderBy, v)
 }
 
 type withLimitRows uint
