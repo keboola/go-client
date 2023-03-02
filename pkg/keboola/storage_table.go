@@ -21,6 +21,7 @@ type Table struct {
 	URI            string           `json:"uri"`
 	Name           string           `json:"name"`
 	DisplayName    string           `json:"displayName"`
+	SourceTable    *SourceTable     `json:"sourceTable"`
 	PrimaryKey     []string         `json:"primaryKey"`
 	Created        iso8601.Time     `json:"created"`
 	LastImportDate iso8601.Time     `json:"lastImportDate"`
@@ -31,6 +32,18 @@ type Table struct {
 	Metadata       []MetadataDetail `json:"metadata"`
 	ColumnMetadata ColumnMetadata   `json:"columnMetadata"`
 	Bucket         *Bucket          `json:"bucket"`
+}
+
+type SourceTable struct {
+	ID      TableID       `json:"id"`
+	URI     string        `json:"uri"`
+	Name    string        `json:"name"`
+	Project SourceProject `json:"project"`
+}
+
+type SourceProject struct {
+	ID   ProjectID `json:"id"`
+	Name string    `json:"name"`
 }
 
 type ColumnMetadata map[string]MetadataDetail
