@@ -26,11 +26,23 @@ type Event struct {
 
 // CreateEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
 func (a *API) CreateEventRequest(event *Event) client.APIRequest[*Event] {
+	// Params and results must be a JSON value encoded as string
+	body := client.StructToMap(event, nil)
+	pValue, err := jsonLib.Marshal(event.Params)
+	if err != nil {
+		return client.NewAPIRequest(event, client.NewReqDefinitionError(err))
+	}
+	rValue, err := jsonLib.Marshal(event.Results)
+	if err != nil {
+		return client.NewAPIRequest(event, client.NewReqDefinitionError(err))
+	}
+	body["params"] = string(pValue)
+	body["results"] = string(rValue)
 	request := a.
 		newRequest(StorageAPI).
 		WithResult(event).
 		WithPost("events").
-		WithFormBody(client.ToFormBody(client.StructToMap(event, nil)))
+		WithJSONBody(body)
 	return client.NewAPIRequest(event, request)
 }
 
