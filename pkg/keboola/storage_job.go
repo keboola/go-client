@@ -50,7 +50,7 @@ type StorageJob struct {
 	CreateTime      iso8601.Time     `json:"createdTime"`
 	StartTime       *iso8601.Time    `json:"startTime"`
 	EndTime         *iso8601.Time    `json:"endTime"`
-	Error           StorageJobError  `json:"error,omitempty"`
+	Error           *StorageJobError `json:"error,omitempty"`
 }
 
 type StorageJobError struct {
