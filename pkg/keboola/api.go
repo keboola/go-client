@@ -111,7 +111,7 @@ func NewAPIFromIndex(host string, index *Index, opts ...APIOption) *API {
 }
 
 func newClient(host string, opts []APIOption) client.Client {
-	if !strings.HasPrefix(host, "https://") {
+	if !strings.HasPrefix(host, "https://") && !strings.HasPrefix(host, "http://") {
 		host = "https://" + host
 	}
 	config := apiConfig{}
