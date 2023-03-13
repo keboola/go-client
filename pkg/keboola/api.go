@@ -28,29 +28,30 @@ const (
 
 // newRequest Creates request, sets base URL and default error type.
 func (a *API) newRequest(s ServiceType) client.HTTPRequest {
-	c := client.
-		NewHTTPRequest(a.sender)
-	if s == StorageAPI {
-		return c.
-			WithBaseURL("v2/storage").
-			WithError(&StorageError{})
-	}
-	c = c.WithBaseURL(a.baseURLForService(s))
+	// Set request base URL according to the ServiceType
+	r := client.NewHTTPRequest(a.sender).WithBaseURL(a.baseURLForService(s))
 
+	// Set error schema
 	switch s {
+	case StorageAPI:
+		r = r.WithError(&StorageError{})
 	case EncryptionAPI:
-		c = c.WithError(&EncryptionError{})
+		r = r.WithError(&EncryptionError{})
 	case QueueAPI:
-		c = c.WithError(&QueueError{})
+		r = r.WithError(&QueueError{})
 	case SchedulerAPI:
-		c = c.WithError(&SchedulerError{})
+		r = r.WithError(&SchedulerError{})
 	case WorkspacesAPI:
-		c = c.WithError(&WorkspacesError{})
+		r = r.WithError(&WorkspacesError{})
 	}
-	return c
+	return r
 }
 
 func (a *API) baseURLForService(s ServiceType) string {
+	if s == StorageAPI {
+		return "v2/storage"
+	}
+
 	url, found := a.index.Services.ToMap().URLByID(ServiceID(s))
 	if !found {
 		panic(fmt.Errorf(`service not found "%s"`, s))
