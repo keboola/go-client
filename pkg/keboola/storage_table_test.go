@@ -449,3 +449,60 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(5), table.RowsCount)
 }
+
+func TestTableUnloadRequest(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	api := APIClientForAnEmptyProject(t, ctx)
+
+	bucketID := BucketID{
+		Stage:      BucketStageIn,
+		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
+	}
+	tableID := TableID{
+		BucketID:  bucketID,
+		TableName: fmt.Sprintf("table_%d", rand.Int()),
+	}
+	bucket := &Bucket{
+		ID: bucketID,
+	}
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// Create file
+	fileName1 := fmt.Sprintf("file_%d", rand.Int())
+	inputFile, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, inputFile.ID)
+
+	// Upload file
+	content := []byte("col1,col2\nval1,val2\n")
+	written, err := Upload(ctx, inputFile, bytes.NewReader(content))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(content)), written)
+
+	// Create table
+	_, err = api.CreateTableFromFileRequest(tableID, inputFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	assert.NoError(t, err)
+
+	// Unload table as CSV
+	outputFileInfo, err := api.NewTableUnloadRequest(tableID).
+		WithColumns("col1").
+		WithChangedSince("-2 days").
+		WithFormat(UnloadFormatCSV).
+		WithLimitRows(100).
+		WithOrderBy("col1", OrderAsc).
+		WithWhere("col1", CompareEq, []string{"val1"}).
+		SendAndWait(ctx, time.Minute*5)
+	assert.NoError(t, err)
+
+	credentials, err := api.GetFileWithCredentialsRequest(outputFileInfo.File.Id).Send(ctx)
+	assert.NoError(t, err)
+	data, err := Download(ctx, credentials)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", string(data))
+}

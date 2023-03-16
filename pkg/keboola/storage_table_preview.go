@@ -1,3 +1,4 @@
+// nolint: structtag
 package keboola
 
 import (
@@ -29,16 +30,16 @@ type PreviewOption interface {
 }
 
 type whereFilter struct {
-	column   string
-	operator CompareOp
-	values   []string
-	dataType *DataType
+	Column   string    `json:"column,omitempty"`
+	Operator CompareOp `json:"operator,omitempty"`
+	Values   []string  `json:"values,omitempty"`
+	DataType *DataType `json:"dataType,omitempty"`
 }
 
 type orderBy struct {
-	column   string
-	order    ColumnOrder
-	dataType *DataType
+	Column   string      `json:"column,omitempty"`
+	Order    ColumnOrder `json:"order,omitempty"`
+	DataType *DataType   `json:"dataType,omitempty"`
 }
 
 type ColumnOrder string
@@ -165,10 +166,10 @@ func newWhereFilter(column string, op CompareOp, values []string, ty ...DataType
 	}
 
 	return whereFilter{
-		column:   column,
-		operator: op,
-		values:   values,
-		dataType: typeName,
+		Column:   column,
+		Operator: op,
+		Values:   values,
+		DataType: typeName,
 	}
 }
 
@@ -201,9 +202,9 @@ func newOrderBy(column string, order ColumnOrder, ty ...DataType) orderBy {
 	}
 
 	return orderBy{
-		column:   column,
-		order:    order,
-		dataType: typeName,
+		Column:   column,
+		Order:    order,
+		DataType: typeName,
 	}
 }
 
@@ -270,20 +271,20 @@ func (v withExportColumns) applyPreviewOption(c *previewDataConfig) {
 func (c *previewDataConfig) toQueryParams() map[string]string {
 	out := make(map[string]string)
 	for i, filter := range c.whereFilters {
-		out[fmt.Sprintf("whereFilters[%d][column]", i)] = filter.column
-		out[fmt.Sprintf("whereFilters[%d][operator]", i)] = string(filter.operator)
-		for j, value := range filter.values {
+		out[fmt.Sprintf("whereFilters[%d][column]", i)] = filter.Column
+		out[fmt.Sprintf("whereFilters[%d][operator]", i)] = string(filter.Operator)
+		for j, value := range filter.Values {
 			out[fmt.Sprintf("whereFilters[%d][values][%d]", i, j)] = value
 		}
-		if filter.dataType != nil {
-			out[fmt.Sprintf("whereFilters[%d][dataType]", i)] = string(*filter.dataType)
+		if filter.DataType != nil {
+			out[fmt.Sprintf("whereFilters[%d][dataType]", i)] = string(*filter.DataType)
 		}
 	}
 	for i, orderBy := range c.orderBy {
-		out[fmt.Sprintf("orderBy[%d][column]", i)] = orderBy.column
-		out[fmt.Sprintf("orderBy[%d][order]", i)] = string(orderBy.order)
-		if orderBy.dataType != nil {
-			out[fmt.Sprintf("orderBy[%d][dataType]", i)] = string(*orderBy.dataType)
+		out[fmt.Sprintf("orderBy[%d][column]", i)] = orderBy.Column
+		out[fmt.Sprintf("orderBy[%d][order]", i)] = string(orderBy.Order)
+		if orderBy.DataType != nil {
+			out[fmt.Sprintf("orderBy[%d][dataType]", i)] = string(*orderBy.DataType)
 		}
 	}
 	out["limit"] = fmt.Sprintf("%d", c.limit)
