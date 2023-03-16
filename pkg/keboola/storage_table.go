@@ -433,7 +433,7 @@ type TableUnloadJobResult struct {
 }
 
 type UnloadedFile struct {
-	Id int `json:"id"`
+	ID int `json:"id"`
 }
 
 func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout time.Duration) (*TableUnloadJobResult, error) {

@@ -499,7 +499,7 @@ func TestTableUnloadRequest(t *testing.T) {
 		SendAndWait(ctx, time.Minute*5)
 	assert.NoError(t, err)
 
-	credentials, err := api.GetFileWithCredentialsRequest(outputFileInfo.File.Id).Send(ctx)
+	credentials, err := api.GetFileWithCredentialsRequest(outputFileInfo.File.ID).Send(ctx)
 	assert.NoError(t, err)
 	data, err := Download(ctx, credentials)
 	assert.NoError(t, err)
