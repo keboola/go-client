@@ -436,6 +436,9 @@ type UnloadedFile struct {
 	ID int `json:"id"`
 }
 
+// Send the request and wait for the resulting storage job to finish.
+//
+// Once the job finishes, this returns its `results` object, which contains the created file ID.
 func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout time.Duration) (*TableUnloadJobResult, error) {
 	// send request
 	job, err := b.Send(ctx)
