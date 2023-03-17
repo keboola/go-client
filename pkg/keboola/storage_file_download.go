@@ -27,7 +27,35 @@ func WithDownloadTransport(transport http.RoundTripper) DownloadOption {
 	}
 }
 
+// DownloadAll downloads all slices of a file. To download a whole file, use `Download` instead.
+func DownloadAll(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	if !file.IsSliced {
+		return nil, fmt.Errorf("cannot download a whole file as a sliced file")
+	}
+
+	out := []byte{}
+
+	slices, err := DownloadManifest(ctx, file)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, slice := range slices {
+		data, err := DownloadSlice(ctx, file, slice)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, data...)
+	}
+
+	return out, nil
+}
+
+// Download downloads a whole file. To download sliced files, use `DownloadAll` instead.
 func Download(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	if file.IsSliced {
+		return nil, fmt.Errorf("cannot download a sliced file as a whole file")
+	}
 	return DownloadSlice(ctx, file, "")
 }
 
