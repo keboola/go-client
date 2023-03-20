@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	jsonLib "encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -377,4 +378,144 @@ func (a *API) DeleteTableRequest(tableID TableID, opts ...DeleteOption) client.A
 	}
 
 	return client.NewAPIRequest(client.NoResult{}, request)
+}
+
+type TableUnloadRequestBuilder struct {
+	tableID TableID
+	config  unloadConfig
+	api     *API
+}
+
+type UnloadFormat string
+
+const (
+	// CSV formatted according to RFC4180. This is the default format.
+	UnloadFormatCSV UnloadFormat = "rfc"
+	// JSON format is only supported in projects with the Snowflake backend.
+	UnloadFormatJSON UnloadFormat = "json"
+)
+
+type unloadConfig struct {
+	Limit        uint          `json:"limit,omitempty"`
+	Format       UnloadFormat  `json:"format,omitempty"`
+	ChangedSince string        `json:"changedSince,omitempty"`
+	ChangedUntil string        `json:"changedUntil,omitempty"`
+	Columns      string        `json:"columns,omitempty"`
+	OrderBy      []orderBy     `json:"orderBy,omitempty"`
+	WhereFilters []whereFilter `json:"whereFilters,omitempty"`
+}
+
+func (a *API) NewTableUnloadRequest(tableID TableID) *TableUnloadRequestBuilder {
+	return &TableUnloadRequestBuilder{
+		tableID: tableID,
+		api:     a,
+	}
+}
+
+func (b *TableUnloadRequestBuilder) Build() client.APIRequest[*StorageJob] {
+	result := &StorageJob{}
+	request := b.api.newRequest(StorageAPI).
+		WithResult(result).
+		WithMethod(http.MethodPost).
+		WithURL("tables/{tableId}/export-async").
+		AndPathParam("tableId", b.tableID.String()).
+		WithJSONBody(b.config)
+	return client.NewAPIRequest(result, request)
+}
+
+func (b *TableUnloadRequestBuilder) Send(ctx context.Context) (*StorageJob, error) {
+	return b.Build().Send(ctx)
+}
+
+type TableUnloadJobResult struct {
+	File     UnloadedFile `json:"file"`
+	CacheHit bool         `json:"cacheHit"`
+}
+
+type UnloadedFile struct {
+	ID int `json:"id"`
+}
+
+// Send the request and wait for the resulting storage job to finish.
+//
+// Once the job finishes, this returns its `results` object, which contains the created file ID.
+func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout time.Duration) (*TableUnloadJobResult, error) {
+	// send request
+	job, err := b.Send(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// wait for job
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	err = b.api.WaitForStorageJob(timeoutCtx, job)
+	if err != nil {
+		return nil, err
+	}
+
+	// parse result
+	result := &TableUnloadJobResult{}
+	data, err := jsonLib.Marshal(job.Results)
+	if err != nil {
+		return nil, err
+	}
+	err = jsonLib.Unmarshal(data, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// Limit the number of returned rows.
+//
+// Maximum allowed value is 1000.
+//
+// Default value is 100.
+func (b *TableUnloadRequestBuilder) WithLimitRows(v uint) *TableUnloadRequestBuilder {
+	b.config.Limit = v
+	return b
+}
+
+// Set the output file format.
+//
+// JSON format is only supported in projects with the Snowflake backend.
+func (b *TableUnloadRequestBuilder) WithFormat(v UnloadFormat) *TableUnloadRequestBuilder {
+	b.config.Format = v
+	return b
+}
+
+// Filtering by import date - timestamp of import is stored within each row.
+// Can be a unix timestamp or any date accepted by strtotime (https://www.php.net/manual/en/function.strtotime.php).
+func (b *TableUnloadRequestBuilder) WithChangedSince(v string) *TableUnloadRequestBuilder {
+	b.config.ChangedSince = v
+	return b
+}
+
+// Filtering by import date - timestamp of import is stored within each row.
+// Can be a unix timestamp or any date accepted by strtotime (https://www.php.net/manual/en/function.strtotime.php).
+func (b *TableUnloadRequestBuilder) WithChangedUntil(v string) *TableUnloadRequestBuilder {
+	b.config.ChangedUntil = v
+	return b
+}
+
+// List of columns to export. By default all columns are exported.
+func (b *TableUnloadRequestBuilder) WithColumns(v ...string) *TableUnloadRequestBuilder {
+	b.config.Columns = strings.Join(v, ",")
+	return b
+}
+
+func (b *TableUnloadRequestBuilder) WithOrderBy(column string, order ColumnOrder, ty ...DataType) *TableUnloadRequestBuilder {
+	b.config.OrderBy = append(b.config.OrderBy, newOrderBy(column, order, ty...))
+	return b
+}
+
+// If the column contains a numeric type, `ty` may be used to specify the exact type.
+//
+// `ty` should be exactly one value, or empty.
+func (b *TableUnloadRequestBuilder) WithWhere(column string, op CompareOp, values []string, ty ...DataType) *TableUnloadRequestBuilder {
+	b.config.WhereFilters = append(b.config.WhereFilters, newWhereFilter(column, op, values, ty...))
+	return b
 }

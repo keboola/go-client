@@ -28,6 +28,9 @@ func WithDownloadTransport(transport http.RoundTripper) DownloadOption {
 }
 
 func Download(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	if file.IsSliced {
+		return nil, fmt.Errorf("cannot download a sliced file as a whole file")
+	}
 	return DownloadSlice(ctx, file, "")
 }
 
