@@ -3,6 +3,7 @@ package keboola_test
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -506,7 +507,9 @@ func TestTableUnloadRequest(t *testing.T) {
 	data, err := downloadAllSlices(ctx, credentials)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "\"val1\"\n", string(data))
+	row, err := csv.NewReader(bytes.NewReader(data)).ReadAll()
+	assert.NoError(t, err)
+	assert.Equal(t, [][]string{{"val1"}}, row)
 }
 
 func downloadAllSlices(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
