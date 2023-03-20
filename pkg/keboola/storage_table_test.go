@@ -506,7 +506,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	data, err := downloadAllSlices(ctx, credentials)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "val1\n", string(data))
+	assert.Equal(t, "\"val1\"\n", string(data))
 }
 
 func downloadAllSlices(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
