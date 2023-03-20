@@ -503,8 +503,31 @@ func TestTableUnloadRequest(t *testing.T) {
 	credentials, err := api.GetFileWithCredentialsRequest(outputFileInfo.File.ID).Send(ctx)
 	assert.NoError(t, err)
 
-	data, err := DownloadAll(ctx, credentials)
+	data, err := downloadAllSlices(ctx, credentials)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "\"val1\"\n", string(data))
+}
+
+func downloadAllSlices(ctx context.Context, file *FileDownloadCredentials) ([]byte, error) {
+	if !file.IsSliced {
+		return nil, fmt.Errorf("cannot download a whole file as a sliced file")
+	}
+
+	out := []byte{}
+
+	slices, err := DownloadManifest(ctx, file)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, slice := range slices {
+		data, err := DownloadSlice(ctx, file, slice)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, data...)
+	}
+
+	return out, nil
 }
