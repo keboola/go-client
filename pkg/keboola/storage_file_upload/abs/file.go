@@ -73,7 +73,9 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 		return nil, err
 	}
 
-	bw, err := b.NewWriter(ctx, sliceKey(params.BlobName, slice), nil)
+	// Smaller buffer size for better progress reporting
+	opts := &blob.WriterOptions{BufferSize: 512000}
+	bw, err := b.NewWriter(ctx, sliceKey(params.BlobName, slice), opts)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.BlobName, err)
 	}
