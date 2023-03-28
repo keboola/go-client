@@ -360,7 +360,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Load data to table - added three rows
-	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*1)
+	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn2()
 	job, err := api.LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
@@ -437,7 +437,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Load data to table
-	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn()
 	job, err := api.LoadDataFromFileRequest(tableID, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)

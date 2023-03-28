@@ -254,7 +254,7 @@ func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts .
 		WithFormBody(client.ToFormBody(params)).
 		WithOnSuccess(func(ctx context.Context, _ client.HTTPResponse) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 			defer waitCancelFn()
 			return a.WaitForStorageJob(waitCtx, job)
 		}).
