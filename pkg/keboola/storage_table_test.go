@@ -18,6 +18,8 @@ import (
 	. "github.com/keboola/go-client/pkg/keboola"
 )
 
+var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func newJSONResponder(response string) httpmock.Responder {
 	r := httpmock.NewStringResponse(200, response)
 	r.Header.Set("Content-Type", "application/json")
@@ -245,8 +247,8 @@ func TestTableApiCalls(t *testing.T) {
 	ctx := context.Background()
 	api := APIClientForAnEmptyProject(t, ctx)
 
-	bucketName := fmt.Sprintf("c-test_%d", rand.Int())
-	tableName := fmt.Sprintf("test_%d", rand.Int())
+	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
+	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
 		ID: BucketID{
@@ -311,11 +313,11 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
+		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
 	}
 	tableID := TableID{
 		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rand.Int()),
+		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
 		ID: bucketID,
@@ -327,7 +329,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, bucket, resBucket)
 
 	// Create file
-	fileName1 := fmt.Sprintf("file_%d", rand.Int())
+	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
 	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
@@ -343,7 +345,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create file
-	fileName2 := fmt.Sprintf("file_%d", rand.Int())
+	fileName2 := fmt.Sprintf("file_%d", rnd.Int())
 	file2, err := api.CreateFileResourceRequest(fileName2).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file2.ID)
@@ -360,7 +362,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Load data to table - added three rows
-	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*1)
+	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn2()
 	job, err := api.LoadDataFromFileRequest(tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
@@ -377,8 +379,8 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	ctx := context.Background()
 	api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageS3())
 
-	bucketName := fmt.Sprintf("c-test_%d", rand.Int())
-	tableName := fmt.Sprintf("test_%d", rand.Int())
+	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
+	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
 		ID: BucketID{
@@ -437,7 +439,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Load data to table
-	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn()
 	job, err := api.LoadDataFromFileRequest(tableID, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
@@ -449,18 +451,18 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	assert.Equal(t, uint64(5), table.RowsCount)
 }
 
-func TestTableUnloadRequest(t *testing.T) {
+func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
+		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
 	}
 	tableID := TableID{
 		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rand.Int()),
+		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
 		ID: bucketID,
@@ -472,7 +474,51 @@ func TestTableUnloadRequest(t *testing.T) {
 	assert.Equal(t, bucket, resBucket)
 
 	// Create file
-	fileName1 := fmt.Sprintf("file_%d", rand.Int())
+	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
+	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, file1.ID)
+
+	// Upload file
+	content := []byte("'col1'&'col2'\n'val1'&'val2'\n")
+	written, err := Upload(ctx, file1, bytes.NewReader(content))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(content)), written)
+
+	// Create table
+	_, err = api.CreateTableFromFileRequest(tableID, file1.ID, WithDelimiter("&"), WithEnclosure("'")).Send(ctx)
+	assert.NoError(t, err)
+
+	// Check rows count
+	table, err := api.GetTableRequest(tableID).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(1), table.RowsCount)
+}
+
+func TestTableUnloadRequest(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	api := APIClientForAnEmptyProject(t, ctx)
+
+	bucketID := BucketID{
+		Stage:      BucketStageIn,
+		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
+	}
+	tableID := TableID{
+		BucketID:  bucketID,
+		TableName: fmt.Sprintf("table_%d", rnd.Int()),
+	}
+	bucket := &Bucket{
+		ID: bucketID,
+	}
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// Create file
+	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
 	inputFile, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, inputFile.ID)

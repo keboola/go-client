@@ -82,7 +82,9 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 		panic("Unable to access storage.Client through Bucket.As")
 	}
 
-	bw, err := b.NewWriter(ctx, sliceKey(params.Key, slice), nil)
+	// Smaller buffer size for better progress reporting
+	opts := &blob.WriterOptions{BufferSize: 512000}
+	bw, err := b.NewWriter(ctx, sliceKey(params.Key, slice), opts)
 	if err != nil {
 		return nil, fmt.Errorf(`opening blob "%s" failed: %w`, params.Key, err)
 	}

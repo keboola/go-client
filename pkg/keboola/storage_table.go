@@ -184,11 +184,19 @@ func WithDelimiter(d string) delimiterOption {
 	return delimiterOption(d)
 }
 
+func (o delimiterOption) applyCreateTableOption(c *createTableConfig) {
+	c.Delimiter = string(o)
+}
+
 // enclosureOption specifies field enclosure used in the CSV file. Default value is '"'.
 type enclosureOption string
 
 func WithEnclosure(e string) enclosureOption {
 	return enclosureOption(e)
+}
+
+func (o enclosureOption) applyCreateTableOption(c *createTableConfig) {
+	c.Enclosure = string(o)
 }
 
 // escapedByOption specifies escape character used in the CSV file. The default value is an empty value - no escape character is used.
@@ -199,6 +207,10 @@ func WithEscapedBy(e string) escapedByOption {
 	return escapedByOption(e)
 }
 
+func (o escapedByOption) applyCreateTableOption(c *createTableConfig) {
+	c.EscapedBy = string(o)
+}
+
 // CreateTableOption applies to the request for creating table from file.
 type CreateTableOption interface {
 	applyCreateTableOption(c *createTableConfig)
@@ -206,6 +218,7 @@ type CreateTableOption interface {
 
 // createTableConfig contains params to create table from file resource.
 type createTableConfig struct {
+	loadDataFromFileConfig
 	PrimaryKey string `json:"primaryKey,omitempty" writeoptional:"true"`
 }
 
@@ -241,7 +254,7 @@ func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts .
 		WithFormBody(client.ToFormBody(params)).
 		WithOnSuccess(func(ctx context.Context, _ client.HTTPResponse) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 			defer waitCancelFn()
 			return a.WaitForStorageJob(waitCtx, job)
 		}).
