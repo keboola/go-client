@@ -115,19 +115,14 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	reqURL := reqDef.URL()
 
 	// Init trace
-	var trace *trace.ClientTrace
+	var tc *trace.ClientTrace
 	for _, fn := range c.traceFactories {
-		oldTrace := trace
-		trace = fn()
-		trace.Compose(oldTrace)
+		oldTrace := tc
+		ctx, tc = fn(ctx, reqDef)
+		tc.Compose(oldTrace)
 	}
-	if trace != nil {
-		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
-	}
-
-	// Trace got request
-	if trace != nil && trace.GotRequest != nil {
-		ctx = trace.GotRequest(ctx, reqDef)
+	if tc != nil {
+		ctx = httptrace.WithClientTrace(ctx, &tc.ClientTrace)
 	}
 
 	// Replace path parameters
@@ -186,7 +181,7 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	// Setup native client
 	nativeClient := http.Client{
 		Timeout:   c.retry.TotalRequestTimeout,
-		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: trace, wrapped: c.transport}, // wrapped transport for trace/retry
+		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
 	}
 
 	// Send request
@@ -194,9 +189,9 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	res, err = nativeClient.Do(req)
 
 	// Trace request processed
-	if trace != nil && trace.RequestProcessed != nil {
+	if tc != nil && tc.RequestProcessed != nil {
 		defer func() {
-			trace.RequestProcessed(result, err)
+			tc.RequestProcessed(result, err)
 		}()
 	}
 

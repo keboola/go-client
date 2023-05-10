@@ -1,12 +1,15 @@
 package trace
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptrace"
 	"sync/atomic"
 	"time"
+
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type logTrace struct {
@@ -16,10 +19,10 @@ type logTrace struct {
 
 func LogTracer(wr io.Writer) Factory {
 	var idGenerator uint64
-	return func() *ClientTrace {
+	return func(ctx context.Context, reqDef request.HTTPRequest) (context.Context, *ClientTrace) {
 		requestID := atomic.AddUint64(&idGenerator, 1)
 
-		var request *http.Request
+		var req *http.Request
 		var connStartTime time.Time
 		var startTime time.Time
 		var doneTime time.Time
@@ -40,12 +43,12 @@ func LogTracer(wr io.Writer) Factory {
 			} else {
 				infoStr = fmt.Sprintf("new conn | %s", time.Since(connStartTime))
 			}
-			t.log(requestID, fmt.Sprintf(`CONN  %s "%s" | %s`, request.Method, request.URL.String(), infoStr))
+			t.log(requestID, fmt.Sprintf(`CONN  %s "%s" | %s`, req.Method, req.URL.String(), infoStr))
 		}
 		t.HTTPRequestStart = func(r *http.Request) {
-			request = r
+			req = r
 			startTime = time.Now()
-			t.log(requestID, fmt.Sprintf(`START %s "%s"`, request.Method, request.URL.String()))
+			t.log(requestID, fmt.Sprintf(`START %s "%s"`, req.Method, req.URL.String()))
 		}
 		t.HTTPRequestDone = func(r *http.Response, err error) {
 			doneTime = time.Now()
@@ -55,19 +58,19 @@ func LogTracer(wr io.Writer) Factory {
 			} else {
 				errorStr = fmt.Sprintf(" | error=%s", err)
 			}
-			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, request.Method, request.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
+			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, req.Method, req.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
 		}
 		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
-			t.log(requestID, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, request.Method, request.URL.String(), attempt, delay))
+			t.log(requestID, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, req.Method, req.URL.String(), attempt, delay))
 		}
 		t.RequestProcessed = func(result any, err error) {
 			var errorStr string
 			if err != nil {
 				errorStr = fmt.Sprintf(" | error=%s", err)
 			}
-			t.log(requestID, fmt.Sprintf(`BODY  %s "%s" | %s%s`, request.Method, request.URL.String(), time.Since(doneTime).String(), errorStr))
+			t.log(requestID, fmt.Sprintf(`BODY  %s "%s" | %s%s`, req.Method, req.URL.String(), time.Since(doneTime).String(), errorStr))
 		}
-		return &t.ClientTrace
+		return ctx, &t.ClientTrace
 	}
 }
 

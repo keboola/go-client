@@ -13,13 +13,11 @@ import (
 )
 
 // Factory creates ClientTrace hooks for a request.
-type Factory func() *ClientTrace
+type Factory func(ctx context.Context, request request.HTTPRequest) (context.Context, *ClientTrace)
 
 // ClientTrace is a set of hooks to run at various stages of an outgoing HTTPRequest.
 type ClientTrace struct {
 	httptrace.ClientTrace // native, low level trace
-	// GotRequest is called when Client.Send method is called.
-	GotRequest func(ctx context.Context, request request.HTTPRequest) context.Context
 	// RequestProcessed is called when Client.Send method is done.
 	RequestProcessed func(result any, err error)
 	// HTTPRequestStart is called when the request begins. It includes redirects and retries.

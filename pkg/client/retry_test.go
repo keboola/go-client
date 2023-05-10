@@ -36,8 +36,8 @@ func TestRetryCount(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
+		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			return ctx, &ClientTrace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},
@@ -125,8 +125,8 @@ func TestDoNotRetry(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
+		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			return ctx, &ClientTrace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},

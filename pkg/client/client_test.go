@@ -389,8 +389,8 @@ func TestStopRetryOnRequestTimeout(t *testing.T) {
 			WaitTimeStart:       40 * time.Millisecond, // <<<<<<<
 			WaitTimeMax:         40 * time.Millisecond,
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
+		AndTrace(func(ctx context.Context, _ HTTPRequest) (context.Context, *ClientTrace) {
+			return ctx, &ClientTrace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},

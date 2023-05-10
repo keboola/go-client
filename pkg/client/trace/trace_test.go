@@ -58,12 +58,9 @@ func TestTrace(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
-				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
-					logs.WriteString(fmt.Sprintf("GotRequest        %s %s\n", request.Method(), request.URL()))
-					return ctx
-				},
+		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			logs.WriteString(fmt.Sprintf("GotRequest        %s %s\n", reqDef.Method(), reqDef.URL()))
+			return ctx, &ClientTrace{
 				RequestProcessed: func(result any, err error) {
 					s := spew.NewDefaultConfig()
 					s.DisablePointerAddresses = true
@@ -123,12 +120,9 @@ func TestTrace_Multiple(t *testing.T) {
 	c := New().
 		WithTransport(transport).
 		WithRetry(TestingRetry()).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
-				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
-					logs.WriteString(fmt.Sprintf("1: GotRequest        %s %s\n", request.Method(), request.URL()))
-					return ctx
-				},
+		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			logs.WriteString(fmt.Sprintf("1: GotRequest        %s %s\n", reqDef.Method(), reqDef.URL()))
+			return ctx, &ClientTrace{
 				RequestProcessed: func(result any, err error) {
 					s := spew.NewDefaultConfig()
 					s.DisablePointerAddresses = true
@@ -143,12 +137,9 @@ func TestTrace_Multiple(t *testing.T) {
 				},
 			}
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
-				GotRequest: func(ctx context.Context, request HTTPRequest) context.Context {
-					logs.WriteString(fmt.Sprintf("2: GotRequest        %s %s\n", request.Method(), request.URL()))
-					return ctx
-				},
+		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			logs.WriteString(fmt.Sprintf("2: GotRequest        %s %s\n", reqDef.Method(), reqDef.URL()))
+			return ctx, &ClientTrace{
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("2: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
@@ -157,8 +148,8 @@ func TestTrace_Multiple(t *testing.T) {
 				},
 			}
 		}).
-		AndTrace(func() *ClientTrace {
-			return &ClientTrace{
+		AndTrace(func(ctx context.Context, _ HTTPRequest) (context.Context, *ClientTrace) {
+			return ctx, &ClientTrace{
 				RequestProcessed: func(result any, err error) {
 					s := spew.NewDefaultConfig()
 					s.DisablePointerAddresses = true

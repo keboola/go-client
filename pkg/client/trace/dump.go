@@ -2,6 +2,7 @@ package trace
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/keboola/go-client/pkg/client/decode"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const dumpTraceMaxLength = 2000
@@ -23,7 +25,7 @@ type dumpTrace struct {
 // DumpTracer dumps HTTP request and response to a writer.
 // Output may contain unmasked tokens, do not use it in production!
 func DumpTracer(wr io.Writer) Factory {
-	return func() *ClientTrace {
+	return func(ctx context.Context, reqDef request.HTTPRequest) (context.Context, *ClientTrace) {
 		var requestMethod, requestURI string
 		var responseStatusCode int
 		var requestDump []byte
@@ -93,7 +95,7 @@ func DumpTracer(wr io.Writer) Factory {
 			t.log()
 			t.log(">>>>>> HTTP REQUEST PROCESSED", "| ", requestMethod, requestURI, responseStatusCode, "| ERROR:", responseErr, "| HEADERS AT:", headersTime.Sub(startTime), "| DONE AT:", time.Since(startTime))
 		}
-		return &t.ClientTrace
+		return ctx, &t.ClientTrace
 	}
 }
 
