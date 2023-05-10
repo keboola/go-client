@@ -167,16 +167,16 @@ func TestTrace_Multiple(t *testing.T) {
 
 	// Expected events
 	expected := `
-2: GotRequest        GET https://example.com
 1: GotRequest        GET https://example.com
-3: HTTPRequestStart  GET https://example.com
-2: HTTPRequestStart  GET https://example.com
+2: GotRequest        GET https://example.com
 1: HTTPRequestStart  GET https://example.com
-3: HttpRequestDone   200 OK err=<nil>
-2: HttpRequestDone   200 OK err=<nil>
+2: HTTPRequestStart  GET https://example.com
+3: HTTPRequestStart  GET https://example.com
 1: HttpRequestDone   200 OK err=<nil>
-3: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
+2: HttpRequestDone   200 OK err=<nil>
+3: HttpRequestDone   200 OK err=<nil>
 1: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
+3: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `
 
 	// Test

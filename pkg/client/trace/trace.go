@@ -59,8 +59,8 @@ func (t *ClientTrace) Compose(old *ClientTrace) {
 
 		// We need to call both tf and of in some order.
 		newFunc := reflect.MakeFunc(hookType, func(args []reflect.Value) []reflect.Value {
-			tfCopy.Call(args)
-			return of.Call(args)
+			of.Call(args)
+			return tfCopy.Call(args)
 		})
 		tv.Field(i).Set(newFunc)
 	}
