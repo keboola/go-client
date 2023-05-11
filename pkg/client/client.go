@@ -53,6 +53,8 @@ func (c Client) WithBaseURL(baseURLStr string) Client {
 	if err != nil {
 		panic(fmt.Errorf(`base url "%s" is not valid: %w`, baseURLStr, err))
 	}
+	// Normalize base URL, so r.baseURL.ResolveReference(...) will work
+	baseURL.Path = strings.TrimRight(baseURL.Path, "/") + "/"
 	c.baseURL = baseURL
 	return c
 }
@@ -110,7 +112,7 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 
 	// If method or url is not set, panic occurs. So we get these values first.
 	method := reqDef.Method()
-	reqURLStr := reqDef.URL()
+	reqURL := reqDef.URL()
 
 	// Init trace
 	var trace *Trace
@@ -130,15 +132,12 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 
 	// Replace path parameters
 	for k, v := range reqDef.PathParams() {
-		reqURLStr = strings.ReplaceAll(reqURLStr, url.PathEscape("{"+k+"}"), url.PathEscape(v))
+		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
 	}
 
 	// Convert to absolute url
-	var reqURL *url.URL
-	if c.baseURL == nil {
-		reqURL, err = url.Parse(reqURLStr)
-	} else {
-		reqURL, err = c.baseURL.Parse(reqURLStr)
+	if c.baseURL != nil && !reqURL.IsAbs() {
+		reqURL = c.baseURL.ResolveReference(reqURL)
 	}
 	if err != nil {
 		return nil, nil, err
