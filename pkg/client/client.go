@@ -188,7 +188,7 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	startedAt := time.Now()
 	res, err = nativeClient.Do(req)
 
-	// Trace request processed
+	// Trace request processed (defer!)
 	if tc != nil && tc.RequestProcessed != nil {
 		defer func() {
 			tc.RequestProcessed(result, err)
@@ -200,13 +200,18 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		return nil, nil, handleSendError(startedAt, c.retry.TotalRequestTimeout, req, err)
 	}
 
-	// Process body
-	if r, e, unexpectedErr := handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef()); unexpectedErr == nil {
-		// No unexpected error, set result/error result
-		result, err = r, e
-	} else {
+	// Parse body
+	if tc != nil && tc.BodyParseStart != nil {
+		tc.BodyParseStart(res)
+	}
+	var parseError error
+	result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
+	if tc != nil && tc.BodyParseDone != nil {
+		tc.BodyParseDone(res, result, err, parseError)
+	}
+	if parseError != nil {
 		// Unexpected error
-		err = fmt.Errorf(`cannot process request %s "%s": %w`, req.Method, req.URL.String(), unexpectedErr)
+		err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
 	}
 
 	// Generic HTTP error
@@ -252,7 +257,7 @@ func requestBody(r request.HTTPRequest) (io.ReadCloser, error) {
 	return nil, nil
 }
 
-func handleResponseBody(r *http.Response, resultDef any, errDef error) (result any, err error, unexpectedErr error) {
+func handleResponseBody(r *http.Response, resultDef any, errDef error) (result any, err error, parseError error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNoContent {

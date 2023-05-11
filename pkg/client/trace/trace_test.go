@@ -59,12 +59,12 @@ func TestTrace(t *testing.T) {
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
 		AndTrace(func(ctx context.Context, reqDef HTTPRequest) (context.Context, *ClientTrace) {
+			s := spew.NewDefaultConfig()
+			s.DisablePointerAddresses = true
+			s.DisableCapacities = true
 			logs.WriteString(fmt.Sprintf("GotRequest        %s %s\n", reqDef.Method(), reqDef.URL()))
 			return ctx, &ClientTrace{
 				RequestProcessed: func(result any, err error) {
-					s := spew.NewDefaultConfig()
-					s.DisablePointerAddresses = true
-					s.DisableCapacities = true
 					logs.WriteString(fmt.Sprintf("RequestProcessed  result=%s err=%v\n", strings.TrimSpace(s.Sdump(result)), err))
 				},
 				HTTPRequestStart: func(request *http.Request) {
@@ -75,6 +75,12 @@ func TestTrace(t *testing.T) {
 				},
 				RetryDelay: func(attempt int, delay time.Duration) {
 					logs.WriteString(fmt.Sprintf("HttpRequestRetry  attempt=%d delay=%s\n", attempt, delay))
+				},
+				BodyParseStart: func(response *http.Response) {
+					logs.WriteString("BodyParseStart\n")
+				},
+				BodyParseDone: func(response *http.Response, result any, err error, parseError error) {
+					logs.WriteString(fmt.Sprintf("BodyParseDone     result=%v err=%v parseError=%v\n", strings.TrimSpace(s.Sdump(result)), err, parseError))
 				},
 			}
 		})
@@ -94,6 +100,8 @@ HttpRequestDone   429 Too Many Requests err=<nil>
 HttpRequestRetry  attempt=2 delay=2µs
 HTTPRequestStart  GET https://example.com/index
 HttpRequestDone   200 OK err=<nil>
+BodyParseStart
+BodyParseDone     result=(*string)((len=2) "OK") err=<nil> parseError=<nil>
 RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `
 
