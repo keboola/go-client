@@ -119,14 +119,16 @@ func (r httpRequest) URL() string {
 	if r.url == nil {
 		panic(fmt.Errorf("request url is not set"))
 	}
-	var outURL *url.URL
-	if r.baseURL == nil {
-		outURL = r.url
-	} else if v, err := url.Parse(r.baseURL.String() + "/" + strings.TrimLeft(r.url.String(), "/")); err == nil {
-		outURL = v
-	} else {
-		panic(fmt.Errorf(`cannot parse url: %w`, err))
+	
+	clone := *r.url
+	outURL := &clone
+	if r.baseURL != nil && !outURL.IsAbs() {
+		outURL.Path = strings.TrimLeft(outURL.Path, "/")
+		outURL = r.baseURL.ResolveReference(outURL)
+		fmt.Println(r.baseURL.String())
+		fmt.Println(outURL.String())
 	}
+
 	return outURL.String()
 }
 
@@ -186,6 +188,8 @@ func (r httpRequest) WithURL(urlStr string) HTTPRequest {
 
 func (r httpRequest) WithBaseURL(baseURL string) HTTPRequest {
 	if v, err := url.Parse(strings.TrimRight(baseURL, "/")); err == nil {
+		// Normalize base URL, so r.baseURL.ResolveReference(...) will work
+		v.Path = strings.TrimRight(v.Path, "/") + "/"
 		r.baseURL = v
 	} else {
 		panic(fmt.Errorf(`base url "%s" is not valid :%w`, baseURL, err))
