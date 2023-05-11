@@ -392,8 +392,8 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		// Trace retry
 		attempt++
-		if rt.trace != nil && rt.trace.HTTPRequestRetry != nil {
-			rt.trace.HTTPRequestRetry(attempt, delay)
+		if rt.trace != nil && rt.trace.RetryDelay != nil {
+			rt.trace.RetryDelay(attempt, delay)
 		}
 
 		// Set retry attempt to the request context

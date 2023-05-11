@@ -60,7 +60,7 @@ func LogTracer(wr io.Writer) Factory {
 			}
 			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, req.Method, req.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
 		}
-		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
+		t.RetryDelay = func(attempt int, delay time.Duration) {
 			t.log(requestID, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, req.Method, req.URL.String(), attempt, delay))
 		}
 		t.RequestProcessed = func(result any, err error) {

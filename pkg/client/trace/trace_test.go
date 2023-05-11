@@ -73,7 +73,7 @@ func TestTrace(t *testing.T) {
 				HTTPRequestDone: func(response *http.Response, err error) {
 					logs.WriteString(fmt.Sprintf("HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
 				},
-				HTTPRequestRetry: func(attempt int, delay time.Duration) {
+				RetryDelay: func(attempt int, delay time.Duration) {
 					logs.WriteString(fmt.Sprintf("HttpRequestRetry  attempt=%d delay=%s\n", attempt, delay))
 				},
 			}

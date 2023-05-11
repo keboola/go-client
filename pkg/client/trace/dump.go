@@ -87,7 +87,7 @@ func DumpTracer(wr io.Writer) Factory {
 			}
 			t.log("<<<<<< HTTP DUMP END")
 		}
-		t.HTTPRequestRetry = func(attempt int, delay time.Duration) {
+		t.RetryDelay = func(attempt int, delay time.Duration) {
 			t.log()
 			t.log(">>>>>> HTTP RETRY", "| ATTEMPT:", attempt, "| DELAY:", delay, "| ", requestMethod, requestURI, responseStatusCode, "| ERROR:", responseErr)
 		}

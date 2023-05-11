@@ -391,7 +391,7 @@ func TestStopRetryOnRequestTimeout(t *testing.T) {
 		}).
 		AndTrace(func(ctx context.Context, _ HTTPRequest) (context.Context, *ClientTrace) {
 			return ctx, &ClientTrace{
-				HTTPRequestRetry: func(_ int, delay time.Duration) {
+				RetryDelay: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},
 			}

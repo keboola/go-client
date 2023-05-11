@@ -21,8 +21,8 @@ type ClientTrace struct {
 	HTTPRequestStart func(request *http.Request)
 	// HTTPRequestStart is called when the request completes. It includes redirects and retries.
 	HTTPRequestDone func(response *http.Response, err error)
-	// HttpRequestRetry is called before retry delay.
-	HTTPRequestRetry func(attempt int, delay time.Duration)
+	// RetryDelay is called before retry delay.
+	RetryDelay func(attempt int, delay time.Duration)
 	// RequestProcessed is called when Client.Send method is done.
 	RequestProcessed func(result any, err error)
 }
