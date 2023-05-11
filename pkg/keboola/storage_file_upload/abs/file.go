@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/relvacode/iso8601"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/azureblob"
@@ -49,8 +50,8 @@ func (p *DownloadParams) DestinationURL() (string, error) {
 	return fmt.Sprintf("%s/%s/%s", blobEndpoint, p.Path.Container, p.Path.BlobName), nil
 }
 
-func (cs *ConnectionString) ServiceURL() string {
-	return fmt.Sprintf("%s?%s", cs.BlobEndpoint, cs.SharedAccessSignature)
+func (cs *ConnectionString) ForContainer(container string) string {
+	return runtime.JoinPaths(cs.BlobEndpoint, container) + "?" + cs.SharedAccessSignature
 }
 
 func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, transport http.RoundTripper) (*blob.Writer, error) {
@@ -59,16 +60,15 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, slice string, tr
 		return nil, err
 	}
 
-	clientOptions := &azblob.ClientOptions{}
+	clientOptions := &container.ClientOptions{}
 	if transport != nil {
 		clientOptions.Transport = &http.Client{Transport: transport}
 	}
-	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
+	client, err := container.NewClientWithNoCredential(cs.ForContainer(params.Container), clientOptions)
 	if err != nil {
 		return nil, err
 	}
-
-	b, err := azureblob.OpenBucket(ctx, client, params.Container, nil)
+	b, err := azureblob.OpenBucket(ctx, client, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,16 +112,16 @@ func openBucketForDownload(ctx context.Context, params *DownloadParams, transpor
 		return nil, err
 	}
 
-	clientOptions := &azblob.ClientOptions{}
+	clientOptions := &container.ClientOptions{}
 	if transport != nil {
 		clientOptions.Transport = &http.Client{Transport: transport}
 	}
-	client, err := azblob.NewServiceClientWithNoCredential(cs.ServiceURL(), clientOptions)
+	client, err := container.NewClientWithNoCredential(cs.ForContainer(params.Path.Container), clientOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	return azureblob.OpenBucket(ctx, client, params.Path.Container, nil)
+	return azureblob.OpenBucket(ctx, client, nil)
 }
 
 func NewSliceURL(params *UploadParams, slice string) string {
