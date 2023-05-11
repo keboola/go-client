@@ -7,7 +7,6 @@ package client
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -19,9 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	"github.com/cenkalti/backoff/v4"
 
+	"github.com/keboola/go-client/pkg/client/decode"
+	"github.com/keboola/go-client/pkg/client/trace"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -36,7 +36,7 @@ type Client struct {
 	baseURL        *url.URL
 	header         http.Header
 	retry          RetryConfig
-	traceFactories []TraceFactory
+	traceFactories []trace.Factory
 }
 
 // New creates new HTTP Client.
@@ -98,7 +98,7 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 
 // AndTrace returns a clone of the Client with Trace hooks added.
 // The last registered hook is executed first.
-func (c Client) AndTrace(fn TraceFactory) Client {
+func (c Client) AndTrace(fn trace.Factory) Client {
 	c.traceFactories = append(c.traceFactories, fn)
 	return c
 }
@@ -115,11 +115,11 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	reqURL := reqDef.URL()
 
 	// Init trace
-	var trace *Trace
+	var trace *trace.ClientTrace
 	for _, fn := range c.traceFactories {
 		oldTrace := trace
 		trace = fn()
-		trace.compose(oldTrace)
+		trace.Compose(oldTrace)
 	}
 	if trace != nil {
 		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
@@ -360,7 +360,7 @@ func handleSendError(startedAt time.Time, clientTimeout time.Duration, req *http
 // roundTripper wraps a http.RoundTripper and adds trace and retry functionality.
 type roundTripper struct {
 	ctx     context.Context
-	trace   *Trace
+	trace   *trace.ClientTrace
 	retry   RetryConfig
 	wrapped http.RoundTripper
 }
