@@ -4,12 +4,11 @@ package trace
 
 import (
 	"context"
+	"github.com/keboola/go-client/pkg/request"
 	"net/http"
 	"net/http/httptrace"
 	"reflect"
 	"time"
-
-	"github.com/keboola/go-client/pkg/request"
 )
 
 // Factory creates ClientTrace hooks for a request.
@@ -18,14 +17,14 @@ type Factory func(ctx context.Context, request request.HTTPRequest) (context.Con
 // ClientTrace is a set of hooks to run at various stages of an outgoing HTTPRequest.
 type ClientTrace struct {
 	httptrace.ClientTrace // native, low level trace
-	// RequestProcessed is called when Client.Send method is done.
-	RequestProcessed func(result any, err error)
 	// HTTPRequestStart is called when the request begins. It includes redirects and retries.
 	HTTPRequestStart func(request *http.Request)
 	// HTTPRequestStart is called when the request completes. It includes redirects and retries.
 	HTTPRequestDone func(response *http.Response, err error)
 	// HttpRequestRetry is called before retry delay.
 	HTTPRequestRetry func(attempt int, delay time.Duration)
+	// RequestProcessed is called when Client.Send method is done.
+	RequestProcessed func(result any, err error)
 }
 
 // Compose modifies t such that it respects the previously-registered hooks in old,
