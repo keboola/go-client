@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/client/trace"
 )
 
 func TestQueueApiCalls(t *testing.T) {
@@ -120,11 +121,11 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 	}
 
 	// Trace client activity
-	var trace bytes.Buffer
+	var traceOut bytes.Buffer
 
 	// Create mocked timeout
 	c, transport := client.NewMockedClient()
-	c = c.WithBaseURL("https://connection.test").AndTrace(client.LogTracer(&trace))
+	c = c.WithBaseURL("https://connection.test").AndTrace(trace.LogTracer(&traceOut))
 	transport.RegisterResponder("GET", `https://connection.test/v2/storage/?exclude=components`, newJSONResponder(`{
 		"services": [
 			{
@@ -164,7 +165,7 @@ HTTP_REQUEST[0003] BODY  GET "https://queue.connection.test/jobs/1234" | %s
 HTTP_REQUEST[0004] START GET "https://queue.connection.test/jobs/1234"
 HTTP_REQUEST[0004] DONE  GET "https://queue.connection.test/jobs/1234" | 200 | %s
 HTTP_REQUEST[0004] BODY  GET "https://queue.connection.test/jobs/1234" | %s
-`), trace.String())
+`), traceOut.String())
 }
 
 func TestDeprecatedQueueApiCalls(t *testing.T) {

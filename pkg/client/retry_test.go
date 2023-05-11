@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/keboola/go-client/pkg/client"
+	. "github.com/keboola/go-client/pkg/client/trace"
 	. "github.com/keboola/go-client/pkg/request"
 )
 
@@ -35,8 +36,8 @@ func TestRetryCount(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		AndTrace(func() *Trace {
-			return &Trace{
+		AndTrace(func() *ClientTrace {
+			return &ClientTrace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},
@@ -124,8 +125,8 @@ func TestDoNotRetry(t *testing.T) {
 			WaitTimeStart: 1 * time.Microsecond,
 			WaitTimeMax:   20 * time.Microsecond,
 		}).
-		AndTrace(func() *Trace {
-			return &Trace{
+		AndTrace(func() *ClientTrace {
+			return &ClientTrace{
 				HTTPRequestRetry: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},
