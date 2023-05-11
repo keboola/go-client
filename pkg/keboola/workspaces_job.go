@@ -3,7 +3,7 @@ package keboola
 import (
 	"context"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type params struct {
@@ -60,25 +60,25 @@ func (p params) toMap() map[string]any {
 	return m
 }
 
-func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string, opts ...CreateWorkspaceOption) client.APIRequest[client.NoResult] {
+func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string, opts ...CreateWorkspaceOption) request.APIRequest[request.NoResult] {
 	params := newParams(workspaceType, opts...)
-	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configID, map[string]any{"parameters": params.toMap()}).
+	req := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configID, map[string]any{"parameters": params.toMap()}).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
 			return a.WaitForQueueJob(ctx, result.ID)
 		})
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
-func (a *API) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) client.APIRequest[client.NoResult] {
+func (a *API) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) request.APIRequest[request.NoResult] {
 	configData := map[string]any{
 		"parameters": map[string]any{
 			"task": "delete",
 			"id":   workspaceID.String(),
 		},
 	}
-	request := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, "", configData).
+	req := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, "", configData).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
 			return a.WaitForQueueJob(ctx, result.ID)
 		})
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }

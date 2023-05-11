@@ -1,7 +1,7 @@
 package keboola
 
 import (
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // Index of Storage API.
@@ -52,24 +52,24 @@ type Service struct {
 }
 
 // IndexRequest returns index of Storage API without components definitions.
-func (a *API) IndexRequest() client.APIRequest[*Index] {
+func (a *API) IndexRequest() request.APIRequest[*Index] {
 	index := &Index{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(index).
 		WithGet("").
 		AndQueryParam("exclude", "components")
-	return client.NewAPIRequest(index, request)
+	return request.NewAPIRequest(index, req)
 }
 
 // IndexComponentsRequest returns index of Storage API with components definitions.
-func (a *API) IndexComponentsRequest() client.APIRequest[*IndexComponents] {
+func (a *API) IndexComponentsRequest() request.APIRequest[*IndexComponents] {
 	result := &IndexComponents{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithGet("")
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // ToMap converts Services slice to ServicesMap.

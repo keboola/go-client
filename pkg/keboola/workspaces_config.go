@@ -3,7 +3,7 @@ package keboola
 import (
 	"fmt"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 func GetWorkspaceID(c *Config) (WorkspaceID, error) {
@@ -23,7 +23,7 @@ func GetWorkspaceID(c *Config) (WorkspaceID, error) {
 	return WorkspaceID(out), nil
 }
 
-func (a *API) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) client.APIRequest[*Config] {
+func (a *API) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) request.APIRequest[*Config] {
 	key := ConfigKey{
 		BranchID:    branchID,
 		ComponentID: WorkspacesComponent,
@@ -32,11 +32,11 @@ func (a *API) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) cl
 	return a.GetConfigRequest(key)
 }
 
-func (a *API) ListWorkspaceConfigRequest(branchID BranchID) client.APIRequest[*[]*Config] {
+func (a *API) ListWorkspaceConfigRequest(branchID BranchID) request.APIRequest[*[]*Config] {
 	return a.ListConfigRequest(branchID, WorkspacesComponent)
 }
 
-func (a *API) CreateWorkspaceConfigRequest(branchID BranchID, name string) client.APIRequest[*ConfigWithRows] {
+func (a *API) CreateWorkspaceConfigRequest(branchID BranchID, name string) request.APIRequest[*ConfigWithRows] {
 	config := &ConfigWithRows{
 		Config: &Config{
 			ConfigKey: ConfigKey{
@@ -49,11 +49,11 @@ func (a *API) CreateWorkspaceConfigRequest(branchID BranchID, name string) clien
 	return a.CreateConfigRequest(config)
 }
 
-func (a *API) DeleteWorkspaceConfigRequest(branchID BranchID, configID ConfigID) client.APIRequest[client.NoResult] {
-	request := a.DeleteConfigRequest(ConfigKey{
+func (a *API) DeleteWorkspaceConfigRequest(branchID BranchID, configID ConfigID) request.APIRequest[request.NoResult] {
+	req := a.DeleteConfigRequest(ConfigKey{
 		BranchID:    branchID,
 		ComponentID: WorkspacesComponent,
 		ID:          configID,
 	})
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/relvacode/iso8601"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // StorageJobID is an ID of a storage job.
@@ -60,17 +60,17 @@ type StorageJobError struct {
 }
 
 // GetStorageJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
-func (a *API) GetStorageJobRequest(key StorageJobKey) client.APIRequest[*StorageJob] {
+func (a *API) GetStorageJobRequest(key StorageJobKey) request.APIRequest[*StorageJob] {
 	return a.getStorageJobRequest(&StorageJob{StorageJobKey: key})
 }
 
-func (a *API) getStorageJobRequest(job *StorageJob) client.APIRequest[*StorageJob] {
-	request := a.
+func (a *API) getStorageJobRequest(job *StorageJob) request.APIRequest[*StorageJob] {
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(job).
 		WithGet("jobs/{jobId}").
 		AndPathParam("jobId", job.ID.String())
-	return client.NewAPIRequest(job, request)
+	return request.NewAPIRequest(job, req)
 }
 
 // WaitForStorageJob pulls job status until it is completed.

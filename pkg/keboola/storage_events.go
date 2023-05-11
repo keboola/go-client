@@ -4,6 +4,7 @@ import (
 	jsonLib "encoding/json"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // EventID represents an ID of an event in Storage API.
@@ -25,25 +26,25 @@ type Event struct {
 }
 
 // CreateEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
-func (a *API) CreateEventRequest(event *Event) client.APIRequest[*Event] {
+func (a *API) CreateEventRequest(event *Event) request.APIRequest[*Event] {
 	// Params and results must be a JSON value encoded as string
-	body := client.StructToMap(event, nil)
+	body := request.StructToMap(event, nil)
 	pValue, err := jsonLib.Marshal(event.Params)
 	if err != nil {
-		return client.NewAPIRequest(event, client.NewReqDefinitionError(err))
+		return request.NewAPIRequest(event, request.NewReqDefinitionError(err))
 	}
 	rValue, err := jsonLib.Marshal(event.Results)
 	if err != nil {
-		return client.NewAPIRequest(event, client.NewReqDefinitionError(err))
+		return request.NewAPIRequest(event, request.NewReqDefinitionError(err))
 	}
 	body["params"] = string(pValue)
 	body["results"] = string(rValue)
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(event).
 		WithPost("events").
 		WithJSONBody(body)
-	return client.NewAPIRequest(event, request)
+	return request.NewAPIRequest(event, req)
 }
 
 // JSONString is Json encoded as string, see CreateEventRequest.

@@ -1,16 +1,17 @@
-// Contains request definitions for the Scheduler API.
+package keboola
+
+// The file contains request definitions for the Scheduler API.
 // The definitions are not complete and can be extended as needed.
 // Requests can be sent by any HTTP client that implements the client.Sender interface.
-package keboola
 
 import (
 	"net/http"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // ActivateScheduleRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/activate
-func (a *API) ActivateScheduleRequest(configID ConfigID, configurationVersionID string) client.APIRequest[*Schedule] {
+func (a *API) ActivateScheduleRequest(configID ConfigID, configurationVersionID string) request.APIRequest[*Schedule] {
 	body := map[string]string{
 		"configurationId": configID.String(),
 	}
@@ -18,38 +19,38 @@ func (a *API) ActivateScheduleRequest(configID ConfigID, configurationVersionID 
 		body["configurationVersionId"] = configurationVersionID
 	}
 	result := &Schedule{}
-	request := a.newRequest(SchedulerAPI).
+	req := a.newRequest(SchedulerAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
 		WithURL("schedules").
 		WithJSONBody(body)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // DeleteScheduleRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/deleteSchedule
-func (a *API) DeleteScheduleRequest(key ScheduleKey) client.APIRequest[client.NoResult] {
-	request := a.newRequest(SchedulerAPI).
+func (a *API) DeleteScheduleRequest(key ScheduleKey) request.APIRequest[request.NoResult] {
+	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
 		WithURL("schedules/{scheduleId}").
 		AndPathParam("scheduleId", key.ID.String())
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
 // DeleteSchedulesForConfigurationRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/deleteSchedulesForConfiguration
-func (a *API) DeleteSchedulesForConfigurationRequest(configID ConfigID) client.APIRequest[client.NoResult] {
-	request := a.newRequest(SchedulerAPI).
+func (a *API) DeleteSchedulesForConfigurationRequest(configID ConfigID) request.APIRequest[request.NoResult] {
+	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
 		WithURL("configurations/{configurationId}").
 		AndPathParam("configurationId", configID.String())
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
 // ListSchedulesRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/get_schedules
-func (a *API) ListSchedulesRequest() client.APIRequest[*[]*Schedule] {
+func (a *API) ListSchedulesRequest() request.APIRequest[*[]*Schedule] {
 	result := make([]*Schedule, 0)
-	request := a.newRequest(SchedulerAPI).
+	req := a.newRequest(SchedulerAPI).
 		WithResult(&result).
 		WithMethod(http.MethodGet).
 		WithURL("schedules")
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }

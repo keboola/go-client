@@ -1,4 +1,3 @@
-// nolint: structtag
 package keboola
 
 import (
@@ -8,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type TablePreview struct {
@@ -300,7 +299,7 @@ func (c *previewDataConfig) toQueryParams() map[string]string {
 	return out
 }
 
-func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client.APIRequest[*TablePreview] {
+func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) request.APIRequest[*TablePreview] {
 	config := previewDataConfig{}
 	for _, opt := range opts {
 		opt.applyPreviewOption(&config)
@@ -308,13 +307,13 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client
 
 	data := &TablePreview{}
 	responseBytes := []byte{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(&responseBytes).
 		WithGet("tables/{tableId}/data-preview").
 		AndPathParam("tableId", tableID.String()).
 		WithQueryParams(config.toQueryParams()).
-		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
 			records, err := csv.NewReader(bytes.NewReader(responseBytes)).ReadAll()
 			if err != nil {
 				return fmt.Errorf("failed to read body csv: %w", err)
@@ -326,5 +325,5 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) client
 			return nil
 		})
 
-	return client.NewAPIRequest(data, request)
+	return request.NewAPIRequest(data, req)
 }

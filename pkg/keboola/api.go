@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type ServiceType string
@@ -27,9 +28,9 @@ const (
 )
 
 // newRequest Creates request, sets base URL and default error type.
-func (a *API) newRequest(s ServiceType) client.HTTPRequest {
+func (a *API) newRequest(s ServiceType) request.HTTPRequest {
 	// Set request base URL according to the ServiceType
-	r := client.NewHTTPRequest(a.sender).WithBaseURL(a.baseURLForService(s))
+	r := request.NewHTTPRequest(a.sender).WithBaseURL(a.baseURLForService(s))
 
 	// Set error schema
 	switch s {
@@ -60,7 +61,7 @@ func (a *API) baseURLForService(s ServiceType) string {
 }
 
 type API struct {
-	sender client.Sender
+	sender request.Sender
 	index  *Index
 }
 
@@ -131,7 +132,7 @@ func newClient(host string, opts []APIOption) client.Client {
 	return c
 }
 
-func (a *API) Client() client.Sender {
+func (a *API) Client() request.Sender {
 	return a.sender
 }
 
@@ -140,39 +141,39 @@ func (a *API) Index() *Index {
 }
 
 // CreateRequest creates request to create object according its type.
-func (a *API) CreateRequest(object Object) client.APIRequest[Object] {
+func (a *API) CreateRequest(object Object) request.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
-		return client.NewAPIRequest(object, a.CreateBranchRequest(v))
+		return request.NewAPIRequest(object, a.CreateBranchRequest(v))
 	case *Config:
-		return client.NewAPIRequest(object, a.CreateConfigRequest(&ConfigWithRows{Config: v}))
+		return request.NewAPIRequest(object, a.CreateConfigRequest(&ConfigWithRows{Config: v}))
 	case *ConfigWithRows:
-		return client.NewAPIRequest(object, a.CreateConfigRequest(v))
+		return request.NewAPIRequest(object, a.CreateConfigRequest(v))
 	case *ConfigRow:
-		return client.NewAPIRequest(object, a.CreateConfigRowRequest(v))
+		return request.NewAPIRequest(object, a.CreateConfigRowRequest(v))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
 }
 
 // UpdateRequest creates request to update object according its type.
-func (a *API) UpdateRequest(object Object, changedFields []string) client.APIRequest[Object] {
+func (a *API) UpdateRequest(object Object, changedFields []string) request.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
-		return client.NewAPIRequest(object, a.UpdateBranchRequest(v, changedFields))
+		return request.NewAPIRequest(object, a.UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
-		return client.NewAPIRequest(object, a.UpdateConfigRequest(v.Config, changedFields))
+		return request.NewAPIRequest(object, a.UpdateConfigRequest(v.Config, changedFields))
 	case *Config:
-		return client.NewAPIRequest(object, a.UpdateConfigRequest(v, changedFields))
+		return request.NewAPIRequest(object, a.UpdateConfigRequest(v, changedFields))
 	case *ConfigRow:
-		return client.NewAPIRequest(object, a.UpdateConfigRowRequest(v, changedFields))
+		return request.NewAPIRequest(object, a.UpdateConfigRowRequest(v, changedFields))
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, object))
 	}
 }
 
 // DeleteRequest creates request to delete object according its type.
-func (a *API) DeleteRequest(key any) client.APIRequest[client.NoResult] {
+func (a *API) DeleteRequest(key any) request.APIRequest[request.NoResult] {
 	switch k := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchRequest(k)
@@ -186,7 +187,7 @@ func (a *API) DeleteRequest(key any) client.APIRequest[client.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func (a *API) AppendMetadataRequest(key any, metadata map[string]string) client.APIRequest[client.NoResult] {
+func (a *API) AppendMetadataRequest(key any, metadata map[string]string) request.APIRequest[request.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.AppendBranchMetadataRequest(v, metadata)
@@ -198,7 +199,7 @@ func (a *API) AppendMetadataRequest(key any, metadata map[string]string) client.
 }
 
 // DeleteMetadataRequest creates request to delete object metadata according its type.
-func (a *API) DeleteMetadataRequest(key any, metaID string) client.APIRequest[client.NoResult] {
+func (a *API) DeleteMetadataRequest(key any, metaID string) request.APIRequest[request.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchMetadataRequest(v, metaID)

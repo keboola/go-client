@@ -8,7 +8,7 @@ import (
 
 	"github.com/relvacode/iso8601"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const (
@@ -126,66 +126,66 @@ func WithExpiresIn(expiresIn time.Duration) CreateTokenOption {
 }
 
 // VerifyTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
-func (a *API) VerifyTokenRequest(token string) client.APIRequest[*Token] {
+func (a *API) VerifyTokenRequest(token string) request.APIRequest[*Token] {
 	result := &Token{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithGet("tokens/verify").
 		AndHeader("X-StorageApi-Token", token).
-		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
+		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
 			result.Token = token
 			return nil
 		})
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // CreateTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/create-token
-func (a *API) CreateTokenRequest(opts ...CreateTokenOption) client.APIRequest[*Token] {
+func (a *API) CreateTokenRequest(opts ...CreateTokenOption) request.APIRequest[*Token] {
 	options := &createTokenOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
 	result := &Token{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tokens").
-		WithFormBody(client.ToFormBody(client.StructToMap(options, nil)))
-	return client.NewAPIRequest(result, request)
+		WithFormBody(request.ToFormBody(request.StructToMap(options, nil)))
+	return request.NewAPIRequest(result, req)
 }
 
 // ListTokensRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/list-all-tokens
-func (a *API) ListTokensRequest() client.APIRequest[*[]*Token] {
+func (a *API) ListTokensRequest() request.APIRequest[*[]*Token] {
 	var result []*Token
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("tokens")
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }
 
 // DeleteTokenRequest (no documentation).
-func (a *API) DeleteTokenRequest(tokenID string) client.APIRequest[*Token] {
+func (a *API) DeleteTokenRequest(tokenID string) request.APIRequest[*Token] {
 	result := &Token{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithDelete("tokens/{tokenId}").
 		AndPathParam("tokenId", tokenID)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // RefreshTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/share-token/refresh-token
-func (a *API) RefreshTokenRequest(tokenID string) client.APIRequest[*Token] {
+func (a *API) RefreshTokenRequest(tokenID string) request.APIRequest[*Token] {
 	result := &Token{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tokens/{tokenId}/refresh").
 		AndPathParam("tokenId", tokenID)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // ProjectID returns ID of project to which the token belongs.

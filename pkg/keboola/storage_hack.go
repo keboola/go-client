@@ -7,14 +7,15 @@ import (
 	"strings"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // ignoreResourceAlreadyExistsError is a workaround for problems with the Storage API.
 // Sometimes it happens that the HTTP request ends with a 500 error, but the operation was performed.
 // In that case, a retry is performed, which ends with an "already exists" error.
 // The error should be ignored, because the CREATE operation was performed.
-func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(context.Context, client.HTTPResponse, error) error {
-	return func(ctx context.Context, response client.HTTPResponse, err error) error {
+func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(context.Context, request.HTTPResponse, error) error {
+	return func(ctx context.Context, response request.HTTPResponse, err error) error {
 		if isResourceAlreadyExistsError(response.RawResponse(), err) {
 			// Fill result with the GET request
 			return getFn(ctx)
@@ -27,8 +28,8 @@ func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(co
 // Sometimes it happens that the HTTP request ends with a 500 error, but the operation was performed.
 // In that case, a retry is performed, which ends with a "not found" error.
 // The error should be ignored, because the DELETE operation was performed.
-func ignoreResourceNotFoundError() func(context.Context, client.HTTPResponse, error) error {
-	return func(_ context.Context, response client.HTTPResponse, err error) error {
+func ignoreResourceNotFoundError() func(context.Context, request.HTTPResponse, error) error {
+	return func(_ context.Context, response request.HTTPResponse, err error) error {
 		if isResourceNotFoundError(response.RawResponse(), err) {
 			return nil
 		}

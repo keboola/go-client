@@ -30,6 +30,8 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/cenkalti/backoff/v4"
+
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const RetryAttemptContextKey = ContextKey("retryAttempt")
@@ -109,7 +111,7 @@ func (c Client) AndTrace(fn TraceFactory) Client {
 }
 
 // Send method sends HTTP request and returns HTTP response, it implements the Sender interface.
-func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Response, result any, err error) {
+func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http.Response, result any, err error) {
 	// Method cannot be called on an empty value
 	if c.transport == nil {
 		panic(fmt.Errorf("client value is not initialized"))
@@ -230,7 +232,7 @@ func (c Client) Send(ctx context.Context, reqDef HTTPRequest) (res *http.Respons
 	return res, result, err
 }
 
-func requestBody(r HTTPRequest) (io.ReadCloser, error) {
+func requestBody(r request.HTTPRequest) (io.ReadCloser, error) {
 	contentType := r.RequestHeader().Get("Content-Type")
 	body := r.RequestBody()
 	if v, ok := body.(string); ok {

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const dumpTraceMaxLength = 2000
@@ -21,7 +23,7 @@ const dumpTraceMaxLength = 2000
 type Trace struct {
 	httptrace.ClientTrace // native, low level trace
 	// GotRequest is called when Client.Send method is called.
-	GotRequest func(ctx context.Context, request HTTPRequest) context.Context
+	GotRequest func(ctx context.Context, request request.HTTPRequest) context.Context
 	// RequestProcessed is called when Client.Send method is done.
 	RequestProcessed func(result any, err error)
 	// HTTPRequestStart is called when the request begins. It includes redirects and retries.
