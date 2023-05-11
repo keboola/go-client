@@ -265,7 +265,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 	}
 
 	// Process content encoding
-	decodedBody, err := decodeBody(r.Body, r.Header.Get("Content-Encoding"))
+	decodedBody, err := decode.Decode(r.Body, r.Header.Get("Content-Encoding"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot decode response body: %w", err)
 	}
@@ -429,22 +429,6 @@ func ContextRetryAttempt(ctx context.Context) (int, bool) {
 		return 0, false
 	}
 	return v.(int), true
-}
-
-func decodeBody(body io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
-	contentEncoding = strings.ToLower(contentEncoding)
-	switch contentEncoding {
-	case "gzip":
-		if v, err := gzip.NewReader(body); err == nil {
-			return v, nil
-		} else {
-			return nil, fmt.Errorf("cannot decode gzip: %w", err)
-		}
-	case "br":
-		return io.NopCloser(brotli.NewReader(body)), nil
-	default:
-		return body, nil
-	}
 }
 
 type errorWithRequest interface {
