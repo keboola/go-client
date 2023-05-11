@@ -1,17 +1,8 @@
-// Package client provides support for defining an HTTP client for an API.
+// Package client provides support for sending requests defined by the request package.
 //
-// Use HTTPRequest interface to define immutable HTTP requests, see NewHTTPRequest function.
-// Requests are sent using the Sender interface.
-//
-// Client is a default implementation of the Sender interface.
+// Client is a default implementation of the request.Sender interface.
 // Client is based on the standard net/http package and contains retry and tracing/telemetry support.
-// It is easy to implement your custom HTTP client, by implementing Sender interface.
-//
-// APIRequest[R Result] is a generic type that contains
-// target data type to which the API response will be mapped.
-// Use NewAPIRequest function to create a APIRequest from a HTTPRequest.
-//
-// RunGroup and WaitGroup are helpers for concurrent requests.
+// It is easy to implement your custom HTTP client, by implementing request.Sender interface.
 package client
 
 import (
