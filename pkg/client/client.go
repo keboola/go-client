@@ -121,9 +121,6 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		ctx, tc = fn(ctx, reqDef)
 		tc.Compose(oldTrace)
 	}
-	if tc != nil {
-		ctx = httptrace.WithClientTrace(ctx, &tc.ClientTrace)
-	}
 
 	// Replace path parameters
 	for k, v := range reqDef.PathParams() {
@@ -181,7 +178,7 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	// Setup native client
 	nativeClient := http.Client{
 		Timeout:   c.retry.TotalRequestTimeout,
-		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
+		Transport: roundTripper{retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
 	}
 
 	// Send request
@@ -359,19 +356,24 @@ func handleSendError(startedAt time.Time, clientTimeout time.Duration, req *http
 
 // roundTripper wraps a http.RoundTripper and adds trace and retry functionality.
 type roundTripper struct {
-	ctx     context.Context
 	trace   *trace.ClientTrace
 	retry   RetryConfig
 	wrapped http.RoundTripper
 }
 
 func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx := req.Context()
 	state := rt.retry.NewBackoff()
 	attempt := 0
 	for {
 		// Trace request start
 		if rt.trace != nil && rt.trace.HTTPRequestStart != nil {
 			rt.trace.HTTPRequestStart(req)
+		}
+
+		// Register low-level tracing
+		if rt.trace != nil {
+			req = req.WithContext(httptrace.WithClientTrace(ctx, &rt.trace.ClientTrace))
 		}
 
 		// Send
