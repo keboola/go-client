@@ -52,7 +52,7 @@ linters:
   enable:
     - asciicheck
     #- bodyclose # Not compatible with go 1.18, temporary disable
-    - depguard
+    #- depguard # Not used
     - dogsled
     - dupl
     - durationcheck
