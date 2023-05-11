@@ -376,6 +376,9 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			req = req.WithContext(httptrace.WithClientTrace(ctx, &rt.trace.ClientTrace))
 		}
 
+		// Set retry attempt to the request context
+		req = req.WithContext(context.WithValue(req.Context(), RetryAttemptContextKey, attempt))
+
 		// Send
 		res, err := rt.wrapped.RoundTrip(req)
 
@@ -402,9 +405,6 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		if rt.trace != nil && rt.trace.RetryDelay != nil {
 			rt.trace.RetryDelay(attempt, delay)
 		}
-
-		// Set retry attempt to the request context
-		req = req.WithContext(context.WithValue(req.Context(), RetryAttemptContextKey, attempt))
 
 		// Rewind body before retry
 		if req.GetBody != nil {
