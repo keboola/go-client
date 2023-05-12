@@ -5,7 +5,7 @@ import (
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 // RowID is id of configuration row.
@@ -40,12 +40,12 @@ type ConfigRow struct {
 }
 
 // GetConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/row-detail
-func (a *API) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow] {
+func (a *API) GetConfigRowRequest(key ConfigRowKey) request.APIRequest[*ConfigRow] {
 	row := &ConfigRow{}
 	row.BranchID = key.BranchID
 	row.ComponentID = key.ComponentID
 	row.ConfigID = key.ConfigID
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(row).
 		WithGet("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
@@ -53,20 +53,20 @@ func (a *API) GetConfigRowRequest(key ConfigRowKey) client.APIRequest[*ConfigRow
 		AndPathParam("componentId", key.ComponentID.String()).
 		AndPathParam("configId", key.ConfigID.String()).
 		AndPathParam("rowId", key.ID.String())
-	return client.NewAPIRequest(row, request)
+	return request.NewAPIRequest(row, req)
 }
 
 // CreateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/create-development-branch-configuration-row
-func (a *API) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRow] {
+func (a *API) CreateConfigRowRequest(row *ConfigRow) request.APIRequest[*ConfigRow] {
 	// Create request
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(row).
 		WithPost("branch/{branchId}/components/{componentId}/configs/{configId}/rows").
 		AndPathParam("branchId", row.BranchID.String()).
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
-		WithFormBody(client.ToFormBody(client.StructToMap(row, nil))).
+		WithFormBody(request.ToFormBody(request.StructToMap(row, nil))).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetConfigRowRequest(row.ConfigRowKey).Send(ctx); err == nil {
 				*row = *result
@@ -75,18 +75,18 @@ func (a *API) CreateConfigRowRequest(row *ConfigRow) client.APIRequest[*ConfigRo
 				return err
 			}
 		}))
-	return client.NewAPIRequest(row, request)
+	return request.NewAPIRequest(row, req)
 }
 
 // UpdateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row-for-development-branch
-func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) client.APIRequest[*ConfigRow] {
+func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) request.APIRequest[*ConfigRow] {
 	// ID is required
 	if row.ID == "" {
 		panic("config row id must be set")
 	}
 
 	// Create request
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(row).
 		WithPut("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
@@ -94,13 +94,13 @@ func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) cli
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
 		AndPathParam("rowId", string(row.ID)).
-		WithFormBody(client.ToFormBody(client.StructToMap(row, changedFields)))
-	return client.NewAPIRequest(row, request)
+		WithFormBody(request.ToFormBody(request.StructToMap(row, changedFields)))
+	return request.NewAPIRequest(row, req)
 }
 
 // DeleteConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row
-func (a *API) DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.NoResult] {
-	request := a.
+func (a *API) DeleteConfigRowRequest(key ConfigRowKey) request.APIRequest[request.NoResult] {
+	req := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").
 		AndPathParam("branchId", key.BranchID.String()).
@@ -108,5 +108,5 @@ func (a *API) DeleteConfigRowRequest(key ConfigRowKey) client.APIRequest[client.
 		AndPathParam("configId", string(key.ConfigID)).
 		AndPathParam("rowId", string(key.ID)).
 		WithOnError(ignoreResourceNotFoundError())
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }

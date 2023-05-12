@@ -9,7 +9,7 @@ import (
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/relvacode/iso8601"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const (
@@ -151,15 +151,15 @@ func (a *API) CreateOldQueueJobRequest(
 	componentID ComponentID,
 	configID ConfigID,
 	opts ...OldQueueJobOption,
-) client.APIRequest[*CreateJobResult] {
+) request.APIRequest[*CreateJobResult] {
 	config := initOldQueueJobConfig(componentID, configID, opts...)
 	result := &CreateJobResult{}
-	request := a.newRequest(SyrupAPI).
+	req := a.newRequest(SyrupAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
 		WithURL(config.getURL()).
 		WithJSONBody(config)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 type getOldQueueJobConfig struct {
@@ -181,20 +181,20 @@ func WithMetrics() GetOldQueueJobOption {
 func (a *API) GetOldQueueJobRequest(
 	jobID JobID,
 	opts ...GetOldQueueJobOption,
-) client.APIRequest[*JobDetail] {
+) request.APIRequest[*JobDetail] {
 	config := getOldQueueJobConfig{}
 	for _, opt := range opts {
 		opt(&config)
 	}
 	result := &JobDetail{}
-	request := a.newRequest(SyrupAPI).
+	req := a.newRequest(SyrupAPI).
 		WithResult(result).
 		WithGet("queue/jobs/{job}").
 		AndPathParam("job", jobID.String())
 	if config.includeMetrics {
-		request = request.AndQueryParam("include", "metrics")
+		req = req.AndQueryParam("include", "metrics")
 	}
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 func initOldQueueJobConfig(

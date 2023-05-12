@@ -10,10 +10,10 @@ import (
 
 	"github.com/relvacode/iso8601"
 
-	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 const ManifestFileName = "manifest"
@@ -198,74 +198,74 @@ func (c *createFileConfig) toMap() map[string]any {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) client.APIRequest[*FileUploadCredentials] {
+func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) request.APIRequest[*FileUploadCredentials] {
 	c := createFileConfig{name: name}
 	for _, opt := range opts {
 		opt.applyCreateFileOption(&c)
 	}
 
 	file := &FileUploadCredentials{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithPost("files/prepare").
-		WithFormBody(client.ToFormBody(c.toMap())).
-		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
+		WithFormBody(request.ToFormBody(c.toMap())).
+		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
 			file.ContentType = c.contentType
 			file.FederationToken = true
 			file.IsPermanent = c.isPermanent
 			file.Notify = c.notify
 			return nil
 		})
-	return client.NewAPIRequest(file, request)
+	return request.NewAPIRequest(file, req)
 }
 
 // ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
-func (a *API) ListFilesRequest() client.APIRequest[*[]*File] {
+func (a *API) ListFilesRequest() request.APIRequest[*[]*File] {
 	var files []*File
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(&files).
 		WithGet("files").
 		AndQueryParam("limit", "200").
-		WithOnSuccess(func(_ context.Context, _ client.HTTPResponse) error {
+		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
 			sort.Slice(files, func(i, j int) bool {
 				return files[i].ID < files[j].ID
 			})
 			return nil
 		})
-	return client.NewAPIRequest(&files, request)
+	return request.NewAPIRequest(&files, req)
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileRequest(id int) client.APIRequest[*File] {
+func (a *API) GetFileRequest(id int) request.APIRequest[*File] {
 	file := &File{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithGet("files/{fileId}").
 		AndPathParam("fileId", strconv.Itoa(id))
-	return client.NewAPIRequest(file, request)
+	return request.NewAPIRequest(file, req)
 }
 
 // GetFileWithCredentialsRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileWithCredentialsRequest(id int) client.APIRequest[*FileDownloadCredentials] {
+func (a *API) GetFileWithCredentialsRequest(id int) request.APIRequest[*FileDownloadCredentials] {
 	file := &FileDownloadCredentials{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithGet("files/{fileId}").
 		AndPathParam("fileId", strconv.Itoa(id)).
 		AndQueryParam("federationToken", "1")
-	return client.NewAPIRequest(file, request)
+	return request.NewAPIRequest(file, req)
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func (a *API) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
-	request := a.
+func (a *API) DeleteFileRequest(id int) request.APIRequest[request.NoResult] {
+	req := a.
 		newRequest(StorageAPI).
 		WithDelete("files/{fileId}").
-		WithOnError(func(ctx context.Context, response client.HTTPResponse, err error) error {
+		WithOnError(func(ctx context.Context, response request.HTTPResponse, err error) error {
 			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
 			if response.StatusCode() == http.StatusNotFound {
 				return nil
@@ -273,7 +273,7 @@ func (a *API) DeleteFileRequest(id int) client.APIRequest[client.NoResult] {
 			return err
 		}).
 		AndPathParam("fileId", strconv.Itoa(id))
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
 func NewSliceURL(file *FileUploadCredentials, slice string) (string, error) {

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/keboola/go-client/pkg/client"
+	. "github.com/keboola/go-client/pkg/request"
 )
 
 func TestTrace(t *testing.T) {

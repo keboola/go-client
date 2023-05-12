@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type WorkspaceID string
@@ -40,21 +40,21 @@ type WorkspaceDetails struct {
 	} `json:"connection"`
 }
 
-func (a *API) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) client.APIRequest[*Workspace] {
+func (a *API) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) request.APIRequest[*Workspace] {
 	result := &Workspace{}
-	request := a.newRequest(WorkspacesAPI).
+	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
 		WithGet("sandboxes/{sandboxId}").
 		AndPathParam("sandboxId", workspaceID.String())
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
-func (a *API) ListWorkspaceInstancesRequest() client.APIRequest[*[]*Workspace] {
+func (a *API) ListWorkspaceInstancesRequest() request.APIRequest[*[]*Workspace] {
 	result := make([]*Workspace, 0)
-	request := a.newRequest(WorkspacesAPI).
+	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
 		WithGet("sandboxes")
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }
 
 func (a *API) CleanWorkspaceInstances(ctx context.Context) error {

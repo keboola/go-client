@@ -1,4 +1,4 @@
-package client_test
+package request_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 func TestRunGroup(t *testing.T) {
@@ -17,28 +18,26 @@ func TestRunGroup(t *testing.T) {
 	transport.RegisterResponder("GET", `=~^https://example.com/`, httpmock.NewStringResponder(200, "OK"))
 
 	// Create run group
-	g := client.NewRunGroup(context.Background(), c)
+	g := request.NewRunGroup(context.Background(), c)
 
 	// Add requests
-	g.Add(client.NewHTTPRequest(c).WithGet("foo1"))
-	g.Add(client.NewHTTPRequest(c).WithGet("foo2"))
-	g.Add(client.
-		NewHTTPRequest(c).
+	g.Add(request.NewHTTPRequest(c).WithGet("foo1"))
+	g.Add(request.NewHTTPRequest(c).WithGet("foo2"))
+	g.Add(request.NewHTTPRequest(c).
 		WithGet("foo3").
-		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
-			g.Add(client.NewHTTPRequest(c).WithGet("foo5"))
+		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
+			g.Add(request.NewHTTPRequest(c).WithGet("foo5"))
 			return nil
 		}).
-		WithOnError(func(ctx context.Context, response client.HTTPResponse, err error) error {
-			g.Add(client.NewHTTPRequest(c).WithGet("err"))
+		WithOnError(func(ctx context.Context, response request.HTTPResponse, err error) error {
+			g.Add(request.NewHTTPRequest(c).WithGet("err"))
 			return err
 		}),
 	)
-	g.Add(client.
-		NewHTTPRequest(c).
+	g.Add(request.NewHTTPRequest(c).
 		WithGet("foo4").
-		WithOnSuccess(func(ctx context.Context, response client.HTTPResponse) error {
-			g.Add(client.NewHTTPRequest(c).WithGet("foo6"))
+		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
+			g.Add(request.NewHTTPRequest(c).WithGet("foo6"))
 			return nil
 		}),
 	)
@@ -68,13 +67,13 @@ func TestRunGroup_HandleError(t *testing.T) {
 	transport.RegisterResponder("GET", `=~^https://example.com/`, httpmock.NewStringResponder(401, "Forbidden"))
 
 	// Create run group
-	g := client.NewRunGroup(context.Background(), c)
+	g := request.NewRunGroup(context.Background(), c)
 
 	// Add requests
 	requestsCount := 100
-	assert.Greater(t, requestsCount, client.RunGroupConcurrencyLimit)
+	assert.Greater(t, requestsCount, request.RunGroupConcurrencyLimit)
 	for i := 1; i <= requestsCount; i++ {
-		g.Add(client.NewHTTPRequest(c).WithGet("foo"))
+		g.Add(request.NewHTTPRequest(c).WithGet("foo"))
 	}
 
 	// No requests have been sent yet

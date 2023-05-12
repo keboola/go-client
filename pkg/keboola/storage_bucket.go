@@ -9,7 +9,7 @@ import (
 
 	"github.com/relvacode/iso8601"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type Bucket struct {
@@ -40,44 +40,44 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
-func (a *API) GetBucketRequest(bucketID BucketID) client.APIRequest[*Bucket] {
+func (a *API) GetBucketRequest(bucketID BucketID) request.APIRequest[*Bucket] {
 	result := Bucket{ID: bucketID}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("buckets/{bucketId}").
 		AndPathParam("bucketId", bucketID.String())
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }
 
 // ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func (a *API) ListBucketsRequest(opts ...ListBucketsOption) client.APIRequest[*[]*Bucket] {
+func (a *API) ListBucketsRequest(opts ...ListBucketsOption) request.APIRequest[*[]*Bucket] {
 	config := listBucketsConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
 	result := make([]*Bucket, 0)
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("buckets").
 		AndQueryParam("include", config.includeString())
 
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
-func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
+func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
 	// Validate
 	if !strings.HasPrefix(bucket.ID.BucketName, magicBucketNamePrefix) {
-		return client.NewAPIRequest(bucket, client.NewReqDefinitionError(fmt.Errorf(
+		return request.NewAPIRequest(bucket, request.NewReqDefinitionError(fmt.Errorf(
 			`bucket must start with "%s", found "%s"`, magicBucketNamePrefix, bucket.ID.BucketName,
 		)))
 	}
 
 	// Create config
-	params := client.StructToMap(bucket, []string{"description", "displayName"})
+	params := request.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
 		delete(params, "displayName")
 	}
@@ -85,11 +85,11 @@ func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 	params["stage"] = bucket.ID.Stage
 	params["name"] = strings.TrimPrefix(bucket.ID.BucketName, magicBucketNamePrefix)
 
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(bucket).
 		WithPost("buckets").
-		WithFormBody(client.ToFormBody(params)).
+		WithFormBody(request.ToFormBody(params)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetBucketRequest(bucket.ID).Send(ctx); err == nil {
 				*bucket = *result
@@ -98,12 +98,12 @@ func (a *API) CreateBucketRequest(bucket *Bucket) client.APIRequest[*Bucket] {
 				return err
 			}
 		}))
-	return client.NewAPIRequest(bucket, request)
+	return request.NewAPIRequest(bucket, req)
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[client.NoResult] {
-	request := a.
+func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
+	req := a.
 		DeleteBucketAsyncRequest(bucketID, opts...).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
@@ -114,11 +114,11 @@ func (a *API) DeleteBucketRequest(bucketID BucketID, opts ...DeleteOption) clien
 			}
 			return nil
 		})
-	return client.NewAPIRequest(client.NoResult{}, request)
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
 // DeleteBucketAsyncRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketAsyncRequest(bucketID BucketID, opts ...DeleteOption) client.APIRequest[*StorageJob] {
+func (a *API) DeleteBucketAsyncRequest(bucketID BucketID, opts ...DeleteOption) request.APIRequest[*StorageJob] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -127,7 +127,7 @@ func (a *API) DeleteBucketAsyncRequest(bucketID BucketID, opts ...DeleteOption) 
 	}
 
 	result := &StorageJob{}
-	request := a.
+	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithDelete("buckets/{bucketId}").
@@ -135,8 +135,8 @@ func (a *API) DeleteBucketAsyncRequest(bucketID BucketID, opts ...DeleteOption) 
 		AndQueryParam("async", "1")
 
 	if c.force {
-		request = request.AndQueryParam("force", "true")
+		req = req.AndQueryParam("force", "true")
 	}
 
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }

@@ -1,6 +1,7 @@
-// Contains request definitions for the Jobs Queue API.
-// Requests can be sent by any HTTP client that implements the client.Sender interface.
 package keboola
+
+// The file contains request definitions for the Jobs Queue API.
+// Requests can be sent by any HTTP client that implements the client.Sender interface.
 
 import (
 	"context"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 
-	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 type JobBackendSize string
@@ -131,14 +132,14 @@ func (b *CreateQueueJobRequestBuilder) WithBackendSize(size JobBackendSize) *Cre
 // Build finalizes and builds the request.
 //
 // This is useful if you want to send many of these requests in parallel.
-func (b *CreateQueueJobRequestBuilder) Build() client.APIRequest[*QueueJob] {
+func (b *CreateQueueJobRequestBuilder) Build() request.APIRequest[*QueueJob] {
 	result := &QueueJob{}
-	request := b.api.newRequest(QueueAPI).
+	req := b.api.newRequest(QueueAPI).
 		WithResult(&result).
 		WithMethod(http.MethodPost).
 		WithURL("jobs").
 		WithJSONBody(b.config)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // Send builds the request and immediately sends it.
@@ -151,19 +152,19 @@ func (b *CreateQueueJobRequestBuilder) Send(ctx context.Context) (*QueueJob, err
 // Deprecated: Use `NewCreateJobRequest` instead.
 //
 // CreateQueueJobRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
-func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) client.APIRequest[*QueueJob] {
+func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) request.APIRequest[*QueueJob] {
 	data := map[string]string{
 		"component": componentID.String(),
 		"mode":      "run",
 		"config":    configID.String(),
 	}
 	result := QueueJob{}
-	request := a.newRequest(QueueAPI).
+	req := a.newRequest(QueueAPI).
 		WithResult(&result).
 		WithMethod(http.MethodPost).
 		WithURL("jobs").
 		WithJSONBody(data)
-	return client.NewAPIRequest(&result, request)
+	return request.NewAPIRequest(&result, req)
 }
 
 // Deprecated: Use `NewCreateJobRequest` instead.
@@ -173,7 +174,7 @@ func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) 
 // Allows setting configData.
 //
 // `configId` can be set to an empty string, and it will be omitted.
-func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) client.APIRequest[*QueueJob] {
+func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) request.APIRequest[*QueueJob] {
 	body := map[string]any{
 		"component":  componentID.String(),
 		"mode":       "run",
@@ -184,26 +185,26 @@ func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID 
 	}
 
 	result := &QueueJob{}
-	request := a.newRequest(QueueAPI).
+	req := a.newRequest(QueueAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
 		WithURL("jobs").
 		WithJSONBody(body)
-	return client.NewAPIRequest(result, request)
+	return request.NewAPIRequest(result, req)
 }
 
 // GetJobRequest https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/getJob
-func (a *API) GetQueueJobRequest(key JobKey) client.APIRequest[*QueueJob] {
+func (a *API) GetQueueJobRequest(key JobKey) request.APIRequest[*QueueJob] {
 	return a.getQueueJobRequest(key.ID)
 }
 
-func (a *API) getQueueJobRequest(id JobID) client.APIRequest[*QueueJob] {
+func (a *API) getQueueJobRequest(id JobID) request.APIRequest[*QueueJob] {
 	job := &QueueJob{}
-	request := a.newRequest(QueueAPI).
+	req := a.newRequest(QueueAPI).
 		WithResult(job).
 		WithGet("jobs/{jobId}").
 		AndPathParam("jobId", id.String())
-	return client.NewAPIRequest(job, request)
+	return request.NewAPIRequest(job, req)
 }
 
 // WaitForQueueJob pulls job status until it is completed.
