@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/client/trace/otel"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -77,6 +78,12 @@ func newClient(host string, opts []APIOption) client.Client {
 	if cfg.token != "" {
 		c = c.WithHeader(storageAPITokenHeader, cfg.token)
 	}
+
+	// Enable telemetry
+	if cfg.tracerProvider != nil || cfg.meterProvider != nil {
+		c = c.WithTelemetry(cfg.tracerProvider, cfg.meterProvider, otel.WithRedactedHeaders(storageAPITokenHeader))
+	}
+
 	return c
 }
 
