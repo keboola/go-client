@@ -19,9 +19,12 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	otelMetric "go.opentelemetry.io/otel/metric"
+	otelTrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/keboola/go-client/pkg/client/decode"
 	"github.com/keboola/go-client/pkg/client/trace"
+	"github.com/keboola/go-client/pkg/client/trace/otel"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -94,6 +97,14 @@ func (c Client) WithTransport(transport http.RoundTripper) Client {
 func (c Client) WithRetry(retry RetryConfig) Client {
 	c.retry = retry
 	return c
+}
+
+// WithTelemetry enables OpenTelemetry tracing and metrics.
+func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.MeterProvider, opts ...otel.Option) Client {
+	if tracerProvider == nil && meterProvider == nil {
+		return c
+	}
+	return c.AndTrace(otel.NewTrace(tracerProvider, meterProvider, opts...))
 }
 
 // AndTrace returns a clone of the Client with Trace hooks added.
