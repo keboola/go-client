@@ -26,6 +26,29 @@ The `keboola` package provides the `keboola.API` implementation, it covers:
 
 Not all API requests are covered, API requests are extended as needed.
 
+## Quick Start
+
+```go
+ctx := context.TODO()
+
+// Create API instance
+api, err := keboola.NewAPI(
+  ctx, 
+  "https://connection.keboola.com", 
+  keboola.WithTracerProvider(tracerProvider), 
+  keboola.WithMeterProvider(meterProvider),
+)
+if err != nil {
+  return err
+}
+
+// Send a request
+config, err := api.CreateConfigRequest(&keboola.ConfigWithRows{/*...*/}).Send(ctx)
+if err != nil {
+  return err
+}
+```
+
 ## Development
 
 Clone the repository and run dev container:
