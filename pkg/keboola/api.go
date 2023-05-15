@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/keboola/go-client/pkg/client"
+	"github.com/keboola/go-client/pkg/client/trace/otel"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -24,68 +25,13 @@ const (
 	WorkspacesAPI = ServiceType("sandboxes")
 	// Deprecated: Syrup and old queue should no longer be used.
 	// See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
-	SyrupAPI = ServiceType("syrup")
+	SyrupAPI              = ServiceType("syrup")
+	storageAPITokenHeader = "X-StorageApi-Token" //nolint: gosec // it is not a token value
 )
-
-// newRequest Creates request, sets base URL and default error type.
-func (a *API) newRequest(s ServiceType) request.HTTPRequest {
-	// Set request base URL according to the ServiceType
-	r := request.NewHTTPRequest(a.sender).WithBaseURL(a.baseURLForService(s))
-
-	// Set error schema
-	switch s {
-	case StorageAPI:
-		r = r.WithError(&StorageError{})
-	case EncryptionAPI:
-		r = r.WithError(&EncryptionError{})
-	case QueueAPI:
-		r = r.WithError(&QueueError{})
-	case SchedulerAPI:
-		r = r.WithError(&SchedulerError{})
-	case WorkspacesAPI:
-		r = r.WithError(&WorkspacesError{})
-	}
-	return r
-}
-
-func (a *API) baseURLForService(s ServiceType) string {
-	if s == StorageAPI {
-		return "v2/storage"
-	}
-
-	url, found := a.index.Services.ToMap().URLByID(ServiceID(s))
-	if !found {
-		panic(fmt.Errorf(`service not found "%s"`, s))
-	}
-	return url.String()
-}
 
 type API struct {
 	sender request.Sender
 	index  *Index
-}
-
-type apiConfig struct {
-	client *client.Client
-	token  string
-}
-
-type APIOption func(c *apiConfig)
-
-func WithClient(cl *client.Client) APIOption {
-	return func(c *apiConfig) {
-		c.client = cl
-	}
-}
-
-func WithToken(token string) APIOption {
-	return func(c *apiConfig) {
-		c.token = token
-	}
-}
-
-type Object interface {
-	ObjectID() any
 }
 
 func APIIndex(ctx context.Context, host string, opts ...APIOption) (*Index, error) {
@@ -115,20 +61,29 @@ func newClient(host string, opts []APIOption) client.Client {
 	if !strings.HasPrefix(host, "https://") && !strings.HasPrefix(host, "http://") {
 		host = "https://" + host
 	}
-	config := apiConfig{}
-	for _, opt := range opts {
-		opt(&config)
-	}
+	cfg := newAPIConfig(opts)
+
+	// Get client
 	var c client.Client
-	if config.client != nil {
-		c = *config.client
+	if cfg.client != nil {
+		c = *cfg.client
 	} else {
 		c = client.New()
 	}
-	if config.token != "" {
-		c = c.WithHeader("X-StorageApi-Token", config.token)
-	}
+
+	// Set host
 	c = c.WithBaseURL(host)
+
+	// Setup headers
+	if cfg.token != "" {
+		c = c.WithHeader(storageAPITokenHeader, cfg.token)
+	}
+
+	// Enable telemetry
+	if cfg.tracerProvider != nil || cfg.meterProvider != nil {
+		c = c.WithTelemetry(cfg.tracerProvider, cfg.meterProvider, otel.WithRedactedHeaders(storageAPITokenHeader))
+	}
+
 	return c
 }
 
@@ -207,41 +162,5 @@ func (a *API) DeleteMetadataRequest(key any, metaID string) request.APIRequest[r
 		return a.DeleteConfigMetadataRequest(v, metaID)
 	default:
 		panic(fmt.Errorf(`unexpected type "%T"`, key))
-	}
-}
-
-// Metadata - object metadata.
-type Metadata map[string]string
-
-// MetadataDetails - metadata with details (id, timestamp).
-type MetadataDetails []MetadataDetail
-
-// MetadataDetail - metadata with details (id, timestamp).
-type MetadataDetail struct {
-	ID        string `json:"id"`
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	Timestamp string `json:"timestamp"`
-}
-
-// ToMap converts slice to map.
-func (v MetadataDetails) ToMap() Metadata {
-	out := make(Metadata)
-	for _, item := range v {
-		out[item.Key] = item.Value
-	}
-	return out
-}
-
-// DeleteOption for requests to delete bucket or table.
-type DeleteOption func(c *deleteConfig)
-
-type deleteConfig struct {
-	force bool
-}
-
-func WithForce() DeleteOption {
-	return func(c *deleteConfig) {
-		c.force = true
 	}
 }

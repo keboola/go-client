@@ -19,9 +19,12 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	otelMetric "go.opentelemetry.io/otel/metric"
+	otelTrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/keboola/go-client/pkg/client/decode"
 	"github.com/keboola/go-client/pkg/client/trace"
+	"github.com/keboola/go-client/pkg/client/trace/otel"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -96,6 +99,14 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 	return c
 }
 
+// WithTelemetry enables OpenTelemetry tracing and metrics.
+func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.MeterProvider, opts ...otel.Option) Client {
+	if tracerProvider == nil && meterProvider == nil {
+		return c
+	}
+	return c.AndTrace(otel.NewTrace(tracerProvider, meterProvider, opts...))
+}
+
 // AndTrace returns a clone of the Client with Trace hooks added.
 // The last registered hook is executed first.
 func (c Client) AndTrace(fn trace.Factory) Client {
@@ -120,9 +131,6 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		oldTrace := tc
 		ctx, tc = fn(ctx, reqDef)
 		tc.Compose(oldTrace)
-	}
-	if tc != nil {
-		ctx = httptrace.WithClientTrace(ctx, &tc.ClientTrace)
 	}
 
 	// Replace path parameters
@@ -181,7 +189,7 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	// Setup native client
 	nativeClient := http.Client{
 		Timeout:   c.retry.TotalRequestTimeout,
-		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
+		Transport: roundTripper{retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
 	}
 
 	// Send request
@@ -359,13 +367,13 @@ func handleSendError(startedAt time.Time, clientTimeout time.Duration, req *http
 
 // roundTripper wraps a http.RoundTripper and adds trace and retry functionality.
 type roundTripper struct {
-	ctx     context.Context
 	trace   *trace.ClientTrace
 	retry   RetryConfig
 	wrapped http.RoundTripper
 }
 
 func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx := req.Context()
 	state := rt.retry.NewBackoff()
 	attempt := 0
 	for {
@@ -373,6 +381,14 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		if rt.trace != nil && rt.trace.HTTPRequestStart != nil {
 			rt.trace.HTTPRequestStart(req)
 		}
+
+		// Register low-level tracing
+		if rt.trace != nil {
+			req = req.WithContext(httptrace.WithClientTrace(ctx, &rt.trace.ClientTrace))
+		}
+
+		// Set retry attempt to the request context
+		req = req.WithContext(context.WithValue(req.Context(), RetryAttemptContextKey, attempt))
 
 		// Send
 		res, err := rt.wrapped.RoundTrip(req)
@@ -400,9 +416,6 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		if rt.trace != nil && rt.trace.RetryDelay != nil {
 			rt.trace.RetryDelay(attempt, delay)
 		}
-
-		// Set retry attempt to the request context
-		req = req.WithContext(context.WithValue(req.Context(), RetryAttemptContextKey, attempt))
 
 		// Rewind body before retry
 		if req.GetBody != nil {
