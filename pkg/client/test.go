@@ -4,6 +4,8 @@ import (
 	"os"
 
 	"github.com/jarcoal/httpmock"
+
+	"github.com/keboola/go-client/pkg/client/trace"
 )
 
 var testTransport = DefaultTransport() //nolint:gochecknoglobals
@@ -17,7 +19,7 @@ var testTransport = DefaultTransport() //nolint:gochecknoglobals
 func NewTestClient() Client {
 	c := New().WithTransport(testTransport)
 	if os.Getenv("TEST_HTTP_CLIENT_VERBOSE") == "true" { //nolint:forbidigo
-		c = c.AndTrace(DumpTracer(os.Stdout))
+		c = c.AndTrace(trace.DumpTracer(os.Stdout))
 	}
 	return c
 }

@@ -7,7 +7,6 @@ package client
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -19,9 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	"github.com/cenkalti/backoff/v4"
 
+	"github.com/keboola/go-client/pkg/client/decode"
+	"github.com/keboola/go-client/pkg/client/trace"
 	"github.com/keboola/go-client/pkg/request"
 )
 
@@ -36,7 +36,7 @@ type Client struct {
 	baseURL        *url.URL
 	header         http.Header
 	retry          RetryConfig
-	traceFactories []TraceFactory
+	traceFactories []trace.Factory
 }
 
 // New creates new HTTP Client.
@@ -53,6 +53,8 @@ func (c Client) WithBaseURL(baseURLStr string) Client {
 	if err != nil {
 		panic(fmt.Errorf(`base url "%s" is not valid: %w`, baseURLStr, err))
 	}
+	// Normalize base URL, so r.baseURL.ResolveReference(...) will work
+	baseURL.Path = strings.TrimRight(baseURL.Path, "/") + "/"
 	c.baseURL = baseURL
 	return c
 }
@@ -96,7 +98,7 @@ func (c Client) WithRetry(retry RetryConfig) Client {
 
 // AndTrace returns a clone of the Client with Trace hooks added.
 // The last registered hook is executed first.
-func (c Client) AndTrace(fn TraceFactory) Client {
+func (c Client) AndTrace(fn trace.Factory) Client {
 	c.traceFactories = append(c.traceFactories, fn)
 	return c
 }
@@ -110,35 +112,27 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 
 	// If method or url is not set, panic occurs. So we get these values first.
 	method := reqDef.Method()
-	reqURLStr := reqDef.URL()
+	reqURL := reqDef.URL()
 
 	// Init trace
-	var trace *Trace
+	var tc *trace.ClientTrace
 	for _, fn := range c.traceFactories {
-		oldTrace := trace
-		trace = fn()
-		trace.compose(oldTrace)
+		oldTrace := tc
+		ctx, tc = fn(ctx, reqDef)
+		tc.Compose(oldTrace)
 	}
-	if trace != nil {
-		ctx = httptrace.WithClientTrace(ctx, &trace.ClientTrace)
-	}
-
-	// Trace got request
-	if trace != nil && trace.GotRequest != nil {
-		ctx = trace.GotRequest(ctx, reqDef)
+	if tc != nil {
+		ctx = httptrace.WithClientTrace(ctx, &tc.ClientTrace)
 	}
 
 	// Replace path parameters
 	for k, v := range reqDef.PathParams() {
-		reqURLStr = strings.ReplaceAll(reqURLStr, url.PathEscape("{"+k+"}"), url.PathEscape(v))
+		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
 	}
 
 	// Convert to absolute url
-	var reqURL *url.URL
-	if c.baseURL == nil {
-		reqURL, err = url.Parse(reqURLStr)
-	} else {
-		reqURL, err = c.baseURL.Parse(reqURLStr)
+	if c.baseURL != nil && !reqURL.IsAbs() {
+		reqURL = c.baseURL.ResolveReference(reqURL)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -187,17 +181,17 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	// Setup native client
 	nativeClient := http.Client{
 		Timeout:   c.retry.TotalRequestTimeout,
-		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: trace, wrapped: c.transport}, // wrapped transport for trace/retry
+		Transport: roundTripper{ctx: ctx, retry: c.retry, trace: tc, wrapped: c.transport}, // wrapped transport for trace/retry
 	}
 
 	// Send request
 	startedAt := time.Now()
 	res, err = nativeClient.Do(req)
 
-	// Trace request processed
-	if trace != nil && trace.RequestProcessed != nil {
+	// Trace request processed (defer!)
+	if tc != nil && tc.RequestProcessed != nil {
 		defer func() {
-			trace.RequestProcessed(result, err)
+			tc.RequestProcessed(result, err)
 		}()
 	}
 
@@ -206,13 +200,18 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		return nil, nil, handleSendError(startedAt, c.retry.TotalRequestTimeout, req, err)
 	}
 
-	// Process body
-	if r, e, unexpectedErr := handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef()); unexpectedErr == nil {
-		// No unexpected error, set result/error result
-		result, err = r, e
-	} else {
+	// Parse body
+	if tc != nil && tc.BodyParseStart != nil {
+		tc.BodyParseStart(res)
+	}
+	var parseError error
+	result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
+	if tc != nil && tc.BodyParseDone != nil {
+		tc.BodyParseDone(res, result, err, parseError)
+	}
+	if parseError != nil {
 		// Unexpected error
-		err = fmt.Errorf(`cannot process request %s "%s": %w`, req.Method, req.URL.String(), unexpectedErr)
+		err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
 	}
 
 	// Generic HTTP error
@@ -258,7 +257,7 @@ func requestBody(r request.HTTPRequest) (io.ReadCloser, error) {
 	return nil, nil
 }
 
-func handleResponseBody(r *http.Response, resultDef any, errDef error) (result any, err error, unexpectedErr error) {
+func handleResponseBody(r *http.Response, resultDef any, errDef error) (result any, err error, parseError error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNoContent {
@@ -266,7 +265,7 @@ func handleResponseBody(r *http.Response, resultDef any, errDef error) (result a
 	}
 
 	// Process content encoding
-	decodedBody, err := decodeBody(r.Body, r.Header.Get("Content-Encoding"))
+	decodedBody, err := decode.Decode(r.Body, r.Header.Get("Content-Encoding"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot decode response body: %w", err)
 	}
@@ -361,7 +360,7 @@ func handleSendError(startedAt time.Time, clientTimeout time.Duration, req *http
 // roundTripper wraps a http.RoundTripper and adds trace and retry functionality.
 type roundTripper struct {
 	ctx     context.Context
-	trace   *Trace
+	trace   *trace.ClientTrace
 	retry   RetryConfig
 	wrapped http.RoundTripper
 }
@@ -398,8 +397,8 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		// Trace retry
 		attempt++
-		if rt.trace != nil && rt.trace.HTTPRequestRetry != nil {
-			rt.trace.HTTPRequestRetry(attempt, delay)
+		if rt.trace != nil && rt.trace.RetryDelay != nil {
+			rt.trace.RetryDelay(attempt, delay)
 		}
 
 		// Set retry attempt to the request context
@@ -430,22 +429,6 @@ func ContextRetryAttempt(ctx context.Context) (int, bool) {
 		return 0, false
 	}
 	return v.(int), true
-}
-
-func decodeBody(body io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
-	contentEncoding = strings.ToLower(contentEncoding)
-	switch contentEncoding {
-	case "gzip":
-		if v, err := gzip.NewReader(body); err == nil {
-			return v, nil
-		} else {
-			return nil, fmt.Errorf("cannot decode gzip: %w", err)
-		}
-	case "br":
-		return io.NopCloser(brotli.NewReader(body)), nil
-	default:
-		return body, nil
-	}
 }
 
 type errorWithRequest interface {

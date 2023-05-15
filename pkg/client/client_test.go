@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/keboola/go-client/pkg/client"
+	. "github.com/keboola/go-client/pkg/client/trace"
 	. "github.com/keboola/go-client/pkg/request"
 )
 
@@ -388,9 +389,9 @@ func TestStopRetryOnRequestTimeout(t *testing.T) {
 			WaitTimeStart:       40 * time.Millisecond, // <<<<<<<
 			WaitTimeMax:         40 * time.Millisecond,
 		}).
-		AndTrace(func() *Trace {
-			return &Trace{
-				HTTPRequestRetry: func(_ int, delay time.Duration) {
+		AndTrace(func(ctx context.Context, _ HTTPRequest) (context.Context, *ClientTrace) {
+			return ctx, &ClientTrace{
+				RetryDelay: func(_ int, delay time.Duration) {
 					delays = append(delays, delay)
 				},
 			}

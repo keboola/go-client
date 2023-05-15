@@ -34,33 +34,33 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	a = a.WithGet("/foo1")
 	b = a.WithGet("/foo2")
 	assert.Equal(t, http.MethodGet, a.Method())
-	assert.Equal(t, "/foo1", a.URL())
+	assert.Equal(t, "/foo1", a.URL().String())
 	assert.Equal(t, http.MethodGet, b.Method())
-	assert.Equal(t, "/foo2", b.URL())
+	assert.Equal(t, "/foo2", b.URL().String())
 
 	// WithPost
 	a = a.WithPost("/foo1")
 	b = a.WithPost("/foo2")
 	assert.Equal(t, http.MethodPost, a.Method())
-	assert.Equal(t, "/foo1", a.URL())
+	assert.Equal(t, "/foo1", a.URL().String())
 	assert.Equal(t, http.MethodPost, b.Method())
-	assert.Equal(t, "/foo2", b.URL())
+	assert.Equal(t, "/foo2", b.URL().String())
 
 	// WithPut
 	a = a.WithPut("/foo1")
 	b = a.WithPut("/foo2")
 	assert.Equal(t, http.MethodPut, a.Method())
-	assert.Equal(t, "/foo1", a.URL())
+	assert.Equal(t, "/foo1", a.URL().String())
 	assert.Equal(t, http.MethodPut, b.Method())
-	assert.Equal(t, "/foo2", b.URL())
+	assert.Equal(t, "/foo2", b.URL().String())
 
 	// WithDelete
 	a = a.WithDelete("/foo1")
 	b = a.WithDelete("/foo2")
 	assert.Equal(t, http.MethodDelete, a.Method())
-	assert.Equal(t, "/foo1", a.URL())
+	assert.Equal(t, "/foo1", a.URL().String())
 	assert.Equal(t, http.MethodDelete, b.Method())
-	assert.Equal(t, "/foo2", b.URL())
+	assert.Equal(t, "/foo2", b.URL().String())
 
 	// WithMethod
 	a = a.WithMethod(http.MethodGet)
@@ -71,14 +71,14 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	// WithBaseURL
 	a = a.WithBaseURL("/base1")
 	b = a.WithBaseURL("/base2")
-	assert.Equal(t, "/base1/foo1", a.URL())
-	assert.Equal(t, "/base2/foo1", b.URL())
+	assert.Equal(t, "/base1/foo1", a.URL().String())
+	assert.Equal(t, "/base2/foo1", b.URL().String())
 
 	// WithURL
 	a = a.WithURL("/url1")
 	b = a.WithURL("/url2")
-	assert.Equal(t, "/base1/url1", a.URL())
-	assert.Equal(t, "/base1/url2", b.URL())
+	assert.Equal(t, "/base1/url1", a.URL().String())
+	assert.Equal(t, "/base1/url2", b.URL().String())
 
 	// AndHeader
 	a = a.AndHeader("key1", "value1")

@@ -70,7 +70,7 @@ type httpRequestReadOnly interface {
 	// Method returns HTTP method.
 	Method() string
 	// URL method returns HTTP URL.
-	URL() string
+	URL() *url.URL
 	// RequestHeader method returns HTTP request headers.
 	RequestHeader() http.Header
 	// QueryParams method returns HTTP query parameters.
@@ -115,19 +115,19 @@ func (r httpRequest) Method() string {
 	return r.method
 }
 
-func (r httpRequest) URL() string {
+func (r httpRequest) URL() *url.URL {
 	if r.url == nil {
 		panic(fmt.Errorf("request url is not set"))
 	}
-	var outURL *url.URL
-	if r.baseURL == nil {
-		outURL = r.url
-	} else if v, err := url.Parse(r.baseURL.String() + "/" + strings.TrimLeft(r.url.String(), "/")); err == nil {
-		outURL = v
-	} else {
-		panic(fmt.Errorf(`cannot parse url: %w`, err))
+
+	clone := *r.url
+	outURL := &clone
+	if r.baseURL != nil && !outURL.IsAbs() {
+		outURL.Path = strings.TrimLeft(outURL.Path, "/")
+		outURL = r.baseURL.ResolveReference(outURL)
 	}
-	return outURL.String()
+
+	return outURL
 }
 
 func (r httpRequest) RequestHeader() http.Header {
@@ -186,6 +186,8 @@ func (r httpRequest) WithURL(urlStr string) HTTPRequest {
 
 func (r httpRequest) WithBaseURL(baseURL string) HTTPRequest {
 	if v, err := url.Parse(strings.TrimRight(baseURL, "/")); err == nil {
+		// Normalize base URL, so r.baseURL.ResolveReference(...) will work
+		v.Path = strings.TrimRight(v.Path, "/") + "/"
 		r.baseURL = v
 	} else {
 		panic(fmt.Errorf(`base url "%s" is not valid :%w`, baseURL, err))
