@@ -70,8 +70,8 @@ func TestTrace(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, read int64, err error) {
+					logs.WriteString(fmt.Sprintf("HttpRequestDone   %d %s bytes=%v err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), read, err))
 				},
 				RetryDelay: func(attempt int, delay time.Duration) {
 					logs.WriteString(fmt.Sprintf("HttpRequestRetry  attempt=%d delay=%s\n", attempt, delay))
@@ -89,18 +89,18 @@ func TestTrace(t *testing.T) {
 	expected := `
 GotRequest        GET https://example.com/redirect1
 HTTPRequestStart  GET https://example.com/redirect1
-HttpRequestDone   301 Moved Permanently err=<nil>
+HttpRequestDone   301 Moved Permanently bytes=0 err=<nil>
 HTTPRequestStart  GET https://example.com/redirect2
-HttpRequestDone   301 Moved Permanently err=<nil>
+HttpRequestDone   301 Moved Permanently bytes=0 err=<nil>
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   423 Locked err=<nil>
+HttpRequestDone   423 Locked bytes=0 err=<nil>
 HttpRequestRetry  attempt=1 delay=1µs
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   429 Too Many Requests err=<nil>
+HttpRequestDone   429 Too Many Requests bytes=0 err=<nil>
 HttpRequestRetry  attempt=2 delay=2µs
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   200 OK err=<nil>
 BodyParseStart
+HttpRequestDone   200 OK bytes=2 err=<nil>
 BodyParseDone     result=(*string)((len=2) "OK") err=<nil> parseError=<nil>
 RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `
@@ -140,8 +140,8 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("1: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("1: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, read int64, err error) {
+					logs.WriteString(fmt.Sprintf("1: HttpRequestDone   %d %s bytes=%v err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), read, err))
 				},
 			}
 		}).
@@ -151,8 +151,8 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("2: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("2: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, read int64, err error) {
+					logs.WriteString(fmt.Sprintf("2: HttpRequestDone   %d %s bytes=%v err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), read, err))
 				},
 			}
 		}).
@@ -167,8 +167,8 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("3: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("3: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, read int64, err error) {
+					logs.WriteString(fmt.Sprintf("3: HttpRequestDone   %d %s bytes=%v err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), read, err))
 				},
 			}
 		})
@@ -180,9 +180,9 @@ func TestTrace_Multiple(t *testing.T) {
 1: HTTPRequestStart  GET https://example.com
 2: HTTPRequestStart  GET https://example.com
 3: HTTPRequestStart  GET https://example.com
-1: HttpRequestDone   200 OK err=<nil>
-2: HttpRequestDone   200 OK err=<nil>
-3: HttpRequestDone   200 OK err=<nil>
+1: HttpRequestDone   200 OK bytes=2 err=<nil>
+2: HttpRequestDone   200 OK bytes=2 err=<nil>
+3: HttpRequestDone   200 OK bytes=2 err=<nil>
 1: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 3: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `

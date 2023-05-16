@@ -27,8 +27,11 @@ package otel
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/http/httptrace"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
@@ -36,6 +39,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	otelMetric "go.opentelemetry.io/otel/metric"
 	metricNoop "go.opentelemetry.io/otel/metric/noop"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	otelTrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/keboola/go-client/pkg/client/trace"
@@ -44,14 +48,36 @@ import (
 
 const (
 	traceAppName = "github.com/keboola/go-client"
-	// httpPrefix: low-level span and metrics, for each redirect and retry.
-	httpPrefix          = "http."
-	httpRequestSpanName = httpPrefix + "request"
-	// clientPrefix: high-level span and metrics.
+	// HttpPrefix: low-level span and metrics, for each redirect and retry.
+	httpPrefix                 = "http."
+	httpRequestSpanName        = httpPrefix + "request"
+	httpDNSSpanName            = httpPrefix + "dns"
+	httpGetConnSpanName        = httpPrefix + "getconn"
+	httpConnectSpanName        = httpPrefix + "connect"
+	httpTLSHandshakeSpanName   = httpPrefix + "tls"
+	httpHeadersSpanName        = httpPrefix + "headers"
+	httpSendSpanName           = httpPrefix + "send"
+	httpReceiveSpanName        = httpPrefix + "receive"
+	attrDNSAddresses           = attribute.Key("http.dns.addrs")
+	attrRemoteAddr             = attribute.Key("http.remote")
+	attrLocalAddr              = attribute.Key("http.local")
+	attrConnectionReused       = attribute.Key("http.conn.reused")
+	attrConnectionWasIdle      = attribute.Key("http.conn.wasidle")
+	attrConnectionIdleTime     = attribute.Key("http.conn.idletime")
+	attrConnectionStartNetwork = attribute.Key("http.conn.start.network")
+	attrConnectionDoneNetwork  = attribute.Key("http.conn.done.network")
+	attrConnectionDoneAddr     = attribute.Key("http.conn.done.addr")
+	attrReadBytes              = attribute.Key("http.read_bytes")
+	// ClientPrefix: high-level span and metrics.
 	clientPrefix             = "keboola.go.http.client."
 	clientRequestSpanName    = clientPrefix + "request"
 	clientBodyParseSpanName  = httpPrefix + "request.body.parse"
 	clientRetryDelaySpanName = clientPrefix + "retry.delay"
+	// Extra attributes for DataDog.
+	attrSpanKind            = attribute.Key("span.kind")
+	attrSpanKindValueClient = "client"
+	attrSpanType            = attribute.Key("span.type")
+	attrSpanTypeValueHTTP   = "http"
 )
 
 func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.MeterProvider, opts ...Option) trace.Factory {
@@ -70,7 +96,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 		attrs := newAttributes(cfg, reqDef)
 		var retryDelaySpan otelTrace.Span
 
-		// Prepare options for low-level tracing created in HTTPRequestStart hook
+		// Prepare options for low-level tracing created in HTTPRequest hook
 		clientTraceOpts := []otelhttptrace.ClientTraceOption{otelhttptrace.WithTracerProvider(tracerProvider)}
 		for k := range cfg.redactedHeaders {
 			clientTraceOpts = append(clientTraceOpts, otelhttptrace.WithRedactedHeaders(k))
@@ -89,6 +115,10 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				rootCtx,
 				clientRequestSpanName,
 				otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+				otelTrace.WithAttributes(
+					attrSpanKind.String(attrSpanKindValueClient),
+					attrSpanType.String(attrSpanTypeValueHTTP),
+				),
 				otelTrace.WithAttributes(attrs.definition...),
 				otelTrace.WithAttributes(attrs.definitionExtra...),
 			)
@@ -118,10 +148,32 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 		}
 
 		// Handle HTTP requests
+		var httpCtx context.Context
+		var bodyBytes int64
 		{
 			var httpRequestStart time.Time
 			var httpRequestSpan otelTrace.Span
+			var receiveSpan otelTrace.Span
 			tc.HTTPRequestStart = func(req *http.Request) {
+				bodyBytes = 0
+
+				// End retry delay span
+				if retryDelaySpan != nil {
+					retryDelaySpan.End()
+					retryDelaySpan = nil
+				}
+
+				// Create HTTP request span
+				httpCtx, httpRequestSpan = tracer.Start(
+					rootCtx,
+					httpRequestSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					otelTrace.WithAttributes(
+						attrSpanKind.String(attrSpanKindValueClient),
+						attrSpanType.String(attrSpanTypeValueHTTP),
+					),
+				)
+
 				// Metrics
 				httpRequestStart = time.Now()
 				attrs.SetFromRequest(req)
@@ -132,24 +184,43 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 					retryDelaySpan.End()
 					retryDelaySpan = nil
 				}
-				var ctx context.Context
-				ctx, httpRequestSpan = tracer.Start(
+				httpCtx, httpRequestSpan = tracer.Start(
 					rootCtx,
 					httpRequestSpanName,
 					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
 					otelTrace.WithAttributes(attrs.httpRequest...),
 					otelTrace.WithAttributes(attrs.httpRequestExtra...),
 				)
-				// Register low-level tracing under HTTP request span.
-				// Use a pkg for Go native - low-level tracing (connect, TLS handshake, dns, ...)
-				tc.ClientTrace = *otelhttptrace.NewClientTrace(ctx, clientTraceOpts...)
 			}
-			tc.HTTPRequestDone = func(res *http.Response, err error) {
-				elapsedTime := float64(time.Since(httpRequestStart)) / float64(time.Millisecond)
+			tc.HTTPResponse = func(res *http.Response, err error) {
 				attrs.SetFromResponse(res, err)
+				httpRequestSpan.SetAttributes(attrs.httpResponse...)
+				httpRequestSpan.SetAttributes(attrs.httpResponseExtra...)
+				if res != nil && res.Body != nil && res.Body != http.NoBody {
+					_, receiveSpan = tracer.Start(
+						httpCtx,
+						httpReceiveSpanName,
+						otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					)
+				}
+			}
+			tc.HTTPRequestDone = func(res *http.Response, read int64, err error) {
+				bodyBytes = read
+				elapsedTime := float64(time.Since(httpRequestStart)) / float64(time.Millisecond)
+
+				// End receive span, if any
+				if receiveSpan != nil {
+					httpRequestSpan.SetAttributes(attrReadBytes.Int64(read))
+					receiveSpan.SetAttributes(attrReadBytes.Int64(read))
+					if err != nil {
+						receiveSpan.RecordError(err)
+						receiveSpan.SetStatus(codes.Error, err.Error())
+					}
+					receiveSpan.End()
+				}
 
 				// Metrics
-				meters.http.inFlight.Add(rootCtx, -1, otelMetric.WithAttributes(attrs.httpRequest...)) // same attributes/dimensions as in HTTPRequestStart!
+				meters.http.inFlight.Add(rootCtx, -1, otelMetric.WithAttributes(attrs.httpRequest...)) // same attributes/dimensions as in HTTPRequest!
 				meters.http.duration.Record(
 					rootCtx,
 					elapsedTime,
@@ -159,8 +230,6 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				)
 
 				// Tracing
-				httpRequestSpan.SetAttributes(attrs.httpResponse...)
-				httpRequestSpan.SetAttributes(attrs.httpResponseExtra...)
 				switch {
 				case err != nil:
 					httpRequestSpan.RecordError(err)
@@ -208,6 +277,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				meters.parse.duration.Record(rootCtx, elapsedTime, otelMetric.WithAttributes(bodyParseMeterAttrs...))
 
 				// Tracing
+				bodyParseSpan.SetAttributes(attrReadBytes.Int64(bodyBytes))
 				if parseError == nil {
 					bodyParseSpan.End()
 				} else {
@@ -220,7 +290,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 
 		// Handle retry
 		tc.RetryDelay = func(attempt int, delay time.Duration) {
-			// retryDelaySpan is ended by HTTPRequestStart hook or RequestProcessed hook (if an error occurred, e.g., request timeout).
+			// retryDelaySpan is ended by HTTPRequest hook or RequestProcessed hook (if an error occurred, e.g., request timeout).
 			_, retryDelaySpan = tracer.Start(
 				rootCtx,
 				clientRetryDelaySpanName,
@@ -233,6 +303,138 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 					attribute.String("api.request.retry.delay_string", delay.String()),
 				),
 			)
+		}
+
+		// Register low-level tracing.
+		// "otelhttptrace" pkg from the opentelemetry-contrib module is buggy, does not end spans:
+		// https://github.com/open-telemetry/opentelemetry-go-contrib/issues/399
+		// httptrace: DNS
+		{
+			var dnsSpan otelTrace.Span
+			tc.DNSStart = func(info httptrace.DNSStartInfo) {
+				_, dnsSpan = tracer.Start(
+					httpCtx,
+					httpDNSSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					otelTrace.WithAttributes(semconv.NetHostName(info.Host)),
+				)
+			}
+			tc.DNSDone = func(info httptrace.DNSDoneInfo) {
+				var addrs []string
+				for _, netAddr := range info.Addrs {
+					addrs = append(addrs, netAddr.String())
+				}
+				dnsSpan.SetAttributes(attrDNSAddresses.String(strings.Join(addrs, ";")))
+				if info.Err != nil {
+					dnsSpan.RecordError(info.Err)
+					dnsSpan.SetStatus(codes.Error, info.Err.Error())
+				}
+				dnsSpan.End()
+			}
+		}
+		// httptrace: Get connection
+		{
+			var getConnSpan otelTrace.Span
+			tc.GetConn = func(host string) {
+				_, getConnSpan = tracer.Start(
+					httpCtx,
+					httpGetConnSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					otelTrace.WithAttributes(semconv.NetHostName(host)),
+				)
+			}
+			tc.GotConn = func(info httptrace.GotConnInfo) {
+				getConnSpan.SetAttributes(
+					attrRemoteAddr.String(info.Conn.RemoteAddr().String()),
+					attrLocalAddr.String(info.Conn.LocalAddr().String()),
+					attrConnectionReused.Bool(info.Reused),
+					attrConnectionWasIdle.Bool(info.WasIdle),
+				)
+				if info.WasIdle {
+					getConnSpan.SetAttributes(attrConnectionIdleTime.String(info.IdleTime.String()))
+				}
+				getConnSpan.End()
+			}
+		}
+		// httptrace: Connect
+		{
+			var connectSpan otelTrace.Span
+			tc.ConnectStart = func(network, addr string) {
+				_, connectSpan = tracer.Start(
+					httpCtx,
+					httpConnectSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					otelTrace.WithAttributes(
+						attrRemoteAddr.String(addr),
+						attrConnectionStartNetwork.String(network),
+					),
+				)
+			}
+			tc.ConnectDone = func(network, addr string, err error) {
+				connectSpan.SetAttributes(
+					attrConnectionDoneAddr.String(addr),
+					attrConnectionDoneNetwork.String(network),
+				)
+				if err != nil {
+					connectSpan.RecordError(err)
+					connectSpan.SetStatus(codes.Error, err.Error())
+				}
+				connectSpan.End()
+			}
+		}
+		// httptrace: TLS
+		{
+			var tlsSpan otelTrace.Span
+			tc.TLSHandshakeStart = func() {
+				_, tlsSpan = tracer.Start(
+					httpCtx,
+					httpTLSHandshakeSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+				)
+			}
+			tc.TLSHandshakeDone = func(_ tls.ConnectionState, err error) {
+				if err != nil {
+					tlsSpan.RecordError(err)
+					tlsSpan.SetStatus(codes.Error, err.Error())
+				}
+				tlsSpan.End()
+			}
+		}
+		{
+			var headersSpan otelTrace.Span
+			var sendSpan otelTrace.Span
+			tc.WroteHeaderField = func(_ string, _ []string) {
+				// Start headers span at first header
+				if headersSpan == nil {
+					_, headersSpan = tracer.Start(
+						httpCtx,
+						httpHeadersSpanName,
+						otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					)
+				}
+			}
+			tc.WroteHeaders = func() {
+				// End headers span, if any
+				if headersSpan == nil {
+					headersSpan.End()
+					headersSpan = nil
+				}
+
+				// Start send span
+				_, sendSpan = tracer.Start(
+					httpCtx,
+					httpSendSpanName,
+					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+				)
+			}
+			tc.WroteRequest = func(info httptrace.WroteRequestInfo) {
+				// End send span
+				if info.Err != nil {
+					sendSpan.RecordError(info.Err)
+					sendSpan.SetStatus(codes.Error, info.Err.Error())
+				}
+				sendSpan.End()
+			}
 		}
 
 		return rootCtx, tc

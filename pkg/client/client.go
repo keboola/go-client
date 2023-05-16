@@ -393,15 +393,36 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		// Send
 		res, err := rt.wrapped.RoundTrip(req)
 
-		// Trace request done
+		// Trace response
+		if rt.trace != nil && rt.trace.HTTPResponse != nil {
+			rt.trace.HTTPResponse(res, err)
+		}
+
+		// Track request done
 		if rt.trace != nil && rt.trace.HTTPRequestDone != nil {
-			rt.trace.HTTPRequestDone(res, err)
+			if err != nil || res.Body == nil || res.Body == http.NoBody {
+				// Error or empty body
+				rt.trace.HTTPRequestDone(res, 0, err)
+			} else {
+				// Wrap body
+				res.Body = &bodyWrapper{
+					ReadCloser: res.Body,
+					onClose: func(read int64, err error) {
+						rt.trace.HTTPRequestDone(res, read, err)
+					},
+				}
+			}
 		}
 
 		// Check if we should retry
 		if rt.retry.Condition == nil || !rt.retry.Condition(res, err) || attempt >= rt.retry.Count {
 			// No retry
 			return res, err
+		}
+
+		// Close body before retry, it won't be used
+		if res != nil && res.Body != nil {
+			_ = res.Body.Close()
 		}
 
 		// Get next delay
@@ -452,6 +473,37 @@ type errorWithRequest interface {
 type errorWithResponse interface {
 	error
 	SetResponse(response *http.Response)
+}
+
+// bodyWrapper wraps a http.Request.Body (an io.ReadCloser) to track the number
+// of bytes read and the last error.
+type bodyWrapper struct {
+	io.ReadCloser
+	onClose func(read int64, err error)
+	read    int64
+	err     error
+}
+
+func (w *bodyWrapper) Read(b []byte) (int, error) {
+	n, err := w.ReadCloser.Read(b)
+	w.read += int64(n)
+	w.err = err
+	return n, err
+}
+
+func (w *bodyWrapper) Close() error {
+	err := w.ReadCloser.Close()
+	if w.err == nil {
+		w.err = err
+	}
+	if w.onClose != nil {
+		var bodyErr error
+		if err != nil && !errors.Is(err, io.EOF) {
+			bodyErr = w.err
+		}
+		w.onClose(w.read, bodyErr)
+	}
+	return err
 }
 
 func urlError(req *http.Request, err error) *url.Error {
