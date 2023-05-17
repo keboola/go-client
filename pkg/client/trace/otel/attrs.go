@@ -28,7 +28,9 @@ const (
 )
 
 type attributes struct {
-	config config
+	config        config
+	definitionURL *url.URL
+	httpURL       *url.URL
 	// definition attributes for span and metrics
 	definition []attribute.KeyValue
 	// definitionExtra attributes for span only
@@ -94,6 +96,7 @@ func newAttributes(cfg config, reqDef request.HTTPRequest) *attributes {
 			out.redactedPathValues = append(out.redactedPathValues, value)
 			if _, found := cfg.redactedPathParams[strings.ToLower(key)]; found {
 				value = maskedAttrValue
+				reqURL.Path = strings.ReplaceAll(reqURL.Path, value, maskedURLPart)
 			}
 			pathAttrs = append(pathAttrs, attribute.String(attrDefPathParam+key, value))
 		}
@@ -103,6 +106,7 @@ func newAttributes(cfg config, reqDef request.HTTPRequest) *attributes {
 	}
 
 	// Base
+	out.definitionURL = reqURL
 	out.definition = []attribute.KeyValue{
 		attribute.String("definition.method", reqDef.Method()),
 		attribute.String("definition.result.type", resultType),
@@ -131,6 +135,7 @@ func newAttributes(cfg config, reqDef request.HTTPRequest) *attributes {
 
 func (v *attributes) SetFromRequest(reqOriginal *http.Request) {
 	if reqOriginal == nil {
+		v.httpURL = nil
 		v.httpRequest = nil
 		v.httpRequestExtra = nil
 		return
@@ -144,7 +149,7 @@ func (v *attributes) SetFromRequest(reqOriginal *http.Request) {
 
 	// Replace redacted values in the URL path
 	for _, value := range v.redactedPathValues {
-		reqVal.URL.Path = strings.ReplaceAll(reqVal.URL.Path, value, maskedURLPart)
+		req.URL.Path = strings.ReplaceAll(req.URL.Path, value, maskedURLPart)
 	}
 
 	// Query params
@@ -191,6 +196,7 @@ func (v *attributes) SetFromRequest(reqOriginal *http.Request) {
 	}
 
 	// Base
+	v.httpURL = req.URL
 	v.httpRequest = httpconv.ClientRequest(req)
 
 	// Extra

@@ -308,6 +308,7 @@ func expectedSpans() tracetest.SpanStubs {
 			SpanContext:    clientReqSpanContext,
 			ChildSpanCount: 10,
 			Attributes: []attribute.KeyValue{
+				attribute.String("resource.name", "/{secret1}/redirect1"),
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
 				attribute.String("definition.method", "GET"),
@@ -338,6 +339,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/..../redirect1"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", "1.1"),
 				attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=bar&secret2=...."),
@@ -365,6 +367,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/redirect2"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/redirect2"),
@@ -395,6 +398,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/index"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/index"),
@@ -453,6 +457,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/index"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/index"),
@@ -513,6 +518,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/index"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/index"),
@@ -570,6 +576,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
+				attribute.String("resource.name", "/index"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/index"),

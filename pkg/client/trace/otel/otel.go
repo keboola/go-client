@@ -48,7 +48,8 @@ import (
 )
 
 const (
-	traceAppName = "github.com/keboola/go-client"
+	traceAppName     = "github.com/keboola/go-client"
+	attrResourceName = attribute.Key("resource.name")
 	// HttpPrefix: low-level span and metrics, for each redirect and retry.
 	httpPrefix                 = "http."
 	httpRequestSpanName        = httpPrefix + "request"
@@ -117,6 +118,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				clientRequestSpanName,
 				otelTrace.WithSpanKind(otelTrace.SpanKindClient),
 				otelTrace.WithAttributes(
+					attrResourceName.String(attrs.definitionURL.Path),
 					attrSpanKind.String(attrSpanKindValueClient),
 					attrSpanType.String(attrSpanTypeValueHTTP),
 				),
@@ -180,9 +182,12 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 					cfg.propagators.Inject(httpCtx, propagation.HeaderCarrier(req.Header))
 				}
 
-				// Metrics
+				// Attrs
 				httpRequestStart = time.Now()
 				attrs.SetFromRequest(req)
+				httpRequestSpan.SetAttributes(attrResourceName.String(attrs.httpURL.Path))
+
+				// Metrics
 				meters.http.inFlight.Add(rootCtx, 1, otelMetric.WithAttributes(attrs.httpRequest...))
 
 				// Tracing
@@ -397,6 +402,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				tlsSpan.End()
 			}
 		}
+		// httptrace: headers, send
 		{
 			var headersSpan otelTrace.Span
 			var sendSpan otelTrace.Span
