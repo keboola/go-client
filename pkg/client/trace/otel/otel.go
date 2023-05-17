@@ -39,6 +39,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	otelMetric "go.opentelemetry.io/otel/metric"
 	metricNoop "go.opentelemetry.io/otel/metric/noop"
+	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	otelTrace "go.opentelemetry.io/otel/trace"
 
@@ -174,27 +175,19 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 					),
 				)
 
+				// Inject trace headers
+				if cfg.propagators != nil {
+					cfg.propagators.Inject(httpCtx, propagation.HeaderCarrier(req.Header))
+				}
+
 				// Metrics
 				httpRequestStart = time.Now()
 				attrs.SetFromRequest(req)
 				meters.http.inFlight.Add(rootCtx, 1, otelMetric.WithAttributes(attrs.httpRequest...))
 
 				// Tracing
-				if retryDelaySpan != nil {
-					retryDelaySpan.End()
-					retryDelaySpan = nil
-				}
-				httpCtx, httpRequestSpan = tracer.Start(
-					rootCtx,
-					httpRequestSpanName,
-					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
-					otelTrace.WithAttributes(
-						attrSpanKind.String(attrSpanKindValueClient),
-						attrSpanType.String(attrSpanTypeValueHTTP),
-					),
-					otelTrace.WithAttributes(attrs.httpRequest...),
-					otelTrace.WithAttributes(attrs.httpRequestExtra...),
-				)
+				httpRequestSpan.SetAttributes(attrs.httpRequest...)
+				httpRequestSpan.SetAttributes(attrs.httpRequestExtra...)
 			}
 			tc.HTTPResponse = func(res *http.Response, err error) {
 				attrs.SetFromResponse(res, err)

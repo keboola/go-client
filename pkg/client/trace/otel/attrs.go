@@ -205,23 +205,28 @@ func (v *attributes) SetFromResponse(res *http.Response, err error) {
 		v.httpResponse = nil
 		v.httpResponseExtra = nil
 	} else {
+		// Headers
+		var headerAttrs []attribute.KeyValue
+		{
+			for key, values := range res.Header {
+				key = strings.ToLower(key)
+				value := strings.Join(values, ";")
+				if _, found := v.config.redactedHeaders[key]; found {
+					value = maskedAttrValue
+				}
+				headerAttrs = append(headerAttrs, attribute.String(attrResponseHeader+key, value))
+			}
+			sort.SliceStable(headerAttrs, func(i, j int) bool {
+				return headerAttrs[i].Key < headerAttrs[j].Key
+			})
+		}
+
 		// Base
 		v.httpResponse = httpconv.ClientResponse(res)
 
 		// Extra
-		var attrs []attribute.KeyValue
-		for key, values := range res.Header {
-			key = strings.ToLower(key)
-			value := strings.Join(values, ";")
-			if _, found := v.config.redactedHeaders[key]; found {
-				value = maskedAttrValue
-			}
-			attrs = append(attrs, attribute.String(attrResponseHeader+key, value))
-		}
-		sort.SliceStable(attrs, func(i, j int) bool {
-			return attrs[i].Key < attrs[j].Key
-		})
-		v.httpResponseExtra = append(v.httpResponseExtra, attrs...)
+		v.httpResponseExtra = nil
+		v.httpResponseExtra = append(v.httpResponseExtra, headerAttrs...)
 	}
 
 	// Error

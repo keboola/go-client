@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"go.opentelemetry.io/otel/propagation"
 	"io"
 	"net"
 	"net/http"
@@ -134,6 +135,7 @@ func TestTrace(t *testing.T) {
 			otel.WithRedactedPathParam("secret1"),
 			otel.WithRedactedQueryParam("secret2"),
 			otel.WithRedactedHeaders("X-StorageAPI-Token"),
+			otel.WithPropagators(propagation.TraceContext{}),
 		)
 
 	// Run request
@@ -342,6 +344,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1003000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.String("http.query.foo", "bar"),
 				attribute.String("http.query.secret2", "****"),
@@ -369,6 +372,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/my-secret/redirect1?foo=bar&secret2=my-secret"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1004000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", 301),
 				attribute.String("http.response.header.location", "https://connection.keboola.com/index"),
@@ -398,6 +402,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1005000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 			},
 			Events: []trace.Event{
@@ -455,6 +460,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1007000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusLocked),
 			},
@@ -514,6 +520,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1009000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusTooManyRequests),
 			},
@@ -570,6 +577,7 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.user_agent", "keboola-go-client"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-100b000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusOK),
 				attribute.Int64("http.read_bytes", 2),
