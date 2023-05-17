@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/keboola/go-client/pkg/request"
 )
@@ -208,10 +210,22 @@ func (a *API) getQueueJobRequest(id JobID) request.APIRequest[*QueueJob] {
 }
 
 // WaitForQueueJob pulls job status until it is completed.
-func (a *API) WaitForQueueJob(ctx context.Context, id JobID) error {
+func (a *API) WaitForQueueJob(ctx context.Context, id JobID) (err error) {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")
+	}
+
+	if tracer, found := request.APIRequestTracerFromContext(ctx); found {
+		var span trace.Span
+		ctx, span = tracer.Start(ctx, "keboola.go.api.client.waitFor.queueJob")
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+			span.End()
+		}()
 	}
 
 	retry := newQueueJobBackoff()
