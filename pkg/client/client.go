@@ -28,13 +28,17 @@ import (
 	"github.com/keboola/go-client/pkg/request"
 )
 
-const RetryAttemptContextKey = ContextKey("retryAttempt")
+const (
+	RetryAttemptContextKey = ContextKey("retryAttempt")
+	traceAppName           = "github.com/keboola/go-client"
+)
 
 type ContextKey string
 
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
+	tracer         otelTrace.Tracer
 	transport      http.RoundTripper
 	baseURL        *url.URL
 	header         http.Header
@@ -104,6 +108,9 @@ func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProv
 	if tracerProvider == nil && meterProvider == nil {
 		return c
 	}
+	if tracerProvider != nil {
+		c.tracer = tracerProvider.Tracer(traceAppName)
+	}
 	return c.AndTrace(otel.NewTrace(tracerProvider, meterProvider, opts...))
 }
 
@@ -112,6 +119,11 @@ func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProv
 func (c Client) AndTrace(fn trace.Factory) Client {
 	c.traceFactories = append(c.traceFactories, fn)
 	return c
+}
+
+// Tracer returns registered tracer, if any.
+func (c Client) Tracer() otelTrace.Tracer {
+	return c.tracer
 }
 
 // Send method sends HTTP request and returns HTTP response, it implements the Sender interface.

@@ -3,6 +3,21 @@ package request
 import (
 	"context"
 	"fmt"
+	"reflect"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+)
+
+const (
+	APIRequestSpanName     = "keboola.go.api.client.request"
+	apiRequestTracerCtxKey = ctxKey("api-request-tracer")
+	// extra attributes for DataDog.
+	attrSpanKind            = "span.kind"
+	attrSpanKindValueClient = "client"
+	attrSpanType            = "span.type"
+	attrSpanTypeValueHTTP   = "http"
 )
 
 // APIRequest with response mapped to the generic type R.
@@ -23,6 +38,12 @@ type APIRequest[R Result] interface {
 
 type ParallelAPIRequests []Sendable
 
+type withTracer interface {
+	Tracer() trace.Tracer
+}
+
+type ctxKey string
+
 // Parallel wraps parallel requests to one Sendable interface.
 func Parallel(requests ...Sendable) ParallelAPIRequests {
 	return requests
@@ -34,6 +55,11 @@ func (v ParallelAPIRequests) SendOrErr(ctx context.Context) error {
 		wg.Send(r)
 	}
 	return wg.Wait()
+}
+
+func APIRequestTracerFromContext(ctx context.Context) (trace.Tracer, bool) {
+	tracer, found := ctx.Value(apiRequestTracerCtxKey).(trace.Tracer)
+	return tracer, found
 }
 
 // NewAPIRequest creates an API request with the result mapped to the R type.
@@ -90,6 +116,38 @@ func (r apiRequest[R]) WithOnError(fn func(ctx context.Context, err error) error
 }
 
 func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
+	// Telemetry
+	if len(r.requests) > 0 {
+		if tp, ok := r.requests[0].(withTracer); ok {
+			if tracer := tp.Tracer(); tracer != nil {
+				var resultType string
+				if v := reflect.TypeOf(r.result); v != nil {
+					resultType = v.String()
+				}
+				var span trace.Span
+				ctx, span = tracer.Start(
+					ctx,
+					APIRequestSpanName,
+					trace.WithSpanKind(trace.SpanKindClient),
+					trace.WithAttributes(
+						attribute.String(attrSpanKind, attrSpanKindValueClient),
+						attribute.String(attrSpanType, attrSpanTypeValueHTTP),
+						attribute.Int("api.requests_count", len(r.requests)),
+						attribute.String("api.result_type", resultType),
+					),
+				)
+				ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
+				defer func() {
+					if err != nil {
+						span.RecordError(err)
+						span.SetStatus(codes.Error, err.Error())
+					}
+					span.End()
+				}()
+			}
+		}
+	}
+
 	// Stop if context has been cancelled
 	if err := ctx.Err(); err != nil {
 		return r.result, err
