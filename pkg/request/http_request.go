@@ -35,6 +35,8 @@ type HTTPRequest interface {
 	WithBaseURL(baseURL string) HTTPRequest
 	// WithURL method sets the URL.
 	WithURL(url string) HTTPRequest
+	// WithURLValue method sets the URL.
+	WithURLValue(url *url.URL) HTTPRequest
 	// AndHeader method sets a single header field and its value.
 	AndHeader(header string, value string) HTTPRequest
 	// AndQueryParam method sets single parameter and its value.
@@ -190,6 +192,11 @@ func (r httpRequest) WithURL(urlStr string) HTTPRequest {
 	} else {
 		panic(fmt.Errorf(`url "%s" is not valid :%w`, urlStr, err))
 	}
+	return r
+}
+
+func (r httpRequest) WithURLValue(v *url.URL) HTTPRequest {
+	r.url = v
 	return r
 }
 

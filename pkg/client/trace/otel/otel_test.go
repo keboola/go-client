@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"go.opentelemetry.io/otel/propagation"
 	"io"
 	"net"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	export "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -86,9 +86,8 @@ func TestSimpleRealRequest(t *testing.T) {
 	)
 
 	// Create client
-	transport := client.HTTP2Transport()
 	c := client.New().
-		WithTransport(transport).
+		WithTransport(client.DefaultTransport()).
 		WithRetry(client.RetryConfig{
 			Condition:     client.DefaultRetryCondition(),
 			Count:         3,
@@ -129,8 +128,12 @@ func TestSimpleRealRequest(t *testing.T) {
 	}
 	assert.Equal(t, []string{
 		"keboola.go.api.client.request",
-		"keboola.go.http.client.request",
-		"http.request", "http.getconn",
+		"keboola.go.client.request",
+		"http.request",
+		"http.getconn",
+		"http.dns",
+		"http.connect",
+		"http.tls",
 		"http.headers",
 		"http.send",
 		"http.receive",
@@ -150,12 +153,12 @@ func TestSimpleRealRequest(t *testing.T) {
 		metricsNames = append(metricsNames, m.Name)
 	}
 	assert.Equal(t, []string{
-		"http.request.duration",
-		"http.request.in_flight",
-		"keboola.go.http.client.request.duration",
-		"keboola.go.http.client.request.in_flight",
-		"keboola.go.http.client.request.parse.duration",
-		"keboola.go.http.client.request.parse.in_flight",
+		"keboola.go.client.request.duration",
+		"keboola.go.client.request.in_flight",
+		"keboola.go.client.request.parse.duration",
+		"keboola.go.client.request.parse.in_flight",
+		"keboola.go.http.request.duration",
+		"keboola.go.http.request.in_flight",
 	}, metricsNames)
 }
 
@@ -220,6 +223,7 @@ func TestComplexMockedRequest(t *testing.T) {
 	// Create client
 	c := client.New().
 		WithTransport(transport).
+		WithBaseURL("https://connection.keboola.com").
 		WithRetry(client.RetryConfig{
 			Condition:     client.DefaultRetryCondition(),
 			Count:         3,
@@ -238,7 +242,7 @@ func TestComplexMockedRequest(t *testing.T) {
 	// Run request
 	str := ""
 	httpRequest := request.NewHTTPRequest(c).
-		WithGet("https://connection.keboola.com/{secret1}/redirect1").
+		WithGet("/{secret1}/redirect1").
 		AndPathParam("secret1", "my-secret").
 		AndQueryParam("foo", "bar").
 		AndQueryParam("secret2", "my-secret").
@@ -292,14 +296,14 @@ func actualMetrics(t *testing.T, ctx context.Context, reader metric.Reader) []me
 
 	// DataPoints have random order, sort them by statusCode and URL.
 	keyOrder := map[string]int{
-		"0:https://connection.keboola.com/..../redirect1?foo=bar&secret2=....":   1,
-		"301:https://connection.keboola.com/..../redirect1?foo=bar&secret2=....": 2,
-		"0:https://connection.keboola.com/redirect2":                             3,
-		"301:https://connection.keboola.com/redirect2":                           4,
-		"0:https://connection.keboola.com/index":                                 5,
-		"423:https://connection.keboola.com/index":                               6,
-		"429:https://connection.keboola.com/index":                               7,
-		"200:https://connection.keboola.com/index":                               8,
+		"0:https://connection.keboola.com/..../redirect1?foo=....&secret2=....":   1,
+		"301:https://connection.keboola.com/..../redirect1?foo=....&secret2=....": 2,
+		"0:https://connection.keboola.com/redirect2":                              3,
+		"301:https://connection.keboola.com/redirect2":                            4,
+		"0:https://connection.keboola.com/index":                                  5,
+		"423:https://connection.keboola.com/index":                                6,
+		"429:https://connection.keboola.com/index":                                7,
+		"200:https://connection.keboola.com/index":                                8,
 	}
 	dataPointKey := func(attrs attribute.Set) string {
 		status, _ := attrs.Value("http.status_code")
@@ -383,6 +387,11 @@ func expectedSpans() tracetest.SpanStubs {
 		SpanID:     toSpanID(testSpanIDBase + 2),
 		TraceFlags: otelTrace.FlagsSampled,
 	})
+	httpReqSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
+		TraceID:    toTraceID(testTraceID),
+		SpanID:     toSpanID(testSpanIDBase + 11),
+		TraceFlags: otelTrace.FlagsSampled,
+	})
 	return tracetest.SpanStubs{
 		// API request span
 		{
@@ -394,32 +403,34 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
 				attribute.Int("api.requests_count", 1),
-				attribute.String("api.result_type", "*string"),
+				attribute.String("http.result_type", "*string"),
+				attribute.String("resource.name", "otel_test.TestComplexMockedRequest"),
+				attribute.String("api.request_defined_in", "otel_test.TestComplexMockedRequest"),
 			},
 		},
 		// HTTP client request span
 		{
-			Name:           "keboola.go.http.client.request",
+			Name:           "keboola.go.client.request",
 			SpanKind:       otelTrace.SpanKindClient,
 			Parent:         apiSpanContext,
 			SpanContext:    clientReqSpanContext,
-			ChildSpanCount: 10,
+			ChildSpanCount: 9,
 			Attributes: []attribute.KeyValue{
 				attribute.String("resource.name", "/{secret1}/redirect1"),
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
-				attribute.String("definition.method", "GET"),
-				attribute.String("definition.result.type", "*string"),
-				attribute.String("definition.url.scheme", "https"),
-				attribute.String("definition.url.path", "/{secret1}/redirect1"),
-				attribute.String("definition.url.full", "https://connection.keboola.com/{secret1}/redirect1"),
-				attribute.String("definition.url.host.full", "connection.keboola.com"),
-				attribute.String("definition.url.host.prefix", "connection"),
-				attribute.String("definition.url.host.suffix", "keboola.com"),
-				attribute.String("definition.header.X-Storageapi-Token", "****"),
-				attribute.String("definition.params.path.secret1", "****"),
-				attribute.String("definition.params.query.foo", "bar"),
-				attribute.String("definition.params.query.secret2", "****"),
+				attribute.String("http.result_type", "*string"),
+				attribute.String("http.method", "GET"),
+				attribute.String("http.url", "https://connection.keboola.com/{secret1}/redirect1"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/{secret1}/redirect1"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
+				attribute.String("http.header.X-Storageapi-Token", "****"),
+				attribute.String("http.url.path_params.secret1", "****"),
+				attribute.String("http.query.foo", "bar"),
+				attribute.String("http.query.secret2", "****"),
 				attribute.Int("http.status_code", 200),
 			},
 		},
@@ -439,16 +450,23 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("resource.name", "/..../redirect1"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", "1.1"),
-				attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=bar&secret2=...."),
+				attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=....&secret2=...."),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/..../redirect1"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1003000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.String("http.query.foo", "bar"),
 				attribute.String("http.query.secret2", "****"),
 				attribute.Int("http.status_code", 301),
+				attribute.Bool("http.is_redirection", true),
 				attribute.String("http.response.header.location", "https://connection.keboola.com/redirect2"),
+				attribute.Int64("http.read_bytes", 0),
 			},
 		},
 		// Redirect 2
@@ -470,12 +488,19 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/redirect2"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/redirect2"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/my-secret/redirect1?foo=bar&secret2=my-secret"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1004000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", 301),
+				attribute.Bool("http.is_redirection", true),
 				attribute.String("http.response.header.location", "https://connection.keboola.com/index"),
+				attribute.Int64("http.read_bytes", 0),
 			},
 		},
 		// Network Error
@@ -501,10 +526,17 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1005000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
+				attribute.String("http.error_type", "net"),
+				attribute.Int64("http.read_bytes", 0),
 			},
 			Events: []trace.Event{
 				{
@@ -518,7 +550,7 @@ func expectedSpans() tracetest.SpanStubs {
 		},
 		// Retry delay 1
 		{
-			Name:     "keboola.go.http.client.retry.delay",
+			Name:     "keboola.go.client.retry.delay",
 			SpanKind: otelTrace.SpanKindClient,
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
@@ -532,6 +564,12 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
+				attribute.String("http.error_type", "net"),
 				attribute.Int("api.request.retry.attempt", 1),
 				attribute.Int("api.request.retry.delay_ms", 1),
 				attribute.String("api.request.retry.delay_string", "1ms"),
@@ -549,7 +587,7 @@ func expectedSpans() tracetest.SpanStubs {
 			}),
 			Status: trace.Status{
 				Code:        codes.Error,
-				Description: "HTTP status code 423",
+				Description: "HTTP status code: 423 Locked",
 			},
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
@@ -560,25 +598,32 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1007000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusLocked),
+				attribute.String("http.error_type", "http_4xx_code"),
+				attribute.Int64("http.read_bytes", 0),
 			},
 			Events: []trace.Event{
 				{
 					Name: "exception",
 					Attributes: []attribute.KeyValue{
 						attribute.String("exception.type", "*errors.errorString"),
-						attribute.String("exception.message", "HTTP status code 423"),
+						attribute.String("exception.message", "HTTP status code: 423 Locked"),
 					},
 				},
 			},
 		},
 		// Retry delay 2
 		{
-			Name:     "keboola.go.http.client.retry.delay",
+			Name:     "keboola.go.client.retry.delay",
 			SpanKind: otelTrace.SpanKindClient,
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
@@ -592,7 +637,13 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.Int("http.status_code", 423),
+				attribute.String("http.error_type", "http_4xx_code"),
 				attribute.Int("api.request.retry.attempt", 2),
 				attribute.Int("api.request.retry.delay_ms", 2),
 				attribute.String("api.request.retry.delay_string", "2ms"),
@@ -610,7 +661,7 @@ func expectedSpans() tracetest.SpanStubs {
 			}),
 			Status: trace.Status{
 				Code:        codes.Error,
-				Description: "HTTP status code 429",
+				Description: "HTTP status code: 429 Too Many Requests",
 			},
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
@@ -621,25 +672,32 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1009000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusTooManyRequests),
+				attribute.String("http.error_type", "http_4xx_code"),
+				attribute.Int64("http.read_bytes", 0),
 			},
 			Events: []trace.Event{
 				{
 					Name: "exception",
 					Attributes: []attribute.KeyValue{
 						attribute.String("exception.type", "*errors.errorString"),
-						attribute.String("exception.message", "HTTP status code 429"),
+						attribute.String("exception.message", "HTTP status code: 429 Too Many Requests"),
 					},
 				},
 			},
 		},
 		// Retry delay 3
 		{
-			Name:     "keboola.go.http.client.retry.delay",
+			Name:     "keboola.go.client.retry.delay",
 			SpanKind: otelTrace.SpanKindClient,
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
@@ -653,7 +711,13 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.Int("http.status_code", 429),
+				attribute.String("http.error_type", "http_4xx_code"),
 				attribute.Int("api.request.retry.attempt", 3),
 				attribute.Int("api.request.retry.delay_ms", 4),
 				attribute.String("api.request.retry.delay_string", "4ms"),
@@ -665,11 +729,7 @@ func expectedSpans() tracetest.SpanStubs {
 			SpanKind:       otelTrace.SpanKindClient,
 			ChildSpanCount: 1,
 			Parent:         clientReqSpanContext,
-			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
-				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 11),
-				TraceFlags: otelTrace.FlagsSampled,
-			}),
+			SpanContext:    httpReqSpanContext,
 			Attributes: []attribute.KeyValue{
 				attribute.String("span.kind", "client"),
 				attribute.String("span.type", "http"),
@@ -679,6 +739,11 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
 				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-100b000000000000-01"),
@@ -687,49 +752,27 @@ func expectedSpans() tracetest.SpanStubs {
 				attribute.Int64("http.read_bytes", 2),
 			},
 		},
-		// Http receive
+		// Body parse
 		{
-			Name:     "http.receive",
+			Name:     "http.request.body.parse",
 			SpanKind: otelTrace.SpanKindClient,
-			Parent: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
-				// HTTP request span
-				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 11),
-				TraceFlags: otelTrace.FlagsSampled,
-			}),
+			Parent:   httpReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
 				SpanID:     toSpanID(testSpanIDBase + 12),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
-				attribute.Int64("http.read_bytes", 2),
-			},
-		},
-		// Body parse
-		{
-			Name:     "http.request.body.parse",
-			SpanKind: otelTrace.SpanKindClient,
-			Parent:   clientReqSpanContext,
-			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
-				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 13),
-				TraceFlags: otelTrace.FlagsSampled,
-			}),
-			Attributes: []attribute.KeyValue{
-				attribute.String("definition.method", "GET"),
-				attribute.String("definition.result.type", "*string"),
-				attribute.String("definition.url.scheme", "https"),
-				attribute.String("definition.url.path", "/{secret1}/redirect1"),
-				attribute.String("definition.url.full", "https://connection.keboola.com/{secret1}/redirect1"),
-				attribute.String("definition.url.host.full", "connection.keboola.com"),
-				attribute.String("definition.url.host.prefix", "connection"),
-				attribute.String("definition.url.host.suffix", "keboola.com"),
 				attribute.String("http.method", "GET"),
 				attribute.String("http.flavor", ""), // missing because the mocked transport is used
 				attribute.String("http.url", "https://connection.keboola.com/index"),
 				attribute.String("net.peer.name", "connection.keboola.com"),
 				attribute.String("http.user_agent", "keboola-go-client"),
+				attribute.String("http.url_details.scheme", "https"),
+				attribute.String("http.url_details.path", "/index"),
+				attribute.String("http.url_details.host", "connection.keboola.com"),
+				attribute.String("http.url_details.host_prefix", "connection"),
+				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.Int("http.status_code", http.StatusOK),
 				attribute.Int64("http.read_bytes", 2),
 			},
@@ -739,39 +782,39 @@ func expectedSpans() tracetest.SpanStubs {
 
 func expectedMetrics() []metricdata.Metrics {
 	attrsRequestDefinition := attribute.NewSet(
-		attribute.String("definition.method", "GET"),
-		attribute.String("definition.result.type", "*string"),
-		attribute.String("definition.url.scheme", "https"),
-		attribute.String("definition.url.path", "/{secret1}/redirect1"),
-		attribute.String("definition.url.full", "https://connection.keboola.com/{secret1}/redirect1"),
-		attribute.String("definition.url.host.full", "connection.keboola.com"),
-		attribute.String("definition.url.host.prefix", "connection"),
-		attribute.String("definition.url.host.suffix", "keboola.com"),
+		attribute.String("http.result_type", "*string"),
+		attribute.String("http.method", "GET"),
+		attribute.String("http.url", "https://connection.keboola.com/{secret1}/redirect1"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/{secret1}/redirect1"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 	)
 	attrsRequestDefinitionWithStatus := attribute.NewSet(
-		attribute.String("definition.method", "GET"),
-		attribute.String("definition.result.type", "*string"),
-		attribute.String("definition.url.scheme", "https"),
-		attribute.String("definition.url.path", "/{secret1}/redirect1"),
-		attribute.String("definition.url.full", "https://connection.keboola.com/{secret1}/redirect1"),
-		attribute.String("definition.url.host.full", "connection.keboola.com"),
-		attribute.String("definition.url.host.prefix", "connection"),
-		attribute.String("definition.url.host.suffix", "keboola.com"),
+		attribute.String("http.result_type", "*string"),
+		attribute.String("http.method", "GET"),
+		attribute.String("http.url", "https://connection.keboola.com/{secret1}/redirect1"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/{secret1}/redirect1"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 200),
 	)
 	attrsRedirect1Status301 := attribute.NewSet(
 		attribute.String("http.method", "GET"),
 		attribute.String("http.flavor", "1.1"),
-		attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=bar&secret2=...."),
+		attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=....&secret2=...."),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/..../redirect1"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 301),
-		attribute.Bool("http.response.isSuccess", true),
-		attribute.Bool("http.response.error.has", false),
-		attribute.Bool("http.response.error.net", false),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
+		attribute.Bool("http.is_redirection", true),
 	)
 	attrsRedirect2Status301 := attribute.NewSet(
 		attribute.String("http.method", "GET"),
@@ -779,13 +822,13 @@ func expectedMetrics() []metricdata.Metrics {
 		attribute.String("http.url", "https://connection.keboola.com/redirect2"),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/redirect2"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 301),
-		attribute.Bool("http.response.isSuccess", true),
-		attribute.Bool("http.response.error.has", false),
-		attribute.Bool("http.response.error.net", false),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
+		attribute.Bool("http.is_redirection", true),
 	)
 	attrsIndexNetworkError := attribute.NewSet(
 		attribute.String("http.method", "GET"),
@@ -793,12 +836,12 @@ func expectedMetrics() []metricdata.Metrics {
 		attribute.String("http.url", "https://connection.keboola.com/index"),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
-		attribute.Bool("http.response.isSuccess", false),
-		attribute.Bool("http.response.error.has", true),
-		attribute.Bool("http.response.error.net", true),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/index"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
+		attribute.String("http.error_type", "net"),
 	)
 	attrsIndexStatus423 := attribute.NewSet(
 		attribute.String("http.method", "GET"),
@@ -806,13 +849,13 @@ func expectedMetrics() []metricdata.Metrics {
 		attribute.String("http.url", "https://connection.keboola.com/index"),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/index"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 423),
-		attribute.Bool("http.response.isSuccess", false),
-		attribute.Bool("http.response.error.has", false),
-		attribute.Bool("http.response.error.net", false),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
+		attribute.String("http.error_type", "http_4xx_code"),
 	)
 	attrsIndexStatus429 := attribute.NewSet(
 		attribute.String("http.method", "GET"),
@@ -820,13 +863,13 @@ func expectedMetrics() []metricdata.Metrics {
 		attribute.String("http.url", "https://connection.keboola.com/index"),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/index"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 429),
-		attribute.Bool("http.response.isSuccess", false),
-		attribute.Bool("http.response.error.has", false),
-		attribute.Bool("http.response.error.net", false),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
+		attribute.String("http.error_type", "http_4xx_code"),
 	)
 	attrsIndexStatus200 := attribute.NewSet(
 		attribute.String("http.method", "GET"),
@@ -834,18 +877,17 @@ func expectedMetrics() []metricdata.Metrics {
 		attribute.String("http.url", "https://connection.keboola.com/index"),
 		attribute.String("net.peer.name", "connection.keboola.com"),
 		attribute.String("http.user_agent", "keboola-go-client"),
+		attribute.String("http.url_details.scheme", "https"),
+		attribute.String("http.url_details.path", "/index"),
+		attribute.String("http.url_details.host", "connection.keboola.com"),
+		attribute.String("http.url_details.host_prefix", "connection"),
+		attribute.String("http.url_details.host_suffix", "keboola.com"),
 		attribute.Int("http.status_code", 200),
-		attribute.Bool("http.response.isSuccess", true),
-		attribute.Bool("http.response.error.has", false),
-		attribute.Bool("http.response.error.net", false),
-		attribute.Bool("http.response.error.timeout", false),
-		attribute.Bool("http.response.error.cancelled", false),
-		attribute.Bool("http.response.error.deadline_exceeded", false),
 	)
 	return []metricdata.Metrics{
-		// High-level metrics keboola.go.http.client.*
+		// High-level metrics keboola.go.client.*
 		{
-			Name:        "keboola.go.http.client.request.in_flight",
+			Name:        "keboola.go.client.request.in_flight",
 			Description: "HTTP client: in flight requests.",
 			Data: metricdata.Sum[int64]{
 				Temporality: 1,
@@ -856,7 +898,7 @@ func expectedMetrics() []metricdata.Metrics {
 			},
 		},
 		{
-			Name:        "keboola.go.http.client.request.duration",
+			Name:        "keboola.go.client.request.duration",
 			Description: "HTTP client: requests duration.",
 			Unit:        "ms",
 			Data: metricdata.Histogram[float64]{
@@ -872,7 +914,7 @@ func expectedMetrics() []metricdata.Metrics {
 		},
 		// Low-level metrics
 		{
-			Name:        "http.request.in_flight",
+			Name:        "keboola.go.http.request.in_flight",
 			Description: "HTTP request: in flight requests.",
 			Data: metricdata.Sum[int64]{
 				Temporality: 1,
@@ -883,9 +925,14 @@ func expectedMetrics() []metricdata.Metrics {
 						Attributes: attribute.NewSet(
 							attribute.String("http.method", "GET"),
 							attribute.String("http.flavor", "1.1"),
-							attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=bar&secret2=...."),
+							attribute.String("http.url", "https://connection.keboola.com/..../redirect1?foo=....&secret2=...."),
 							attribute.String("net.peer.name", "connection.keboola.com"),
 							attribute.String("http.user_agent", "keboola-go-client"),
+							attribute.String("http.url_details.scheme", "https"),
+							attribute.String("http.url_details.path", "/..../redirect1"),
+							attribute.String("http.url_details.host", "connection.keboola.com"),
+							attribute.String("http.url_details.host_prefix", "connection"),
+							attribute.String("http.url_details.host_suffix", "keboola.com"),
 						),
 					},
 					{
@@ -896,6 +943,11 @@ func expectedMetrics() []metricdata.Metrics {
 							attribute.String("http.url", "https://connection.keboola.com/redirect2"),
 							attribute.String("net.peer.name", "connection.keboola.com"),
 							attribute.String("http.user_agent", "keboola-go-client"),
+							attribute.String("http.url_details.scheme", "https"),
+							attribute.String("http.url_details.path", "/redirect2"),
+							attribute.String("http.url_details.host", "connection.keboola.com"),
+							attribute.String("http.url_details.host_prefix", "connection"),
+							attribute.String("http.url_details.host_suffix", "keboola.com"),
 						),
 					},
 					{
@@ -906,13 +958,18 @@ func expectedMetrics() []metricdata.Metrics {
 							attribute.String("http.url", "https://connection.keboola.com/index"),
 							attribute.String("net.peer.name", "connection.keboola.com"),
 							attribute.String("http.user_agent", "keboola-go-client"),
+							attribute.String("http.url_details.scheme", "https"),
+							attribute.String("http.url_details.path", "/index"),
+							attribute.String("http.url_details.host", "connection.keboola.com"),
+							attribute.String("http.url_details.host_prefix", "connection"),
+							attribute.String("http.url_details.host_suffix", "keboola.com"),
 						),
 					},
 				},
 			},
 		},
 		{
-			Name:        "http.request.duration",
+			Name:        "keboola.go.http.request.duration",
 			Description: "HTTP request: response received duration (without parsing).",
 			Unit:        "ms",
 			Data: metricdata.Histogram[float64]{
@@ -953,7 +1010,7 @@ func expectedMetrics() []metricdata.Metrics {
 		},
 		// Body parsing metrics
 		{
-			Name:        "keboola.go.http.client.request.parse.in_flight",
+			Name:        "keboola.go.client.request.parse.in_flight",
 			Description: "HTTP client: in flight request parsing.",
 			Data: metricdata.Sum[int64]{
 				Temporality: 1,
@@ -964,7 +1021,7 @@ func expectedMetrics() []metricdata.Metrics {
 			},
 		},
 		{
-			Name:        "keboola.go.http.client.request.parse.duration",
+			Name:        "keboola.go.client.request.parse.duration",
 			Description: "HTTP client: request parse duration.",
 			Unit:        "ms",
 			Data: metricdata.Histogram[float64]{

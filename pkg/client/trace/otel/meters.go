@@ -2,6 +2,13 @@ package otel
 
 import otelMetric "go.opentelemetry.io/otel/metric"
 
+const (
+	// Low-level metrics, for each redirect and retry.
+	httpMeterPrefix = "keboola.go.http."
+	// High level metrics.
+	clientMeterPrefix = "keboola.go.client."
+)
+
 type allMeters struct {
 	client clientMeters
 	http   httpMeters
@@ -26,16 +33,16 @@ type parseMeters struct {
 func newMeters(meter otelMetric.Meter) *allMeters {
 	return &allMeters{
 		client: clientMeters{
-			inFlight: upDownCounter(meter, clientPrefix+"request.in_flight", "HTTP client: in flight requests."),
-			duration: histogram(meter, clientPrefix+"request.duration", "HTTP client: requests duration.", "ms"),
+			inFlight: upDownCounter(meter, clientMeterPrefix+"request.in_flight", "HTTP client: in flight requests."),
+			duration: histogram(meter, clientMeterPrefix+"request.duration", "HTTP client: requests duration.", "ms"),
 		},
 		http: httpMeters{
-			inFlight: upDownCounter(meter, httpPrefix+"request.in_flight", "HTTP request: in flight requests."),
-			duration: histogram(meter, httpPrefix+"request.duration", "HTTP request: response received duration (without parsing).", "ms"),
+			inFlight: upDownCounter(meter, httpMeterPrefix+"request.in_flight", "HTTP request: in flight requests."),
+			duration: histogram(meter, httpMeterPrefix+"request.duration", "HTTP request: response received duration (without parsing).", "ms"),
 		},
 		parse: parseMeters{
-			inFlight: upDownCounter(meter, clientPrefix+"request.parse.in_flight", "HTTP client: in flight request parsing."),
-			duration: histogram(meter, clientPrefix+"request.parse.duration", "HTTP client: request parse duration.", "ms"),
+			inFlight: upDownCounter(meter, clientMeterPrefix+"request.parse.in_flight", "HTTP client: in flight request parsing."),
+			duration: histogram(meter, clientMeterPrefix+"request.parse.duration", "HTTP client: request parse duration.", "ms"),
 		},
 	}
 }

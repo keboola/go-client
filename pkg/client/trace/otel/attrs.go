@@ -1,9 +1,6 @@
 package otel
 
 import (
-	"context"
-	"errors"
-	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -19,9 +16,9 @@ import (
 const (
 	maskedAttrValue    = "****"
 	maskedURLPart      = "...."
-	attrDefHeader      = "definition.header."
-	attrDefPathParam   = "definition.params.path."
-	attrDefQueryParam  = "definition.params.query."
+	attrDefHeader      = "http.header."
+	attrDefQueryParam  = "http.query."
+	attrDefPathParam   = "http.url.path_params."
 	attrQueryParam     = "http.query."
 	attrRequestHeader  = "http.header."
 	attrResponseHeader = "http.response.header."
@@ -42,9 +39,7 @@ type attributes struct {
 	// httpResponse attributes for span and metrics
 	httpResponse []attribute.KeyValue
 	// httpResponseExtra attributes for span only
-	httpResponseExtra []attribute.KeyValue
-	// httpResponseError attributes for metrics
-	httpResponseError  []attribute.KeyValue
+	httpResponseExtra  []attribute.KeyValue
 	redactedPathValues []string
 }
 
@@ -90,7 +85,7 @@ func newAttributes(cfg config, reqDef request.HTTPRequest) *attributes {
 	}
 
 	// Path params
-	var pathAttrs []attribute.KeyValue
+	var definitionPathAttrs []attribute.KeyValue
 	{
 		for key, value := range reqDef.PathParams() {
 			out.redactedPathValues = append(out.redactedPathValues, value)
@@ -98,36 +93,36 @@ func newAttributes(cfg config, reqDef request.HTTPRequest) *attributes {
 				value = maskedAttrValue
 				reqURL.Path = strings.ReplaceAll(reqURL.Path, value, maskedURLPart)
 			}
-			pathAttrs = append(pathAttrs, attribute.String(attrDefPathParam+key, value))
+			definitionPathAttrs = append(definitionPathAttrs, attribute.String(attrDefPathParam+key, value))
 		}
-		sort.SliceStable(pathAttrs, func(i, j int) bool {
-			return pathAttrs[i].Key < pathAttrs[j].Key
+		sort.SliceStable(definitionPathAttrs, func(i, j int) bool {
+			return definitionPathAttrs[i].Key < definitionPathAttrs[j].Key
 		})
 	}
 
 	// Base
 	out.definitionURL = reqURL
 	out.definition = []attribute.KeyValue{
-		attribute.String("definition.method", reqDef.Method()),
-		attribute.String("definition.result.type", resultType),
-		attribute.String("definition.url.scheme", reqURL.Scheme),
-		attribute.String("definition.url.path", mustURLPathUnescape(reqURL.Path)),
-		attribute.String("definition.url.full", mustURLPathUnescape(reqURL.String())),
-		attribute.String("definition.url.host.full", reqURL.Host),
+		attribute.String("http.result_type", resultType),
+		attribute.String("http.method", reqDef.Method()),
+		attribute.String("http.url", mustURLPathUnescape(reqURL.String())),
+		attribute.String("http.url_details.scheme", reqURL.Scheme),
+		attribute.String("http.url_details.path", mustURLPathUnescape(reqURL.Path)),
+		attribute.String("http.url_details.host", reqURL.Host),
 	}
 	if dotPos := strings.IndexByte(reqURL.Host, '.'); dotPos > 0 {
 		// Host parts: to trace service name (host prefix) and stack (host suffix).
 		out.definition = append(out.definition,
 			// Host prefix, e.g. "connection", "encryption", "scheduler" ...
-			attribute.String("definition.url.host.prefix", reqURL.Host[:dotPos]),
+			attribute.String("http.url_details.host_prefix", reqURL.Host[:dotPos]),
 			// Host suffix, e.g. "keboola.com"
-			attribute.String("definition.url.host.suffix", strings.TrimLeft(reqURL.Host[dotPos:], ".")),
+			attribute.String("http.url_details.host_suffix", strings.TrimLeft(reqURL.Host[dotPos:], ".")),
 		)
 	}
 
 	// Extra
 	out.definitionExtra = append(out.definitionExtra, headerAttrs...)
-	out.definitionExtra = append(out.definitionExtra, pathAttrs...)
+	out.definitionExtra = append(out.definitionExtra, definitionPathAttrs...)
 	out.definitionExtra = append(out.definitionExtra, queryAttrs...)
 
 	return out
@@ -157,15 +152,18 @@ func (v *attributes) SetFromRequest(reqOriginal *http.Request) {
 	{
 		query := req.URL.Query()
 		for key, values := range query {
+			// Mask redacted params
 			value := strings.Join(values, ";")
 			if _, found := v.config.redactedQueryParams[strings.ToLower(key)]; found {
-				for i := range values {
-					values[i] = maskedURLPart
-				}
-				query[key] = values
 				value = maskedAttrValue
 			}
 			queryAttrs = append(queryAttrs, attribute.String(attrQueryParam+key, value))
+
+			// Remove query values for URL attributes
+			for i := range values {
+				values[i] = maskedURLPart
+			}
+			query[key] = values
 		}
 		sort.SliceStable(queryAttrs, func(i, j int) bool {
 			return queryAttrs[i].Key < queryAttrs[j].Key
@@ -198,6 +196,21 @@ func (v *attributes) SetFromRequest(reqOriginal *http.Request) {
 	// Base
 	v.httpURL = req.URL
 	v.httpRequest = httpconv.ClientRequest(req)
+	v.httpRequest = append(
+		v.httpRequest,
+		attribute.String("http.url_details.scheme", req.URL.Scheme),
+		attribute.String("http.url_details.path", mustURLPathUnescape(req.URL.Path)),
+		attribute.String("http.url_details.host", req.URL.Host),
+	)
+	if dotPos := strings.IndexByte(req.URL.Host, '.'); dotPos > 0 {
+		// Host parts: to trace service name (host prefix) and stack (host suffix).
+		v.httpRequest = append(v.httpRequest,
+			// Host prefix, e.g. "connection", "encryption", "scheduler" ...
+			attribute.String("http.url_details.host_prefix", req.URL.Host[:dotPos]),
+			// Host suffix, e.g. "keboola.com"
+			attribute.String("http.url_details.host_suffix", strings.TrimLeft(req.URL.Host[dotPos:], ".")),
+		)
+	}
 
 	// Extra
 	v.httpRequestExtra = nil
@@ -229,6 +242,9 @@ func (v *attributes) SetFromResponse(res *http.Response, err error) {
 
 		// Base
 		v.httpResponse = httpconv.ClientResponse(res)
+		if isRedirection(res) {
+			v.httpResponse = append(v.httpResponse, attribute.Bool("http.is_redirection", true))
+		}
 
 		// Extra
 		v.httpResponseExtra = nil
@@ -236,15 +252,8 @@ func (v *attributes) SetFromResponse(res *http.Response, err error) {
 	}
 
 	// Error
-	var netErr net.Error
-	errors.As(err, &netErr)
-	v.httpResponseError = []attribute.KeyValue{
-		attribute.Bool("http.response.isSuccess", isSuccess(res, err)),
-		attribute.Bool("http.response.error.has", err != nil),
-		attribute.Bool("http.response.error.net", netErr != nil),
-		attribute.Bool("http.response.error.timeout", netErr != nil && netErr.Timeout()),
-		attribute.Bool("http.response.error.cancelled", errors.Is(err, context.Canceled)),
-		attribute.Bool("http.response.error.deadline_exceeded", errors.Is(err, context.DeadlineExceeded)),
+	if errType := errorType(res, err); errType != "" {
+		v.httpResponse = append(v.httpResponse, attribute.String("http.error_type", errType))
 	}
 }
 

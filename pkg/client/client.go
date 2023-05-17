@@ -137,19 +137,6 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	method := reqDef.Method()
 	reqURL := reqDef.URL()
 
-	// Init trace
-	var tc *trace.ClientTrace
-	for _, fn := range c.traceFactories {
-		oldTrace := tc
-		ctx, tc = fn(ctx, reqDef)
-		tc.Compose(oldTrace)
-	}
-
-	// Replace path parameters
-	for k, v := range reqDef.PathParams() {
-		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
-	}
-
 	// Convert to absolute url
 	if c.baseURL != nil && !reqURL.IsAbs() {
 		reqURL = c.baseURL.ResolveReference(reqURL)
@@ -158,8 +145,21 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		return nil, nil, err
 	}
 
+	// Init trace
+	var tc *trace.ClientTrace
+	for _, fn := range c.traceFactories {
+		oldTrace := tc
+		ctx, tc = fn(ctx, reqDef.WithURLValue(reqURL))
+		tc.Compose(oldTrace)
+	}
+
 	// Set query parameters
 	reqURL.RawQuery = reqDef.QueryParams().Encode()
+
+	// Replace path parameters
+	for k, v := range reqDef.PathParams() {
+		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
+	}
 
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), nil)
@@ -221,17 +221,25 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	}
 
 	// Parse body
-	if tc != nil && tc.BodyParseStart != nil {
-		tc.BodyParseStart(res)
-	}
-	var parseError error
-	result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
-	if tc != nil && tc.BodyParseDone != nil {
-		tc.BodyParseDone(res, result, err, parseError)
-	}
-	if parseError != nil {
-		// Unexpected error
-		err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+	if res != nil && res.Body != nil && res.Body != http.NoBody {
+		// Trace BodyParseStart
+		if tc != nil && tc.BodyParseStart != nil {
+			tc.BodyParseStart(res)
+		}
+
+		// Parse
+		var parseError error
+		result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
+
+		// Trace BodyParseDone
+		if tc != nil && tc.BodyParseDone != nil {
+			tc.BodyParseDone(res, result, err, parseError)
+		}
+
+		// Handle unexpected error
+		if parseError != nil {
+			err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+		}
 	}
 
 	// Generic HTTP error

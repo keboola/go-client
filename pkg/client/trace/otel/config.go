@@ -46,7 +46,6 @@ func WithRedactedHeaders(headers ...string) Option {
 }
 
 func newConfig(opts []Option) config {
-
 	cfg := config{
 		redactedPathParams:  make(map[string]struct{}),
 		redactedQueryParams: make(map[string]struct{}),

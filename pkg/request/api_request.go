@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -13,10 +15,14 @@ import (
 const (
 	APIRequestSpanName     = "keboola.go.api.client.request"
 	apiRequestTracerCtxKey = ctxKey("api-request-tracer")
-	// extra attributes for DataDog.
-	attrSpanKind            = "span.kind"
+	attrResourceName       = attribute.Key("resource.name")
+	attrRequestDefinedIn   = attribute.Key("api.request_defined_in")
+	attrRequestsCount      = attribute.Key("api.requests_count")
+	attrResultType         = attribute.Key("http.result_type")
+	// Extra attributes for DataDog.
+	attrSpanKind            = attribute.Key("span.kind")
 	attrSpanKindValueClient = "client"
-	attrSpanType            = "span.type"
+	attrSpanType            = attribute.Key("span.type")
 	attrSpanTypeValueHTTP   = "http"
 )
 
@@ -68,7 +74,17 @@ func NewAPIRequest[R Result](result R, requests ...Sendable) APIRequest[R] {
 	if len(requests) == 0 {
 		panic(fmt.Errorf("at least one request must be provided"))
 	}
-	return &apiRequest[R]{requests: requests, result: result}
+
+	// Get name of the caller function
+	var definedIn string
+	if pc, _, _, ok := runtime.Caller(1); ok {
+		if details := runtime.FuncForPC(pc); details != nil {
+			fn := details.Name()
+			definedIn = strings.TrimLeft(fn[strings.LastIndex(fn, "/"):], "/")
+		}
+	}
+
+	return &apiRequest[R]{requests: requests, result: result, definedIn: definedIn}
 }
 
 // NewNoOperationAPIRequest returns an APIRequest that immediately returns a Result without calling any HTTPRequest.
@@ -83,6 +99,8 @@ type apiRequest[R Result] struct {
 	before   []func(ctx context.Context) error
 	after    []func(ctx context.Context, result R, err error) error
 	result   R
+	// definedIn is optional name of the function, where the request was defined
+	definedIn string
 }
 
 func (r apiRequest[R]) WithBefore(fn func(ctx context.Context) error) APIRequest[R] {
@@ -120,23 +138,25 @@ func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 	if len(r.requests) > 0 {
 		if tp, ok := r.requests[0].(withTracer); ok {
 			if tracer := tp.Tracer(); tracer != nil {
+				// Get result type as string
 				var resultType string
 				if v := reflect.TypeOf(r.result); v != nil {
 					resultType = v.String()
 				}
+
+				// Create span
 				var span trace.Span
 				ctx, span = tracer.Start(
 					ctx,
 					APIRequestSpanName,
 					trace.WithSpanKind(trace.SpanKindClient),
 					trace.WithAttributes(
-						attribute.String(attrSpanKind, attrSpanKindValueClient),
-						attribute.String(attrSpanType, attrSpanTypeValueHTTP),
-						attribute.Int("api.requests_count", len(r.requests)),
-						attribute.String("api.result_type", resultType),
+						attrSpanKind.String(attrSpanKindValueClient),
+						attrSpanType.String(attrSpanTypeValueHTTP),
+						attrRequestsCount.Int(len(r.requests)),
+						attrResultType.String(resultType),
 					),
 				)
-				ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
 				defer func() {
 					if err != nil {
 						span.RecordError(err)
@@ -144,6 +164,17 @@ func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 					}
 					span.End()
 				}()
+
+				// Add tracer to the context to tracer auxiliary operations, for example "waitForStorageJob"
+				ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
+
+				// Trace name of the function, where the request was defined
+				if r.definedIn != "" {
+					span.SetAttributes(
+						attrResourceName.String(r.definedIn),
+						attrRequestDefinedIn.String(r.definedIn),
+					)
+				}
 			}
 		}
 	}
