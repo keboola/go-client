@@ -418,7 +418,7 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 			}
 			tc.WroteHeaders = func() {
 				// End headers span, if any
-				if headersSpan == nil {
+				if headersSpan != nil {
 					headersSpan.End()
 					headersSpan = nil
 				}
