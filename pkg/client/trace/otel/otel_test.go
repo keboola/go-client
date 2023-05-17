@@ -128,28 +128,27 @@ func TestTrace(t *testing.T) {
 			WaitTimeStart: 1 * time.Millisecond,
 			WaitTimeMax:   20 * time.Millisecond,
 		}).
-		AndTrace(
-			otel.NewTrace(
-				tracerProvider,
-				meterProvider,
-				otel.WithRedactedPathParam("secret1"),
-				otel.WithRedactedQueryParam("secret2"),
-				otel.WithRedactedHeaders("X-StorageAPI-Token"),
-			),
+		WithTelemetry(
+			tracerProvider,
+			meterProvider,
+			otel.WithRedactedPathParam("secret1"),
+			otel.WithRedactedQueryParam("secret2"),
+			otel.WithRedactedHeaders("X-StorageAPI-Token"),
 		)
 
 	// Run request
 	str := ""
-	_, result, err := request.NewHTTPRequest(c).
+	httpRequest := request.NewHTTPRequest(c).
 		WithGet("https://connection.keboola.com/{secret1}/redirect1").
 		AndPathParam("secret1", "my-secret").
 		AndQueryParam("foo", "bar").
 		AndQueryParam("secret2", "my-secret").
 		AndHeader("X-StorageAPI-Token", "my-secret").
-		WithResult(&str).
-		Send(ctx)
+		WithResult(&str)
+	apiRequest := request.NewAPIRequest(&str, httpRequest)
+	result, err := apiRequest.Send(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "OK", *result.(*string))
+	assert.Equal(t, "OK", *result)
 
 	// Assert
 	assert.Equal(t, expectedSpans(), actualSpans(t, traceExporter))
@@ -286,7 +285,20 @@ func expectedSpans() tracetest.SpanStubs {
 		TraceFlags: otelTrace.FlagsSampled,
 	})
 	return tracetest.SpanStubs{
-		// Root span
+		// API request span
+		{
+			Name:           "keboola.go.api.client.request",
+			SpanKind:       otelTrace.SpanKindClient,
+			SpanContext:    apiSpanContext,
+			ChildSpanCount: 1,
+			Attributes: []attribute.KeyValue{
+				attribute.String("span.kind", "client"),
+				attribute.String("span.type", "http"),
+				attribute.Int("api.requests_count", 1),
+				attribute.String("api.result_type", "*string"),
+			},
+		},
+		// HTTP client request span
 		{
 			Name:           "keboola.go.http.client.request",
 			SpanKind:       otelTrace.SpanKindClient,
@@ -318,7 +330,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 2),
+				SpanID:     toSpanID(testSpanIDBase + 3),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -344,7 +356,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 3),
+				SpanID:     toSpanID(testSpanIDBase + 4),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -369,7 +381,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 4),
+				SpanID:     toSpanID(testSpanIDBase + 5),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -405,7 +417,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 5),
+				SpanID:     toSpanID(testSpanIDBase + 6),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -426,7 +438,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 6),
+				SpanID:     toSpanID(testSpanIDBase + 7),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -463,7 +475,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 7),
+				SpanID:     toSpanID(testSpanIDBase + 8),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -485,7 +497,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 8),
+				SpanID:     toSpanID(testSpanIDBase + 9),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -522,7 +534,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 9),
+				SpanID:     toSpanID(testSpanIDBase + 10),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -545,7 +557,7 @@ func expectedSpans() tracetest.SpanStubs {
 			Parent:         clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 10),
+				SpanID:     toSpanID(testSpanIDBase + 11),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
