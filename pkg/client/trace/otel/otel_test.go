@@ -62,7 +62,104 @@ func toSpanID(in uint16) otelTrace.SpanID {
 	return *(*[8]byte)(tmp)
 }
 
-func TestTrace(t *testing.T) {
+func TestSimpleRealRequest(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Setup tracing
+	res, err := resource.New(ctx)
+	assert.NoError(t, err)
+	traceExporter := tracetest.NewInMemoryExporter()
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithSyncer(traceExporter),
+		trace.WithResource(res),
+		trace.WithIDGenerator(&testIDGenerator{}),
+	)
+
+	// Setup metrics
+	metricExporter, err := export.New()
+	assert.NoError(t, err)
+	meterProvider := metric.NewMeterProvider(
+		metric.WithReader(metricExporter),
+		metric.WithResource(res),
+	)
+
+	// Create client
+	transport := client.HTTP2Transport()
+	c := client.New().
+		WithTransport(transport).
+		WithRetry(client.RetryConfig{
+			Condition:     client.DefaultRetryCondition(),
+			Count:         3,
+			WaitTimeStart: 1 * time.Millisecond,
+			WaitTimeMax:   20 * time.Millisecond,
+		}).
+		WithTelemetry(
+			tracerProvider,
+			meterProvider,
+			otel.WithRedactedPathParam("secret1"),
+			otel.WithRedactedQueryParam("secret2"),
+			otel.WithRedactedHeaders("X-StorageAPI-Token"),
+			otel.WithPropagators(propagation.TraceContext{}),
+		)
+
+	// Run request
+	str := ""
+	httpRequest := request.NewHTTPRequest(c).
+		WithGet("https://www.jsontest.com").
+		WithResult(&str)
+	apiRequest := request.NewAPIRequest(&str, httpRequest)
+	result, err := apiRequest.Send(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, *result)
+
+	// Assert spans
+	spans := traceExporter.GetSpans()
+	sort.SliceStable(spans, func(i, j int) bool {
+		return spans[i].SpanContext.SpanID().String() < spans[j].SpanContext.SpanID().String()
+	})
+	var spanNames []string
+	for _, span := range spans {
+		spanNames = append(spanNames, span.Name)
+
+		// All spans must be finished!
+		assert.NotZero(t, span.StartTime)
+		assert.NotZero(t, span.EndTime)
+	}
+	assert.Equal(t, []string{
+		"keboola.go.api.client.request",
+		"keboola.go.http.client.request",
+		"http.request", "http.getconn",
+		"http.headers",
+		"http.send",
+		"http.receive",
+		"http.request.body.parse",
+	}, spanNames)
+
+	// Assert metrics
+	metricsAll := &metricdata.ResourceMetrics{}
+	assert.NoError(t, metricExporter.Collect(ctx, metricsAll))
+	assert.Len(t, metricsAll.ScopeMetrics, 1)
+	metrics := metricsAll.ScopeMetrics[0].Metrics
+	sort.SliceStable(metrics, func(i, j int) bool {
+		return metrics[i].Name < metrics[j].Name
+	})
+	var metricsNames []string
+	for _, m := range metrics {
+		metricsNames = append(metricsNames, m.Name)
+	}
+	assert.Equal(t, []string{
+		"http.request.duration",
+		"http.request.in_flight",
+		"keboola.go.http.client.request.duration",
+		"keboola.go.http.client.request.in_flight",
+		"keboola.go.http.client.request.parse.duration",
+		"keboola.go.http.client.request.parse.in_flight",
+	}, metricsNames)
+}
+
+func TestComplexMockedRequest(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
