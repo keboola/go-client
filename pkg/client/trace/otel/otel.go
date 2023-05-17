@@ -188,6 +188,10 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 					rootCtx,
 					httpRequestSpanName,
 					otelTrace.WithSpanKind(otelTrace.SpanKindClient),
+					otelTrace.WithAttributes(
+						attrSpanKind.String(attrSpanKindValueClient),
+						attrSpanType.String(attrSpanTypeValueHTTP),
+					),
 					otelTrace.WithAttributes(attrs.httpRequest...),
 					otelTrace.WithAttributes(attrs.httpRequestExtra...),
 				)
