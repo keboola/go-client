@@ -24,7 +24,6 @@ func TestDefaultTransport(t *testing.T) {
 	result, err := apiRequest.Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, *result)
-
 }
 
 func TestHTTP2Transport(t *testing.T) {
