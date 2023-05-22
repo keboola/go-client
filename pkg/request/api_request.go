@@ -135,48 +135,46 @@ func (r apiRequest[R]) WithOnError(fn func(ctx context.Context, err error) error
 
 func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 	// Telemetry
-	if len(r.requests) > 0 {
-		if tp, ok := r.requests[0].(withTracer); ok {
-			if tracer := tp.Tracer(); tracer != nil {
-				// Get result type as string
-				var resultType string
-				if v := reflect.TypeOf(r.result); v != nil {
-					resultType = v.String()
-				}
+	// Get parent span, if any, otherwise a noopSpan is returned
+	parentSpan := trace.SpanFromContext(ctx)
 
-				// Create span
-				var span trace.Span
-				ctx, span = tracer.Start(
-					ctx,
-					APIRequestSpanName,
-					trace.WithSpanKind(trace.SpanKindClient),
-					trace.WithAttributes(
-						attrSpanKind.String(attrSpanKindValueClient),
-						attrSpanType.String(attrSpanTypeValueHTTP),
-						attrRequestsCount.Int(len(r.requests)),
-						attrResultType.String(resultType),
-					),
-				)
-				defer func() {
-					if err != nil {
-						span.RecordError(err)
-						span.SetStatus(codes.Error, err.Error())
-					}
-					span.End()
-				}()
+	// Get result type as string
+	var resultType string
+	if v := reflect.TypeOf(r.result); v != nil {
+		resultType = v.String()
+	}
 
-				// Add tracer to the context to tracer auxiliary operations, for example "waitForStorageJob"
-				ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
-
-				// Trace name of the function, where the request was defined
-				if r.definedIn != "" {
-					span.SetAttributes(
-						attrResourceName.String(r.definedIn),
-						attrRequestDefinedIn.String(r.definedIn),
-					)
-				}
-			}
+	// Create span
+	var span trace.Span
+	tracer := parentSpan.TracerProvider().Tracer("go-client-api-request")
+	ctx, span = tracer.Start(
+		ctx,
+		APIRequestSpanName,
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attrSpanKind.String(attrSpanKindValueClient),
+			attrSpanType.String(attrSpanTypeValueHTTP),
+			attrRequestsCount.Int(len(r.requests)),
+			attrResultType.String(resultType),
+		),
+	)
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 		}
+		span.End()
+	}()
+
+	// Add tracer to the context to tracer auxiliary operations, for example "waitForStorageJob"
+	ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
+
+	// Trace name of the function, where the request was defined
+	if r.definedIn != "" {
+		span.SetAttributes(
+			attrResourceName.String(r.definedIn),
+			attrRequestDefinedIn.String(r.definedIn),
+		)
 	}
 
 	// Stop if context has been cancelled

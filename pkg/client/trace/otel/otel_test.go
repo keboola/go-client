@@ -69,7 +69,10 @@ func TestSimpleRealRequest(t *testing.T) {
 			otel.WithPropagators(propagation.TraceContext{}),
 		)
 
-	// Run request
+	// Create a root span
+	ctx, rootSpan := tracerProvider.Tracer("my-app").Start(ctx, "my-root-span")
+
+	// Send request
 	str := ""
 	httpRequest := request.NewHTTPRequest(c).
 		WithGet("https://www.jsontest.com").
@@ -78,6 +81,7 @@ func TestSimpleRealRequest(t *testing.T) {
 	result, err := apiRequest.Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, *result)
+	rootSpan.End()
 
 	// Assert spans
 	spans := traceExporter.GetSpans()
@@ -92,6 +96,7 @@ func TestSimpleRealRequest(t *testing.T) {
 		assert.NotZero(t, span.EndTime)
 	}
 	assert.Equal(t, []string{
+		"my-root-span",
 		"keboola.go.api.client.request",
 		"keboola.go.client.request",
 		"http.request",
@@ -200,7 +205,10 @@ func TestComplexMockedRequest(t *testing.T) {
 			otel.WithPropagators(propagation.TraceContext{}),
 		)
 
-	// Run request
+	// Create a root span
+	ctx, rootSpan := tracerProvider.Tracer("my-app").Start(ctx, "my-root-span")
+
+	// Send request
 	str := ""
 	httpRequest := request.NewHTTPRequest(c).
 		WithPost("/{secret1}/redirect1").
@@ -214,6 +222,7 @@ func TestComplexMockedRequest(t *testing.T) {
 	result, err := apiRequest.Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, testResponseBody, *result)
+	rootSpan.End()
 
 	// Get expected and actual spans and metrics
 	expectedSpans := getExpectedSpans()
@@ -388,26 +397,39 @@ func cleanAndSortMetrics(metrics []metricdata.Metrics) {
 
 func getExpectedSpans() tracetest.SpanStubs {
 	// Note: "httptrace" spans are not included, they are not created by the mocked transport.
-	apiSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
+	appRootSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 		TraceID:    toTraceID(testTraceID),
 		SpanID:     toSpanID(testSpanIDBase + 1),
 		TraceFlags: otelTrace.FlagsSampled,
 	})
-	clientReqSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
+	apiSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 		TraceID:    toTraceID(testTraceID),
 		SpanID:     toSpanID(testSpanIDBase + 2),
 		TraceFlags: otelTrace.FlagsSampled,
 	})
+	clientReqSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
+		TraceID:    toTraceID(testTraceID),
+		SpanID:     toSpanID(testSpanIDBase + 3),
+		TraceFlags: otelTrace.FlagsSampled,
+	})
 	httpReqSpanContext := otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 		TraceID:    toTraceID(testTraceID),
-		SpanID:     toSpanID(testSpanIDBase + 11),
+		SpanID:     toSpanID(testSpanIDBase + 12),
 		TraceFlags: otelTrace.FlagsSampled,
 	})
 	return tracetest.SpanStubs{
+		// APP root span
+		{
+			Name:           "my-root-span",
+			SpanKind:       otelTrace.SpanKindInternal,
+			SpanContext:    appRootSpanContext,
+			ChildSpanCount: 1,
+		},
 		// API request span
 		{
 			Name:           "keboola.go.api.client.request",
 			SpanKind:       otelTrace.SpanKindClient,
+			Parent:         appRootSpanContext,
 			SpanContext:    apiSpanContext,
 			ChildSpanCount: 1,
 			Attributes: []attribute.KeyValue{
@@ -452,7 +474,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 3),
+				SpanID:     toSpanID(testSpanIDBase + 4),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -470,7 +492,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_prefix", "connection"),
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1003000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1004000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.String("http.query.foo", "bar"),
 				attribute.String("http.query.secret2", "****"),
@@ -488,7 +510,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 4),
+				SpanID:     toSpanID(testSpanIDBase + 5),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -507,7 +529,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/my-secret/redirect1?foo=bar&secret2=my-secret"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1004000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1005000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", 301),
 				attribute.Bool("http.is_redirection", true),
@@ -523,7 +545,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 5),
+				SpanID:     toSpanID(testSpanIDBase + 6),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -546,7 +568,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1005000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1006000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.String("http.error_type", "net"),
 				attribute.Int64("http.wrote_bytes", 0),
@@ -569,7 +591,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 6),
+				SpanID:     toSpanID(testSpanIDBase + 7),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -596,7 +618,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 7),
+				SpanID:     toSpanID(testSpanIDBase + 8),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -619,7 +641,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1007000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1008000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusLocked),
 				attribute.String("http.error_type", "http_4xx_code"),
@@ -643,7 +665,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 8),
+				SpanID:     toSpanID(testSpanIDBase + 9),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -671,7 +693,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 9),
+				SpanID:     toSpanID(testSpanIDBase + 10),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Status: trace.Status{
@@ -694,7 +716,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-1009000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-100a000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusTooManyRequests),
 				attribute.String("http.error_type", "http_4xx_code"),
@@ -718,7 +740,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   clientReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 10),
+				SpanID:     toSpanID(testSpanIDBase + 11),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
@@ -762,7 +784,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 				attribute.String("http.url_details.host_suffix", "keboola.com"),
 				attribute.String("http.header.accept-encoding", "gzip, br"),
 				attribute.String("http.header.referer", "https://connection.keboola.com/redirect2"),
-				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-100b000000000000-01"),
+				attribute.String("http.header.traceparent", "00-abcd0000000000000000000000000000-100c000000000000-01"),
 				attribute.String("http.header.x-storageapi-token", "****"),
 				attribute.Int("http.status_code", http.StatusOK),
 				attribute.Int64("http.wrote_bytes", 0),
@@ -776,7 +798,7 @@ func getExpectedSpans() tracetest.SpanStubs {
 			Parent:   httpReqSpanContext,
 			SpanContext: otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
 				TraceID:    toTraceID(testTraceID),
-				SpanID:     toSpanID(testSpanIDBase + 12),
+				SpanID:     toSpanID(testSpanIDBase + 13),
 				TraceFlags: otelTrace.FlagsSampled,
 			}),
 			Attributes: []attribute.KeyValue{
