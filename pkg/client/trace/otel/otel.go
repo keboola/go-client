@@ -34,7 +34,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	otelMetric "go.opentelemetry.io/otel/metric"
@@ -98,12 +97,6 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 		tc := &trace.ClientTrace{}
 		attrs := newAttributes(cfg, reqDef)
 		var retryDelaySpan otelTrace.Span
-
-		// Prepare options for low-level tracing created in HTTPRequest hook
-		clientTraceOpts := []otelhttptrace.ClientTraceOption{otelhttptrace.WithTracerProvider(tracerProvider)}
-		for k := range cfg.redactedHeaders {
-			clientTraceOpts = append(clientTraceOpts, otelhttptrace.WithRedactedHeaders(k))
-		}
 
 		// Create root span and metrics, it may contain multiple HTTP requests (redirects, retries, ...).
 		{

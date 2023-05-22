@@ -22,7 +22,6 @@ require (
 	github.com/relvacode/iso8601 v1.3.0
 	github.com/spf13/cast v1.5.1
 	github.com/stretchr/testify v1.8.2
-	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.41.1
 	go.opentelemetry.io/otel v1.15.1
 	go.opentelemetry.io/otel/exporters/prometheus v0.38.1
 	go.opentelemetry.io/otel/metric v0.38.1
