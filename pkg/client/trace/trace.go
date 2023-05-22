@@ -21,9 +21,13 @@ type ClientTrace struct {
 	// HTTPRequestStart is called when the request begins.
 	// It is invoked one or more times, because it includes redirects and retries.
 	HTTPRequestStart func(request *http.Request)
-	// HTTPRequestStart is called when the request completes.
+	// HTTPResponse is called when all headers and the HTTP status code are received.
+	// The body stream have not been read yet!
 	// It is invoked one or more times, because it includes redirects and retries.
-	HTTPRequestDone func(response *http.Response, err error)
+	HTTPResponse func(response *http.Response, err error)
+	// HTTPRequestDone is called when the request is completed and the response body is closed.
+	// It is invoked one or more times, because it includes redirects and retries.
+	HTTPRequestDone func(response *http.Response, send, received int64, err error)
 	// RetryDelay is called before retry delay.
 	RetryDelay func(attempt int, delay time.Duration)
 	// BodyParseStart is called when the body parsing begins.

@@ -39,7 +39,7 @@ func DumpTracer(wr io.Writer) Factory {
 			requestURI = r.URL.RequestURI()
 			requestDump, _ = httputil.DumpRequestOut(r, true)
 		}
-		t.HTTPRequestDone = func(r *http.Response, err error) {
+		t.HTTPResponse = func(r *http.Response, err error) {
 			// Response can be nil, for example, if some network error occurred
 			if r != nil {
 				responseStatusCode = r.StatusCode

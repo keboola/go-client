@@ -221,17 +221,25 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	}
 
 	// Parse body
-	if tc != nil && tc.BodyParseStart != nil {
-		tc.BodyParseStart(res)
-	}
-	var parseError error
-	result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
-	if tc != nil && tc.BodyParseDone != nil {
-		tc.BodyParseDone(res, result, err, parseError)
-	}
-	if parseError != nil {
-		// Unexpected error
-		err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+	if res != nil && res.Body != nil && res.Body != http.NoBody {
+		// Trace BodyParseStart
+		if tc != nil && tc.BodyParseStart != nil {
+			tc.BodyParseStart(res)
+		}
+
+		// Parse
+		var parseError error
+		result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
+
+		// Trace BodyParseDone
+		if tc != nil && tc.BodyParseDone != nil {
+			tc.BodyParseDone(res, result, err, parseError)
+		}
+
+		// Handle unexpected error
+		if parseError != nil {
+			err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+		}
 	}
 
 	// Generic HTTP error
@@ -394,6 +402,13 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			rt.trace.HTTPRequestStart(req)
 		}
 
+		// Wrap request body to get content length
+		var counterReqBody *counter.ReadCloser
+		if req.Body != nil && req.Body != http.NoBody {
+			counterReqBody = counter.NewReadCloser(req.Body, nil)
+			req.Body = counterReqBody
+		}
+
 		// Register low-level tracing
 		if rt.trace != nil {
 			req = req.WithContext(httptrace.WithClientTrace(ctx, &rt.trace.ClientTrace))
@@ -405,15 +420,40 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		// Send
 		res, err := rt.wrapped.RoundTrip(req)
 
-		// Trace request done
+		// Trace response
+		if rt.trace != nil && rt.trace.HTTPResponse != nil {
+			rt.trace.HTTPResponse(res, err)
+		}
+
+		// Track request done
 		if rt.trace != nil && rt.trace.HTTPRequestDone != nil {
-			rt.trace.HTTPRequestDone(res, err)
+			var send int64
+			if counterReqBody != nil {
+				send = counterReqBody.Bytes()
+			}
+			if err != nil || res.Body == nil || res.Body == http.NoBody {
+				// Error or empty body
+				rt.trace.HTTPRequestDone(res, send, 0, err)
+			} else {
+				// Wrap response body to get content length
+				res.Body = counter.NewReadCloser(
+					res.Body,
+					func(received int64, err error) {
+						rt.trace.HTTPRequestDone(res, send, received, err)
+					},
+				)
+			}
 		}
 
 		// Check if we should retry
 		if rt.retry.Condition == nil || !rt.retry.Condition(res, err) || attempt >= rt.retry.Count {
 			// No retry
 			return res, err
+		}
+
+		// Close body before retry, it won't be used
+		if res != nil && res.Body != nil {
+			_ = res.Body.Close()
 		}
 
 		// Get next delay

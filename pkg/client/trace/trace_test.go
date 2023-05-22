@@ -23,9 +23,11 @@ func TestTrace(t *testing.T) {
 
 	// Mocked response
 	transport := httpmock.NewMockTransport()
-	transport.RegisterResponder("GET", `https://example.com/redirect1`, func(request *http.Request) (*http.Response, error) {
+	transport.RegisterResponder("POST", `https://example.com/redirect1`, func(request *http.Request) (*http.Response, error) {
 		header := make(http.Header)
 		header.Set("Location", "https://example.com/redirect2")
+		_, err := io.ReadAll(request.Body)
+		assert.NoError(t, err)
 		return &http.Response{
 			StatusCode: http.StatusMovedPermanently,
 			Header:     header,
@@ -70,8 +72,11 @@ func TestTrace(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, send, received int64, err error) {
+					logs.WriteString(fmt.Sprintf(
+						"HttpRequestDone   %d %s send=%vB received=%vB err=%v\n",
+						response.StatusCode, http.StatusText(response.StatusCode), send, received, err),
+					)
 				},
 				RetryDelay: func(attempt int, delay time.Duration) {
 					logs.WriteString(fmt.Sprintf("HttpRequestRetry  attempt=%d delay=%s\n", attempt, delay))
@@ -87,27 +92,27 @@ func TestTrace(t *testing.T) {
 
 	// Expected events
 	expected := `
-GotRequest        GET https://example.com/redirect1
-HTTPRequestStart  GET https://example.com/redirect1
-HttpRequestDone   301 Moved Permanently err=<nil>
+GotRequest        POST https://example.com/redirect1
+HTTPRequestStart  POST https://example.com/redirect1
+HttpRequestDone   301 Moved Permanently send=7B received=0B err=<nil>
 HTTPRequestStart  GET https://example.com/redirect2
-HttpRequestDone   301 Moved Permanently err=<nil>
+HttpRequestDone   301 Moved Permanently send=0B received=0B err=<nil>
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   423 Locked err=<nil>
+HttpRequestDone   423 Locked send=0B received=0B err=<nil>
 HttpRequestRetry  attempt=1 delay=1µs
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   429 Too Many Requests err=<nil>
+HttpRequestDone   429 Too Many Requests send=0B received=0B err=<nil>
 HttpRequestRetry  attempt=2 delay=2µs
 HTTPRequestStart  GET https://example.com/index
-HttpRequestDone   200 OK err=<nil>
 BodyParseStart
+HttpRequestDone   200 OK send=0B received=2B err=<nil>
 BodyParseDone     result=(*string)((len=2) "OK") err=<nil> parseError=<nil>
 RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `
 
 	// Test
 	str := ""
-	_, result, err := NewHTTPRequest(c).WithGet("https://example.com/redirect1").WithResult(&str).Send(ctx)
+	_, result, err := NewHTTPRequest(c).WithPost("https://example.com/redirect1").WithBody("my-body").WithResult(&str).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, "OK", *result.(*string))
 	assert.Equal(t, strings.TrimLeft(expected, "\n"), logs.String())
@@ -140,8 +145,11 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("1: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("1: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, send, received int64, err error) {
+					logs.WriteString(fmt.Sprintf(
+						"1: HttpRequestDone   %d %s send=%vB received=%vB err=%v\n",
+						response.StatusCode, http.StatusText(response.StatusCode), send, received, err),
+					)
 				},
 			}
 		}).
@@ -151,8 +159,11 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("2: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("2: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, send, received int64, err error) {
+					logs.WriteString(fmt.Sprintf(
+						"2: HttpRequestDone   %d %s send=%vB received=%vB err=%v\n",
+						response.StatusCode, http.StatusText(response.StatusCode), send, received, err),
+					)
 				},
 			}
 		}).
@@ -167,8 +178,11 @@ func TestTrace_Multiple(t *testing.T) {
 				HTTPRequestStart: func(request *http.Request) {
 					logs.WriteString(fmt.Sprintf("3: HTTPRequestStart  %s %s\n", request.Method, request.URL))
 				},
-				HTTPRequestDone: func(response *http.Response, err error) {
-					logs.WriteString(fmt.Sprintf("3: HttpRequestDone   %d %s err=%v\n", response.StatusCode, http.StatusText(response.StatusCode), err))
+				HTTPRequestDone: func(response *http.Response, send, received int64, err error) {
+					logs.WriteString(fmt.Sprintf(
+						"3: HttpRequestDone   %d %s send=%vB received=%vB err=%v\n",
+						response.StatusCode, http.StatusText(response.StatusCode), send, received, err),
+					)
 				},
 			}
 		})
@@ -180,9 +194,9 @@ func TestTrace_Multiple(t *testing.T) {
 1: HTTPRequestStart  GET https://example.com
 2: HTTPRequestStart  GET https://example.com
 3: HTTPRequestStart  GET https://example.com
-1: HttpRequestDone   200 OK err=<nil>
-2: HttpRequestDone   200 OK err=<nil>
-3: HttpRequestDone   200 OK err=<nil>
+1: HttpRequestDone   200 OK send=0B received=2B err=<nil>
+2: HttpRequestDone   200 OK send=0B received=2B err=<nil>
+3: HttpRequestDone   200 OK send=0B received=2B err=<nil>
 1: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 3: RequestProcessed  result=(*string)((len=2) "OK") err=<nil>
 `
