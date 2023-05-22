@@ -8,12 +8,13 @@ import (
 	"io"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"gocloud.dev/blob"
+
 	"github.com/keboola/go-client/pkg/keboola"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/abs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/gcs"
 	"github.com/keboola/go-client/pkg/keboola/storage_file_upload/s3"
-	"github.com/stretchr/testify/assert"
-	"gocloud.dev/blob"
 )
 
 type UploadTestCase struct {

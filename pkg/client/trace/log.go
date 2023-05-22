@@ -50,7 +50,7 @@ func LogTracer(wr io.Writer) Factory {
 			startTime = time.Now()
 			t.log(requestID, fmt.Sprintf(`START %s "%s"`, req.Method, req.URL.String()))
 		}
-		t.HTTPRequestDone = func(r *http.Response, err error) {
+		t.HTTPRequestDone = func(r *http.Response, send, received int64, err error) {
 			doneTime = time.Now()
 			var errorStr string
 			if err == nil {
@@ -58,7 +58,7 @@ func LogTracer(wr io.Writer) Factory {
 			} else {
 				errorStr = fmt.Sprintf(" | error=%s", err)
 			}
-			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | %s%s`, req.Method, req.URL.String(), statusCode, doneTime.Sub(startTime).String(), errorStr))
+			t.log(requestID, fmt.Sprintf(`DONE  %s "%s" | %d | send=%vB | received=%vB | %s%s`, req.Method, req.URL.String(), statusCode, send, received, doneTime.Sub(startTime).String(), errorStr))
 		}
 		t.RetryDelay = func(attempt int, delay time.Duration) {
 			t.log(requestID, fmt.Sprintf(`RETRY %s "%s" | %dx | %s`, req.Method, req.URL.String(), attempt, delay))

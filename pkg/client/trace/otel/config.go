@@ -1,14 +1,25 @@
 package otel
 
-import "strings"
+import (
+	"strings"
+
+	"go.opentelemetry.io/otel/propagation"
+)
 
 type config struct {
+	propagators         propagation.TextMapPropagator
 	redactedPathParams  map[string]struct{}
 	redactedQueryParams map[string]struct{}
 	redactedHeaders     map[string]struct{}
 }
 
 type Option func(*config)
+
+func WithPropagators(v propagation.TextMapPropagator) Option {
+	return func(c *config) {
+		c.propagators = v
+	}
+}
 
 func WithRedactedPathParam(params ...string) Option {
 	return func(c *config) {

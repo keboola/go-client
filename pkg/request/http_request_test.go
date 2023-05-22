@@ -80,6 +80,12 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.Equal(t, "/base1/url1", a.URL().String())
 	assert.Equal(t, "/base1/url2", b.URL().String())
 
+	// WithURLValue
+	a = a.WithURLValue(&url.URL{Path: "/url3"})
+	b = a.WithURLValue(&url.URL{Path: "/url4"})
+	assert.Equal(t, "/base1/url3", a.URL().String())
+	assert.Equal(t, "/base1/url4", b.URL().String())
+
 	// AndHeader
 	a = a.AndHeader("key1", "value1")
 	b = a.AndHeader("key2", "value2")

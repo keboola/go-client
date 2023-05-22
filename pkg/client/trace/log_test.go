@@ -41,16 +41,16 @@ func TestLogTracer(t *testing.T) {
 	// Expected trace
 	expected := `
 HTTP_REQUEST[0001] START GET "https://example.com"
-HTTP_REQUEST[0001] DONE  GET "https://example.com" | 423 | %s
+HTTP_REQUEST[0001] DONE  GET "https://example.com" | 423 | send=0B | received=0B | %s
 HTTP_REQUEST[0001] RETRY GET "https://example.com" | 1x | 1ms
 HTTP_REQUEST[0001] START GET "https://example.com"
-HTTP_REQUEST[0001] DONE  GET "https://example.com" | 429 | %s
+HTTP_REQUEST[0001] DONE  GET "https://example.com" | 429 | send=0B | received=0B | %s
 HTTP_REQUEST[0001] RETRY GET "https://example.com" | 2x | 1ms
 HTTP_REQUEST[0001] START GET "https://example.com"
-HTTP_REQUEST[0001] DONE  GET "https://example.com" | 200 | %s
+HTTP_REQUEST[0001] DONE  GET "https://example.com" | 200 | send=0B | received=3B | %s
 HTTP_REQUEST[0001] BODY  GET "https://example.com" | %s
 HTTP_REQUEST[0002] START GET "https://example.com"
-HTTP_REQUEST[0002] DONE  GET "https://example.com" | 200 | %s
+HTTP_REQUEST[0002] DONE  GET "https://example.com" | 200 | send=0B | received=3B | %s
 HTTP_REQUEST[0002] BODY  GET "https://example.com" | %s
 `
 

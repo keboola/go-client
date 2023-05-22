@@ -22,19 +22,24 @@ import (
 	otelMetric "go.opentelemetry.io/otel/metric"
 	otelTrace "go.opentelemetry.io/otel/trace"
 
+	"github.com/keboola/go-client/pkg/client/counter"
 	"github.com/keboola/go-client/pkg/client/decode"
 	"github.com/keboola/go-client/pkg/client/trace"
 	"github.com/keboola/go-client/pkg/client/trace/otel"
 	"github.com/keboola/go-client/pkg/request"
 )
 
-const RetryAttemptContextKey = ContextKey("retryAttempt")
+const (
+	RetryAttemptContextKey = ContextKey("retryAttempt")
+	traceAppName           = "github.com/keboola/go-client"
+)
 
 type ContextKey string
 
 // Client is a default and configurable implementation of the Sender interface by Go native http.Client.
 // It supports retry and tracing/telemetry.
 type Client struct {
+	tracer         otelTrace.Tracer
 	transport      http.RoundTripper
 	baseURL        *url.URL
 	header         http.Header
@@ -104,6 +109,9 @@ func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProv
 	if tracerProvider == nil && meterProvider == nil {
 		return c
 	}
+	if tracerProvider != nil {
+		c.tracer = tracerProvider.Tracer(traceAppName)
+	}
 	return c.AndTrace(otel.NewTrace(tracerProvider, meterProvider, opts...))
 }
 
@@ -112,6 +120,11 @@ func (c Client) WithTelemetry(tracerProvider otelTrace.TracerProvider, meterProv
 func (c Client) AndTrace(fn trace.Factory) Client {
 	c.traceFactories = append(c.traceFactories, fn)
 	return c
+}
+
+// Tracer returns registered tracer, if any.
+func (c Client) Tracer() otelTrace.Tracer {
+	return c.tracer
 }
 
 // Send method sends HTTP request and returns HTTP response, it implements the Sender interface.
@@ -125,19 +138,6 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	method := reqDef.Method()
 	reqURL := reqDef.URL()
 
-	// Init trace
-	var tc *trace.ClientTrace
-	for _, fn := range c.traceFactories {
-		oldTrace := tc
-		ctx, tc = fn(ctx, reqDef)
-		tc.Compose(oldTrace)
-	}
-
-	// Replace path parameters
-	for k, v := range reqDef.PathParams() {
-		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
-	}
-
 	// Convert to absolute url
 	if c.baseURL != nil && !reqURL.IsAbs() {
 		reqURL = c.baseURL.ResolveReference(reqURL)
@@ -146,8 +146,21 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		return nil, nil, err
 	}
 
+	// Init trace
+	var tc *trace.ClientTrace
+	for _, fn := range c.traceFactories {
+		oldTrace := tc
+		ctx, tc = fn(ctx, reqDef.WithURLValue(reqURL))
+		tc.Compose(oldTrace)
+	}
+
 	// Set query parameters
 	reqURL.RawQuery = reqDef.QueryParams().Encode()
+
+	// Replace path parameters
+	for k, v := range reqDef.PathParams() {
+		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
+	}
 
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), nil)
@@ -209,17 +222,25 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	}
 
 	// Parse body
-	if tc != nil && tc.BodyParseStart != nil {
-		tc.BodyParseStart(res)
-	}
-	var parseError error
-	result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
-	if tc != nil && tc.BodyParseDone != nil {
-		tc.BodyParseDone(res, result, err, parseError)
-	}
-	if parseError != nil {
-		// Unexpected error
-		err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+	if res != nil && res.Body != nil && res.Body != http.NoBody {
+		// Trace BodyParseStart
+		if tc != nil && tc.BodyParseStart != nil {
+			tc.BodyParseStart(res)
+		}
+
+		// Parse
+		var parseError error
+		result, err, parseError = handleResponseBody(res, reqDef.ResultDef(), reqDef.ErrorDef())
+
+		// Trace BodyParseDone
+		if tc != nil && tc.BodyParseDone != nil {
+			tc.BodyParseDone(res, result, err, parseError)
+		}
+
+		// Handle unexpected error
+		if parseError != nil {
+			err = fmt.Errorf(`cannot process response body %s "%s": %w`, req.Method, req.URL.String(), parseError)
+		}
 	}
 
 	// Generic HTTP error
@@ -382,6 +403,13 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 			rt.trace.HTTPRequestStart(req)
 		}
 
+		// Wrap request body to get content length
+		var counterReqBody *counter.ReadCloser
+		if req.Body != nil && req.Body != http.NoBody {
+			counterReqBody = counter.NewReadCloser(req.Body, nil)
+			req.Body = counterReqBody
+		}
+
 		// Register low-level tracing
 		if rt.trace != nil {
 			req = req.WithContext(httptrace.WithClientTrace(ctx, &rt.trace.ClientTrace))
@@ -393,15 +421,40 @@ func (rt roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		// Send
 		res, err := rt.wrapped.RoundTrip(req)
 
-		// Trace request done
+		// Trace response
+		if rt.trace != nil && rt.trace.HTTPResponse != nil {
+			rt.trace.HTTPResponse(res, err)
+		}
+
+		// Track request done
 		if rt.trace != nil && rt.trace.HTTPRequestDone != nil {
-			rt.trace.HTTPRequestDone(res, err)
+			var send int64
+			if counterReqBody != nil {
+				send = counterReqBody.Bytes()
+			}
+			if err != nil || res.Body == nil || res.Body == http.NoBody {
+				// Error or empty body
+				rt.trace.HTTPRequestDone(res, send, 0, err)
+			} else {
+				// Wrap response body to get content length
+				res.Body = counter.NewReadCloser(
+					res.Body,
+					func(received int64, err error) {
+						rt.trace.HTTPRequestDone(res, send, received, err)
+					},
+				)
+			}
 		}
 
 		// Check if we should retry
 		if rt.retry.Condition == nil || !rt.retry.Condition(res, err) || attempt >= rt.retry.Count {
 			// No retry
 			return res, err
+		}
+
+		// Close body before retry, it won't be used
+		if res != nil && res.Body != nil {
+			_ = res.Body.Close()
 		}
 
 		// Get next delay

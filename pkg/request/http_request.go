@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Result - any value.
@@ -33,6 +35,8 @@ type HTTPRequest interface {
 	WithBaseURL(baseURL string) HTTPRequest
 	// WithURL method sets the URL.
 	WithURL(url string) HTTPRequest
+	// WithURLValue method sets the URL.
+	WithURLValue(url *url.URL) HTTPRequest
 	// AndHeader method sets a single header field and its value.
 	AndHeader(header string, value string) HTTPRequest
 	// AndQueryParam method sets single parameter and its value.
@@ -108,6 +112,13 @@ type httpRequest struct {
 	listeners   []func(ctx context.Context, response HTTPResponse, err error) error
 }
 
+func (r httpRequest) Tracer() trace.Tracer {
+	if tp, ok := r.sender.(withTracer); ok {
+		return tp.Tracer()
+	}
+	return nil
+}
+
 func (r httpRequest) Method() string {
 	if r.method == "" {
 		panic(fmt.Errorf("request method is not set"))
@@ -181,6 +192,11 @@ func (r httpRequest) WithURL(urlStr string) HTTPRequest {
 	} else {
 		panic(fmt.Errorf(`url "%s" is not valid :%w`, urlStr, err))
 	}
+	return r
+}
+
+func (r httpRequest) WithURLValue(v *url.URL) HTTPRequest {
+	r.url = v
 	return r
 }
 
