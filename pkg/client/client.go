@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/keboola/go-client/pkg/client/counter"
 	"io"
 	"net"
 	"net/http"
@@ -23,6 +22,7 @@ import (
 	otelMetric "go.opentelemetry.io/otel/metric"
 	otelTrace "go.opentelemetry.io/otel/trace"
 
+	"github.com/keboola/go-client/pkg/client/counter"
 	"github.com/keboola/go-client/pkg/client/decode"
 	"github.com/keboola/go-client/pkg/client/trace"
 	"github.com/keboola/go-client/pkg/client/trace/otel"
