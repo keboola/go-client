@@ -143,6 +143,11 @@ func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.
 				// Register low-level tracing under HTTP request span.
 				// Use a pkg for Go native - low-level tracing (connect, TLS handshake, dns, ...)
 				tc.ClientTrace = *otelhttptrace.NewClientTrace(ctx, clientTraceOpts...)
+
+				// Inject trace headers
+				if cfg.propagators != nil {
+					cfg.propagators.Inject(httpCtx, propagation.HeaderCarrier(req.Header))
+				}
 			}
 			tc.HTTPRequestDone = func(res *http.Response, err error) {
 				elapsedTime := float64(time.Since(httpRequestStart)) / float64(time.Millisecond)
