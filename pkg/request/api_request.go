@@ -3,6 +3,27 @@ package request
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+)
+
+const (
+	APIRequestSpanName     = "keboola.go.api.client.request"
+	apiRequestTracerCtxKey = ctxKey("api-request-tracer")
+	attrResourceName       = attribute.Key("resource.name")
+	attrRequestDefinedIn   = attribute.Key("api.request_defined_in")
+	attrRequestsCount      = attribute.Key("api.requests_count")
+	attrResultType         = attribute.Key("http.result_type")
+	// Extra attributes for DataDog.
+	attrSpanKind            = attribute.Key("span.kind")
+	attrSpanKindValueClient = "client"
+	attrSpanType            = attribute.Key("span.type")
+	attrSpanTypeValueHTTP   = "http"
 )
 
 // APIRequest with response mapped to the generic type R.
@@ -23,6 +44,12 @@ type APIRequest[R Result] interface {
 
 type ParallelAPIRequests []Sendable
 
+type withTracer interface {
+	Tracer() trace.Tracer
+}
+
+type ctxKey string
+
 // Parallel wraps parallel requests to one Sendable interface.
 func Parallel(requests ...Sendable) ParallelAPIRequests {
 	return requests
@@ -36,13 +63,28 @@ func (v ParallelAPIRequests) SendOrErr(ctx context.Context) error {
 	return wg.Wait()
 }
 
+func APIRequestTracerFromContext(ctx context.Context) (trace.Tracer, bool) {
+	tracer, found := ctx.Value(apiRequestTracerCtxKey).(trace.Tracer)
+	return tracer, found
+}
+
 // NewAPIRequest creates an API request with the result mapped to the R type.
 // It is composed of one or multiple Sendable (HTTPRequest or APIRequest).
 func NewAPIRequest[R Result](result R, requests ...Sendable) APIRequest[R] {
 	if len(requests) == 0 {
 		panic(fmt.Errorf("at least one request must be provided"))
 	}
-	return &apiRequest[R]{requests: requests, result: result}
+
+	// Get name of the caller function
+	var definedIn string
+	if pc, _, _, ok := runtime.Caller(1); ok {
+		if details := runtime.FuncForPC(pc); details != nil {
+			fn := details.Name()
+			definedIn = strings.TrimLeft(fn[strings.LastIndex(fn, "/"):], "/")
+		}
+	}
+
+	return &apiRequest[R]{requests: requests, result: result, definedIn: definedIn}
 }
 
 // NewNoOperationAPIRequest returns an APIRequest that immediately returns a Result without calling any HTTPRequest.
@@ -57,6 +99,8 @@ type apiRequest[R Result] struct {
 	before   []func(ctx context.Context) error
 	after    []func(ctx context.Context, result R, err error) error
 	result   R
+	// definedIn is optional name of the function, where the request was defined
+	definedIn string
 }
 
 func (r apiRequest[R]) WithBefore(fn func(ctx context.Context) error) APIRequest[R] {
@@ -90,6 +134,51 @@ func (r apiRequest[R]) WithOnError(fn func(ctx context.Context, err error) error
 }
 
 func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
+	// Telemetry
+	if len(r.requests) > 0 {
+		if tp, ok := r.requests[0].(withTracer); ok {
+			if tracer := tp.Tracer(); tracer != nil {
+				// Get result type as string
+				var resultType string
+				if v := reflect.TypeOf(r.result); v != nil {
+					resultType = v.String()
+				}
+
+				// Create span
+				var span trace.Span
+				ctx, span = tracer.Start(
+					ctx,
+					APIRequestSpanName,
+					trace.WithSpanKind(trace.SpanKindClient),
+					trace.WithAttributes(
+						attrSpanKind.String(attrSpanKindValueClient),
+						attrSpanType.String(attrSpanTypeValueHTTP),
+						attrRequestsCount.Int(len(r.requests)),
+						attrResultType.String(resultType),
+					),
+				)
+				defer func() {
+					if err != nil {
+						span.RecordError(err)
+						span.SetStatus(codes.Error, err.Error())
+					}
+					span.End()
+				}()
+
+				// Add tracer to the context to tracer auxiliary operations, for example "waitForStorageJob"
+				ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
+
+				// Trace name of the function, where the request was defined
+				if r.definedIn != "" {
+					span.SetAttributes(
+						attrResourceName.String(r.definedIn),
+						attrRequestDefinedIn.String(r.definedIn),
+					)
+				}
+			}
+		}
+	}
+
 	// Stop if context has been cancelled
 	if err := ctx.Err(); err != nil {
 		return r.result, err

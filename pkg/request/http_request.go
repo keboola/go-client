@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Result - any value.
@@ -106,6 +108,13 @@ type httpRequest struct {
 	resultDef   any
 	errorDef    error
 	listeners   []func(ctx context.Context, response HTTPResponse, err error) error
+}
+
+func (r httpRequest) Tracer() trace.Tracer {
+	if tp, ok := r.sender.(withTracer); ok {
+		return tp.Tracer()
+	}
+	return nil
 }
 
 func (r httpRequest) Method() string {
