@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/keboola/go-client/pkg/client/counter"
 	"io"
 	"net"
 	"net/http"
@@ -137,19 +138,6 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 	method := reqDef.Method()
 	reqURL := reqDef.URL()
 
-	// Init trace
-	var tc *trace.ClientTrace
-	for _, fn := range c.traceFactories {
-		oldTrace := tc
-		ctx, tc = fn(ctx, reqDef)
-		tc.Compose(oldTrace)
-	}
-
-	// Replace path parameters
-	for k, v := range reqDef.PathParams() {
-		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
-	}
-
 	// Convert to absolute url
 	if c.baseURL != nil && !reqURL.IsAbs() {
 		reqURL = c.baseURL.ResolveReference(reqURL)
@@ -158,8 +146,21 @@ func (c Client) Send(ctx context.Context, reqDef request.HTTPRequest) (res *http
 		return nil, nil, err
 	}
 
+	// Init trace
+	var tc *trace.ClientTrace
+	for _, fn := range c.traceFactories {
+		oldTrace := tc
+		ctx, tc = fn(ctx, reqDef.WithURLValue(reqURL))
+		tc.Compose(oldTrace)
+	}
+
 	// Set query parameters
 	reqURL.RawQuery = reqDef.QueryParams().Encode()
+
+	// Replace path parameters
+	for k, v := range reqDef.PathParams() {
+		reqURL.Path = strings.ReplaceAll(reqURL.Path, "{"+k+"}", url.PathEscape(v))
+	}
 
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), nil)
