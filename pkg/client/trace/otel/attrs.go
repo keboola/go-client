@@ -225,15 +225,8 @@ func (v *attributes) SetFromResponse(res *http.Response, err error) {
 	}
 
 	// Error
-	var netErr net.Error
-	errors.As(err, &netErr)
-	v.httpResponseError = []attribute.KeyValue{
-		attribute.Bool("http.response.isSuccess", isSuccess(res, err)),
-		attribute.Bool("http.response.error.has", err != nil),
-		attribute.Bool("http.response.error.net", netErr != nil),
-		attribute.Bool("http.response.error.timeout", netErr != nil && netErr.Timeout()),
-		attribute.Bool("http.response.error.cancelled", errors.Is(err, context.Canceled)),
-		attribute.Bool("http.response.error.deadline_exceeded", errors.Is(err, context.DeadlineExceeded)),
+	if errType := errorType(res, err); errType != "" {
+		v.httpResponse = append(v.httpResponse, attribute.String("http.error_type", errType))
 	}
 }
 
