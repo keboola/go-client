@@ -82,17 +82,17 @@ func (a *API) WaitForStorageJob(ctx context.Context, job *StorageJob) (err error
 		return fmt.Errorf("timeout for the job was not set")
 	}
 
-	if tracer, found := request.APIRequestTracerFromContext(ctx); found {
-		var span trace.Span
-		ctx, span = tracer.Start(ctx, "keboola.go.api.client.waitFor.queueJob")
-		defer func() {
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-			}
-			span.End()
-		}()
-	}
+	// Telemetry
+	parentSpan := trace.SpanFromContext(ctx)
+	var span trace.Span
+	ctx, span = parentSpan.TracerProvider().Tracer(appName).Start(ctx, "keboola.go.api.client.waitFor.storageJob")
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	retry := newStorageJobBackoff()
 	for {

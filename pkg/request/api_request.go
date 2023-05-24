@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	APIRequestSpanName     = "keboola.go.api.client.request"
-	apiRequestTracerCtxKey = ctxKey("api-request-tracer")
-	attrResourceName       = attribute.Key("resource.name")
-	attrRequestDefinedIn   = attribute.Key("api.request_defined_in")
-	attrRequestsCount      = attribute.Key("api.requests_count")
-	attrResultType         = attribute.Key("http.result_type")
+	APIRequestSpanName   = "keboola.go.api.client.request"
+	appName              = "go-client-api-request"
+	attrResourceName     = attribute.Key("resource.name")
+	attrRequestDefinedIn = attribute.Key("api.request_defined_in")
+	attrRequestsCount    = attribute.Key("api.requests_count")
+	attrResultType       = attribute.Key("http.result_type")
 	// Extra attributes for DataDog.
 	attrSpanKind            = attribute.Key("span.kind")
 	attrSpanKindValueClient = "client"
@@ -48,8 +48,6 @@ type withTracer interface {
 	Tracer() trace.Tracer
 }
 
-type ctxKey string
-
 // Parallel wraps parallel requests to one Sendable interface.
 func Parallel(requests ...Sendable) ParallelAPIRequests {
 	return requests
@@ -61,11 +59,6 @@ func (v ParallelAPIRequests) SendOrErr(ctx context.Context) error {
 		wg.Send(r)
 	}
 	return wg.Wait()
-}
-
-func APIRequestTracerFromContext(ctx context.Context) (trace.Tracer, bool) {
-	tracer, found := ctx.Value(apiRequestTracerCtxKey).(trace.Tracer)
-	return tracer, found
 }
 
 // NewAPIRequest creates an API request with the result mapped to the R type.
@@ -146,7 +139,7 @@ func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 
 	// Create span
 	var span trace.Span
-	tracer := parentSpan.TracerProvider().Tracer("go-client-api-request")
+	tracer := parentSpan.TracerProvider().Tracer(appName)
 	ctx, span = tracer.Start(
 		ctx,
 		APIRequestSpanName,
@@ -165,9 +158,6 @@ func (r apiRequest[R]) Send(ctx context.Context) (result R, err error) {
 		}
 		span.End()
 	}()
-
-	// Add tracer to the context to tracer auxiliary operations, for example "waitForStorageJob"
-	ctx = context.WithValue(ctx, apiRequestTracerCtxKey, tracer)
 
 	// Trace name of the function, where the request was defined
 	if r.definedIn != "" {
