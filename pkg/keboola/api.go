@@ -26,6 +26,7 @@ const (
 	// Deprecated: Syrup and old queue should no longer be used.
 	// See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 	SyrupAPI              = ServiceType("syrup")
+	appName               = "go-client-keboola-api"
 	storageAPITokenHeader = "X-StorageApi-Token" //nolint: gosec // it is not a token value
 )
 

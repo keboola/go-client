@@ -8,6 +8,8 @@ import (
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
 	"github.com/relvacode/iso8601"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/keboola/go-client/pkg/request"
 )
@@ -229,11 +231,23 @@ func (c oldQueueJobConfig) getURL() string {
 // See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 //
 // WaitForOldQueueJob pulls job status until it is completed.
-func (a *API) WaitForOldQueueJob(ctx context.Context, id JobID) error {
+func (a *API) WaitForOldQueueJob(ctx context.Context, id JobID) (err error) {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")
 	}
+
+	// Telemetry
+	parentSpan := trace.SpanFromContext(ctx)
+	var span trace.Span
+	ctx, span = parentSpan.TracerProvider().Tracer(appName).Start(ctx, "keboola.go.api.client.waitFor.oldQueueJob")
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	retry := newQueueJobBackoff()
 	for {

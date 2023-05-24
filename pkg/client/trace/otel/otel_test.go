@@ -299,6 +299,7 @@ func cleanAndSortSpans(spans tracetest.SpanStubs) {
 		span.EndTime = time.Time{}
 		span.Resource = nil
 		span.InstrumentationLibrary.Name = ""
+		span.InstrumentationLibrary.Version = ""
 		for j := range span.Events {
 			event := &span.Events[j]
 			event.Time = time.Time{}
