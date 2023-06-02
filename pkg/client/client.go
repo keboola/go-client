@@ -282,8 +282,12 @@ func requestBody(r request.HTTPRequest) (io.ReadCloser, error) {
 		}
 		return io.NopCloser(bytes.NewReader(c)), nil
 	}
-	// empty body
-	return nil, nil
+	if body == nil {
+		// empty body
+		return nil, nil
+	}
+	// unsupported body
+	return nil, fmt.Errorf(`unsupported request body type "%T", to encode body as JSON please specify content-type header`, body)
 }
 
 func handleResponseBody(r *http.Response, resultDef any, errDef error) (result any, err error, parseError error) {
