@@ -30,6 +30,14 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	c := client.New()
 	a = request.NewHTTPRequest(c)
 
+	// WithHead
+	a = a.WithHead("/foo1")
+	b = a.WithHead("/foo2")
+	assert.Equal(t, http.MethodHead, a.Method())
+	assert.Equal(t, "/foo1", a.URL().String())
+	assert.Equal(t, http.MethodHead, b.Method())
+	assert.Equal(t, "/foo2", b.URL().String())
+
 	// WithGet
 	a = a.WithGet("/foo1")
 	b = a.WithGet("/foo2")
@@ -44,6 +52,14 @@ func TestHttpRequest_Immutability(t *testing.T) {
 	assert.Equal(t, http.MethodPost, a.Method())
 	assert.Equal(t, "/foo1", a.URL().String())
 	assert.Equal(t, http.MethodPost, b.Method())
+	assert.Equal(t, "/foo2", b.URL().String())
+
+	// WithPatch
+	a = a.WithPatch("/foo1")
+	b = a.WithPatch("/foo2")
+	assert.Equal(t, http.MethodPatch, a.Method())
+	assert.Equal(t, "/foo1", a.URL().String())
+	assert.Equal(t, http.MethodPatch, b.Method())
 	assert.Equal(t, "/foo2", b.URL().String())
 
 	// WithPut
