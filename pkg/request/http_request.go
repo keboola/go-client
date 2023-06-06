@@ -21,10 +21,14 @@ type NoResult struct{}
 // HTTPRequest is an immutable HTTP request.
 type HTTPRequest interface {
 	httpRequestReadOnly
+	// WithHead is shortcut for WithMethod(http.MethodHead).WithURL(url)
+	WithHead(url string) HTTPRequest
 	// WithGet is shortcut for WithMethod(http.MethodGet).WithURL(url)
 	WithGet(url string) HTTPRequest
 	// WithPost is shortcut for WithMethod(http.MethodPost).WithURL(url)
 	WithPost(url string) HTTPRequest
+	// WithPatch is shortcut for WithMethod(http.MethodPatch).WithURL(url)
+	WithPatch(url string) HTTPRequest
 	// WithPut is shortcut for WithMethod(http.MethodPut).WithURL(url)
 	WithPut(url string) HTTPRequest
 	// WithDelete is shortcut for WithMethod(http.MethodDelete).WithURL(url)
@@ -165,12 +169,20 @@ func (r httpRequest) ResultDef() any {
 	return r.resultDef
 }
 
+func (r httpRequest) WithHead(url string) HTTPRequest {
+	return r.WithMethod(http.MethodHead).WithURL(url)
+}
+
 func (r httpRequest) WithGet(url string) HTTPRequest {
 	return r.WithMethod(http.MethodGet).WithURL(url)
 }
 
 func (r httpRequest) WithPost(url string) HTTPRequest {
 	return r.WithMethod(http.MethodPost).WithURL(url)
+}
+
+func (r httpRequest) WithPatch(url string) HTTPRequest {
+	return r.WithMethod(http.MethodPatch).WithURL(url)
 }
 
 func (r httpRequest) WithPut(url string) HTTPRequest {
