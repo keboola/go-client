@@ -2,7 +2,6 @@ package keboola
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +9,10 @@ import (
 	"github.com/relvacode/iso8601"
 
 	"github.com/keboola/go-client/pkg/request"
+)
+
+const (
+	featureDisableLegacyBucketPrefix = "disable-legacy-bucket-prefix"
 )
 
 type Bucket struct {
@@ -69,21 +72,22 @@ func (a *API) ListBucketsRequest(opts ...ListBucketsOption) request.APIRequest[*
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
 func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
-	// Validate
-	if !strings.HasPrefix(bucket.ID.BucketName, magicBucketNamePrefix) {
-		return request.NewAPIRequest(bucket, request.NewReqDefinitionError(fmt.Errorf(
-			`bucket must start with "%s", found "%s"`, magicBucketNamePrefix, bucket.ID.BucketName,
-		)))
-	}
-
 	// Create config
 	params := request.StructToMap(bucket, []string{"description", "displayName"})
 	if params["displayName"] == "" {
 		delete(params, "displayName")
 	}
 
+	// If the featureDisableLegacyBucketPrefix is not enabled,
+	// the backend adds "c-" prefix to the bucket name,
+	// so we need to trim the prefix before the request.
+	bucketName := bucket.ID.BucketName
+	if !a.index.Features.ToMap().Has(featureDisableLegacyBucketPrefix) {
+		bucketName = strings.TrimPrefix(bucketName, "c-")
+	}
+
 	params["stage"] = bucket.ID.Stage
-	params["name"] = strings.TrimPrefix(bucket.ID.BucketName, magicBucketNamePrefix)
+	params["name"] = bucketName
 
 	req := a.
 		newRequest(StorageAPI).

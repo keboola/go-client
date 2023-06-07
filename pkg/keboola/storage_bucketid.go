@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const magicBucketNamePrefix = "c-"
-
 const (
 	BucketStageIn  = "in"
 	BucketStageOut = "out"
@@ -57,14 +55,10 @@ func MustParseBucketID(v string) BucketID {
 }
 
 func ParseBucketID(v string) (BucketID, error) {
-	return parseBucketID(v, false)
+	return parseBucketID(v)
 }
 
-func ParseBucketIDExpectMagicPrefix(v string) (BucketID, error) {
-	return parseBucketID(v, true)
-}
-
-func parseBucketID(v string, magicPrefix bool) (BucketID, error) {
+func parseBucketID(v string) (BucketID, error) {
 	if len(v) == 0 {
 		return BucketID{}, errors.New(`bucket ID cannot be empty`)
 	}
@@ -80,13 +74,7 @@ func parseBucketID(v string, magicPrefix bool) (BucketID, error) {
 		return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": unexpected stage "%s"`, v, stage)
 	}
 
-	if magicPrefix {
-		if !strings.HasPrefix(bucket, magicBucketNamePrefix) {
-			return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": missing expected prefix "c-"`, v)
-		}
-	}
-
-	if len(bucket) == 0 || bucket == magicBucketNamePrefix {
+	if len(bucket) == 0 {
 		return BucketID{}, fmt.Errorf(`invalid bucket ID "%s": bucket ID cannot be empty`, v)
 	}
 
