@@ -24,6 +24,12 @@ func (a *API) newRequest(s ServiceType) request.HTTPRequest {
 	case WorkspacesAPI:
 		r = r.WithError(&WorkspacesError{})
 	}
+
+	// Authorize
+	if a.token != "" {
+		r = r.AndHeader(storageAPITokenHeader, a.token)
+	}
+
 	return r
 }
 

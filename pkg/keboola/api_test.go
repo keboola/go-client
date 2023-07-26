@@ -2,6 +2,7 @@ package keboola_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -46,6 +47,29 @@ func TestNewAPI_WithIndex(t *testing.T) {
 
 	// Index request was not called.
 	assert.Equal(t, 0, transport.GetCallCountInfo()["GET /v2/storage/?exclude=components"])
+}
+
+func TestAPI_WithToken(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	c, transport := mockedClient()
+	ctx := context.Background()
+	apiWithoutToken, err := keboola.NewAPI(ctx, "https://connection.keboola.mock", keboola.WithClient(&c))
+	assert.NoError(t, err)
+
+	// Register empty list buckets response
+	transport.RegisterResponder(http.MethodGet, "/v2/storage/buckets", func(request *http.Request) (*http.Response, error) {
+		assert.Equal(t, "my-token", request.Header.Get("X-StorageApi-Token"))
+		return httpmock.NewStringResponse(http.StatusOK, "[]"), nil
+	})
+
+	// Test WithToken method
+	apiWithToken := apiWithoutToken.WithToken("my-token")
+	assert.NotSame(t, apiWithToken, apiWithoutToken) // value should be cloned
+	assert.NoError(t, apiWithToken.ListBucketsRequest().SendOrErr(ctx))
+	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/?exclude=components"])
+	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/buckets"])
 }
 
 func mockedClient() (client.Client, *httpmock.MockTransport) {

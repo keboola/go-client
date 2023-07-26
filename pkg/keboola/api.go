@@ -33,16 +33,19 @@ const (
 type API struct {
 	sender request.Sender
 	index  *Index
+	token  string
 }
 
 func APIIndex(ctx context.Context, host string, opts ...APIOption) (*Index, error) {
-	c := newClient(host, opts)
-	return (&API{sender: c}).IndexRequest().Send(ctx)
+	cfg := newAPIConfig(opts)
+	c := newClient(host, cfg)
+	return newAPI(c, nil, cfg).IndexRequest().Send(ctx)
 }
 
 func APIIndexWithComponents(ctx context.Context, host string, opts ...APIOption) (*IndexComponents, error) {
-	c := newClient(host, opts)
-	return (&API{sender: c}).IndexComponentsRequest().Send(ctx)
+	cfg := newAPIConfig(opts)
+	c := newClient(host, cfg)
+	return newAPI(c, nil, cfg).IndexComponentsRequest().Send(ctx)
 }
 
 func NewAPI(ctx context.Context, host string, opts ...APIOption) (*API, error) {
@@ -54,15 +57,19 @@ func NewAPI(ctx context.Context, host string, opts ...APIOption) (*API, error) {
 }
 
 func NewAPIFromIndex(host string, index *Index, opts ...APIOption) *API {
-	c := newClient(host, opts)
-	return &API{sender: c, index: index}
+	cfg := newAPIConfig(opts)
+	c := newClient(host, cfg)
+	return newAPI(c, index, cfg)
 }
 
-func newClient(host string, opts []APIOption) client.Client {
+func newAPI(sender request.Sender, index *Index, cfg apiConfig) *API {
+	return &API{sender: sender, index: index, token: cfg.token}
+}
+
+func newClient(host string, cfg apiConfig) client.Client {
 	if !strings.HasPrefix(host, "https://") && !strings.HasPrefix(host, "http://") {
 		host = "https://" + host
 	}
-	cfg := newAPIConfig(opts)
 
 	// Get client
 	var c client.Client
@@ -74,11 +81,6 @@ func newClient(host string, opts []APIOption) client.Client {
 
 	// Set host
 	c = c.WithBaseURL(host)
-
-	// Setup headers
-	if cfg.token != "" {
-		c = c.WithHeader(storageAPITokenHeader, cfg.token)
-	}
 
 	// Enable telemetry
 	if cfg.tracerProvider != nil || cfg.meterProvider != nil {
@@ -94,6 +96,13 @@ func (a *API) Client() request.Sender {
 
 func (a *API) Index() *Index {
 	return a.index
+}
+
+// WithToken returns a new authorized instance of the API.
+func (a *API) WithToken(token string) *API {
+	clone := *a
+	clone.token = token
+	return &clone
 }
 
 // CreateRequest creates request to create object according its type.
