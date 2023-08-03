@@ -14,6 +14,8 @@ const (
 	SchedulerComponentID     = ComponentID("keboola.scheduler")
 	SharedCodeComponentID    = ComponentID("keboola.shared-code")
 	OrchestratorComponentID  = ComponentID("keboola.orchestrator")
+	WorkspaceComponentID     = ComponentID("keboola.sandboxes")
+	DataAppsComponentID      = ComponentID("keboola.data-apps")
 	TransformationType       = "transformation"
 	DeprecatedFlag           = `deprecated`
 	ExcludeFromNewListFlag   = `excludeFromNewList`
