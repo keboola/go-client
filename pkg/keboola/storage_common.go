@@ -16,6 +16,7 @@ type MetadataDetail struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	Timestamp string `json:"timestamp"`
+	Provider  string `json:"provider"`
 }
 
 // ToMap converts slice to map.

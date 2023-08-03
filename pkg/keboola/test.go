@@ -26,7 +26,7 @@ func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testpr
 	return project, api
 }
 
-func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testproject.Option) *API {
+func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testproject.Option) (*testproject.Project, *API) {
 	t.Helper()
 
 	project, api := APIClientForRandomProject(t, ctx, opts...)
@@ -34,5 +34,5 @@ func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testp
 	if err != nil {
 		t.Fatalf(`cannot clean project "%d": %s`, project.ID(), err)
 	}
-	return api
+	return project, api
 }

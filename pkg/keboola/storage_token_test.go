@@ -117,7 +117,7 @@ func TestCreateToken_SomePerms(t *testing.T) {
 func TestListAndDeleteToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	// Create tokens
 	token1, err := api.CreateTokenRequest(WithDescription("token1"), WithExpiresIn(5*time.Minute)).Send(ctx)

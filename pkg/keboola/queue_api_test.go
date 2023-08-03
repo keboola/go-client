@@ -20,7 +20,7 @@ import (
 func TestQueueApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -69,7 +69,7 @@ func TestQueueApiCalls(t *testing.T) {
 func TestCreateQueueJobRequestBuilder(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	builder := api.NewCreateJobRequest("ex-generic-v2").
 		WithTag("latest").
@@ -171,7 +171,7 @@ HTTP_REQUEST[0004] BODY  GET "https://queue.connection.test/jobs/1234" | %s
 func TestDeprecatedQueueApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
