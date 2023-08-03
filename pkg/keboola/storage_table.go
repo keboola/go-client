@@ -47,7 +47,7 @@ type SourceProject struct {
 	Name string    `json:"name"`
 }
 
-type ColumnMetadata map[string]MetadataDetail
+type ColumnMetadata map[string][]MetadataDetail
 
 // UnmarshalJSON implements JSON decoding.
 // The API returns empty value as empty array.
@@ -259,11 +259,11 @@ func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts .
 			return a.WaitForStorageJob(waitCtx, job)
 		}).
 		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
-			bytes, err := jsonLib.Marshal(job.Results)
+			resultBytes, err := jsonLib.Marshal(job.Results)
 			if err != nil {
 				return fmt.Errorf(`cannot encode create table results: %w`, err)
 			}
-			err = jsonLib.Unmarshal(bytes, &table)
+			err = jsonLib.Unmarshal(resultBytes, &table)
 			if err != nil {
 				return fmt.Errorf(`cannot decode create table results: %w`, err)
 			}
@@ -402,9 +402,9 @@ type TableUnloadRequestBuilder struct {
 type UnloadFormat string
 
 const (
-	// CSV formatted according to RFC4180. This is the default format.
+	// UnloadFormatCSV generates CSV formatted according to RFC4180. This is the default format.
 	UnloadFormatCSV UnloadFormat = "rfc"
-	// JSON format is only supported in projects with the Snowflake backend.
+	// UnloadFormatJSON is only supported in projects with the Snowflake backend.
 	UnloadFormatJSON UnloadFormat = "json"
 )
 
@@ -449,8 +449,7 @@ type UnloadedFile struct {
 	ID int `json:"id"`
 }
 
-// Send the request and wait for the resulting storage job to finish.
-//
+// SendAndWait the request and wait for the resulting storage job to finish.
 // Once the job finishes, this returns its `results` object, which contains the created file ID.
 func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout time.Duration) (*TableUnloadJobResult, error) {
 	// send request
@@ -482,39 +481,36 @@ func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout tim
 	return result, nil
 }
 
-// Limit the number of returned rows.
-//
+// WithLimitRows the number of returned rows.
 // Maximum allowed value is 1000.
-//
 // Default value is 100.
 func (b *TableUnloadRequestBuilder) WithLimitRows(v uint) *TableUnloadRequestBuilder {
 	b.config.Limit = v
 	return b
 }
 
-// Set the output file format.
-//
+// WithFormat the output file format.
 // JSON format is only supported in projects with the Snowflake backend.
 func (b *TableUnloadRequestBuilder) WithFormat(v UnloadFormat) *TableUnloadRequestBuilder {
 	b.config.Format = v
 	return b
 }
 
-// Filtering by import date - timestamp of import is stored within each row.
+// WithChangedSince sets filtering by import date - timestamp of import is stored within each row.
 // Can be a unix timestamp or any date accepted by strtotime (https://www.php.net/manual/en/function.strtotime.php).
 func (b *TableUnloadRequestBuilder) WithChangedSince(v string) *TableUnloadRequestBuilder {
 	b.config.ChangedSince = v
 	return b
 }
 
-// Filtering by import date - timestamp of import is stored within each row.
+// WithChangedUntil sets filtering by import date - timestamp of import is stored within each row.
 // Can be a unix timestamp or any date accepted by strtotime (https://www.php.net/manual/en/function.strtotime.php).
 func (b *TableUnloadRequestBuilder) WithChangedUntil(v string) *TableUnloadRequestBuilder {
 	b.config.ChangedUntil = v
 	return b
 }
 
-// List of columns to export. By default all columns are exported.
+// WithColumns sets list of columns to export. By default, all columns are exported.
 func (b *TableUnloadRequestBuilder) WithColumns(v ...string) *TableUnloadRequestBuilder {
 	b.config.Columns = strings.Join(v, ",")
 	return b
@@ -525,8 +521,7 @@ func (b *TableUnloadRequestBuilder) WithOrderBy(column string, order ColumnOrder
 	return b
 }
 
-// If the column contains a numeric type, `ty` may be used to specify the exact type.
-//
+// WithWhere sets a where condition. If the column contains a numeric type, `ty` may be used to specify the exact type.
 // `ty` should be exactly one value, or empty.
 func (b *TableUnloadRequestBuilder) WithWhere(column string, op CompareOp, values []string, ty ...DataType) *TableUnloadRequestBuilder {
 	b.config.WhereFilters = append(b.config.WhereFilters, newWhereFilter(column, op, values, ty...))
