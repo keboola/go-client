@@ -2,6 +2,7 @@ package keboola
 
 import (
 	jsonLib "encoding/json"
+
 	"github.com/keboola/go-client/pkg/request"
 )
 
