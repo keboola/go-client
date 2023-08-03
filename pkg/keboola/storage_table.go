@@ -18,21 +18,21 @@ import (
 
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
-	ID             TableID          `json:"id"`
-	URI            string           `json:"uri"`
-	Name           string           `json:"name"`
-	DisplayName    string           `json:"displayName"`
-	SourceTable    *SourceTable     `json:"sourceTable"`
-	PrimaryKey     []string         `json:"primaryKey"`
-	Created        iso8601.Time     `json:"created"`
-	LastImportDate iso8601.Time     `json:"lastImportDate"`
-	LastChangeDate *iso8601.Time    `json:"lastChangeDate"`
-	RowsCount      uint64           `json:"rowsCount"`
-	DataSizeBytes  uint64           `json:"dataSizeBytes"`
-	Columns        []string         `json:"columns"`
-	Metadata       []MetadataDetail `json:"metadata"`
-	ColumnMetadata ColumnMetadata   `json:"columnMetadata"`
-	Bucket         *Bucket          `json:"bucket"`
+	ID             TableID         `json:"id"`
+	URI            string          `json:"uri"`
+	Name           string          `json:"name"`
+	DisplayName    string          `json:"displayName"`
+	SourceTable    *SourceTable    `json:"sourceTable"`
+	PrimaryKey     []string        `json:"primaryKey"`
+	Created        iso8601.Time    `json:"created"`
+	LastImportDate iso8601.Time    `json:"lastImportDate"`
+	LastChangeDate *iso8601.Time   `json:"lastChangeDate"`
+	RowsCount      uint64          `json:"rowsCount"`
+	DataSizeBytes  uint64          `json:"dataSizeBytes"`
+	Columns        []string        `json:"columns"`
+	Metadata       TableMetadata   `json:"metadata"`
+	ColumnMetadata ColumnsMetadata `json:"columnMetadata"`
+	Bucket         *Bucket         `json:"bucket"`
 }
 
 type SourceTable struct {
@@ -45,20 +45,6 @@ type SourceTable struct {
 type SourceProject struct {
 	ID   ProjectID `json:"id"`
 	Name string    `json:"name"`
-}
-
-type ColumnMetadata map[string][]MetadataDetail
-
-// UnmarshalJSON implements JSON decoding.
-// The API returns empty value as empty array.
-func (r *ColumnMetadata) UnmarshalJSON(data []byte) (err error) {
-	if string(data) == "[]" {
-		*r = ColumnMetadata{}
-		return nil
-	}
-	// see https://stackoverflow.com/questions/43176625/call-json-unmarshal-inside-unmarshaljson-function-without-causing-stack-overflow
-	type _r ColumnMetadata
-	return jsonLib.Unmarshal(data, (*_r)(r))
 }
 
 type listTablesConfig struct {

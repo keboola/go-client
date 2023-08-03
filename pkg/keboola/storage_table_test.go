@@ -248,7 +248,7 @@ func TestMockListTablesRequest(t *testing.T) {
 func TestTableApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	project, api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
@@ -292,6 +292,111 @@ func TestTableApiCalls(t *testing.T) {
 		}
 	}
 	assert.True(t, tableFound)
+
+	// Get table (without table and columns metadata)
+	respGet1, err := api.GetTableRequest(tableID).Send(ctx)
+	assert.NoError(t, err)
+	respGet1.Created = iso8601.Time{}
+	respGet1.LastImportDate = iso8601.Time{}
+	respGet1.LastChangeDate = nil
+	respGet1.Bucket.Created = iso8601.Time{}
+	respGet1.Bucket.LastChangeDate = nil
+	assert.Equal(t, &Table{
+		ID:            tableID,
+		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
+		Name:          tableName,
+		DisplayName:   tableName,
+		PrimaryKey:    []string{},
+		RowsCount:     0,
+		DataSizeBytes: 0,
+		Columns:       []string{"first", "second", "third", "fourth"},
+		Bucket: &Bucket{
+			ID:          table.Bucket.ID,
+			DisplayName: table.Bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+		},
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+	}, respGet1)
+
+	// Set metadata
+	resMetadata, err := api.
+		CreateOrUpdateTableMetadata(
+			tableID,
+			"go-client-test",
+			[]TableMetadataRequest{
+				{Key: "tableMetadata1", Value: "value1"},
+				{Key: "tableMetadata2", Value: "value2"},
+			},
+			[]ColumnMetadataRequest{
+				{ColumnName: "first", Key: "columnMetadata1", Value: "value3"},
+				{ColumnName: "first", Key: "columnMetadata2", Value: "value4"},
+				{ColumnName: "second", Key: "columnMetadata3", Value: "value5"},
+				{ColumnName: "second", Key: "columnMetadata4", Value: "value6"},
+			},
+		).
+		Send(ctx)
+	assert.NoError(t, err)
+
+	// Check metadata response
+	removeDynamicValuesFromTableMetadata(resMetadata.Metadata)
+	removeDynamicValuesFromColumnsMetadata(resMetadata.ColumnMetadata)
+	assert.Equal(t, &TableMetadataResponse{
+		Metadata: TableMetadata{
+			{Key: "tableMetadata1", Value: "value1", Provider: "go-client-test"},
+			{Key: "tableMetadata2", Value: "value2", Provider: "go-client-test"},
+		},
+		ColumnMetadata: ColumnsMetadata{
+			"first": {
+				{Key: "columnMetadata1", Value: "value3", Provider: "go-client-test"},
+				{Key: "columnMetadata2", Value: "value4", Provider: "go-client-test"},
+			},
+			"second": {
+				{Key: "columnMetadata3", Value: "value5", Provider: "go-client-test"},
+				{Key: "columnMetadata4", Value: "value6", Provider: "go-client-test"},
+			},
+		},
+	}, resMetadata)
+
+	// Get table (with table and columns metadata)
+	respGet2, err := api.GetTableRequest(tableID).Send(ctx)
+	assert.NoError(t, err)
+	removeDynamicValuesFromTableMetadata(respGet2.Metadata)
+	removeDynamicValuesFromColumnsMetadata(respGet2.ColumnMetadata)
+	respGet2.Created = iso8601.Time{}
+	respGet2.LastImportDate = iso8601.Time{}
+	respGet2.LastChangeDate = nil
+	respGet2.Bucket.Created = iso8601.Time{}
+	respGet2.Bucket.LastChangeDate = nil
+	assert.Equal(t, &Table{
+		ID:            tableID,
+		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
+		Name:          tableName,
+		DisplayName:   tableName,
+		PrimaryKey:    []string{},
+		RowsCount:     0,
+		DataSizeBytes: 0,
+		Columns:       []string{"first", "second", "third", "fourth"},
+		Bucket: &Bucket{
+			ID:          table.Bucket.ID,
+			DisplayName: table.Bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+		},
+		Metadata: TableMetadata{
+			{Key: "tableMetadata1", Value: "value1", Provider: "go-client-test"},
+			{Key: "tableMetadata2", Value: "value2", Provider: "go-client-test"},
+		},
+		ColumnMetadata: ColumnsMetadata{
+			"first": {
+				{Key: "columnMetadata1", Value: "value3", Provider: "go-client-test"},
+				{Key: "columnMetadata2", Value: "value4", Provider: "go-client-test"},
+			},
+			"second": {
+				{Key: "columnMetadata3", Value: "value5", Provider: "go-client-test"},
+				{Key: "columnMetadata4", Value: "value6", Provider: "go-client-test"},
+			},
+		},
+	}, respGet2)
 
 	// Delete table
 	_, err = api.DeleteTableRequest(table.ID, WithForce()).Send(ctx)
@@ -580,4 +685,22 @@ func downloadAllSlices(ctx context.Context, file *FileDownloadCredentials) ([]by
 	}
 
 	return out, nil
+}
+
+func removeDynamicValuesFromTableMetadata(in TableMetadata) {
+	for i := range in {
+		meta := &in[i]
+		meta.ID = ""
+		meta.Timestamp = ""
+	}
+}
+
+func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
+	for _, colMetadata := range in {
+		for i := range colMetadata {
+			item := &colMetadata[i]
+			item.ID = ""
+			item.Timestamp = ""
+		}
+	}
 }
