@@ -13,7 +13,7 @@ func TestFileOperations(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageABS())
+	_, api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageABS())
 
 	// Create two files
 	file1, err := api.CreateFileResourceRequest("test1").Send(ctx)

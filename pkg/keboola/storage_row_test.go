@@ -15,7 +15,7 @@ import (
 func TestConfigRowApiCalls(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)

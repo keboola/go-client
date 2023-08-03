@@ -14,7 +14,7 @@ func TestCreateOldQueueJobRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx, testproject.WithQueueV1())
+	_, api := APIClientForAnEmptyProject(t, ctx, testproject.WithQueueV1())
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)

@@ -200,7 +200,7 @@ func TestPreviewTable_ParseCompareOp(t *testing.T) {
 func TestPreviewTableRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	rand.Seed(time.Now().Unix())
 

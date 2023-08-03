@@ -145,7 +145,7 @@ func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	tables, err := api.ListTablesRequest().Send(ctx)
 	assert.NoError(t, err)
@@ -309,7 +309,7 @@ func TestTableApiCalls(t *testing.T) {
 func TestTableCreateLoadDataFromFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
@@ -377,7 +377,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 func TestTableCreateFromSlicedFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageS3())
+	_, api := APIClientForAnEmptyProject(t, ctx, testproject.WithStagingStorageS3())
 
 	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
@@ -454,7 +454,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,
@@ -498,7 +498,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 func TestTableUnloadRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	api := APIClientForAnEmptyProject(t, ctx)
+	_, api := APIClientForAnEmptyProject(t, ctx)
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,

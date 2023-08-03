@@ -15,7 +15,7 @@ import (
 
 func TestUploadAndDownload(t *testing.T) {
 	t.Parallel()
-	api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageGCS())
+	_, api := keboola.APIClientForAnEmptyProject(t, context.Background(), testproject.WithStagingStorageGCS())
 	for _, tc := range testdata.UploadAndDownloadTestCases() {
 		tc.Run(t, api)
 	}
