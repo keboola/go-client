@@ -415,10 +415,10 @@ type unloadConfig struct {
 	WhereFilters []whereFilter `json:"whereFilters,omitempty"`
 }
 
-func (a *API) NewTableUnloadRequest(tableID TableID) *TableUnloadRequestBuilder {
+func (a *API) NewTableUnloadRequest(k TableKey) *TableUnloadRequestBuilder {
 	return &TableUnloadRequestBuilder{
-		tableID: tableID,
-		api:     a,
+		tableKey: k,
+		api:      a,
 	}
 }
 
@@ -427,8 +427,9 @@ func (b *TableUnloadRequestBuilder) Build() request.APIRequest[*StorageJob] {
 	req := b.api.newRequest(StorageAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
-		WithURL("tables/{tableId}/export-async").
-		AndPathParam("tableId", b.tableID.String()).
+		WithURL("branch/{branchId}/tables/{tableId}/export-async").
+		AndPathParam("branchId", b.tableKey.BranchID.String()).
+		AndPathParam("tableId", b.tableKey.TableID.String()).
 		WithJSONBody(b.config)
 	return request.NewAPIRequest(result, req)
 }
