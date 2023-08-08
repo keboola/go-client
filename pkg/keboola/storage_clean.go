@@ -28,7 +28,7 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 			wg := request.NewWaitGroup(ctx)
 			for _, branch := range *result {
 				branch := branch
-				// Clear branch
+				// Clean branch
 				if branch.IsDefault {
 					// Default branch cannot be deleted
 					// Reset description
@@ -39,7 +39,7 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 					}
 					// Store default branch
 					*defaultBranch = *branch
-					// Clear buckets
+					// Clean buckets
 					wg.Send(a.
 						ListBucketsRequest(branch.ID).
 						WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
@@ -50,9 +50,19 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 							return wg.Wait()
 						}),
 					)
-					// Clear configs
+					// Clean files
+					wg.Send(a.
+						ListFilesRequest(branch.ID).
+						WithOnSuccess(func(ctx context.Context, result *[]*File) error {
+							wg := request.NewWaitGroup(ctx)
+							for _, file := range *result {
+								wg.Send(a.DeleteFileRequest(branch.ID, file.ID))
+							}
+							return wg.Wait()
+						}))
+					// Clean configs
 					wg.Send(a.DeleteConfigsInBranchRequest(branch.BranchKey))
-					// Clear metadata
+					// Clean metadata
 					wg.Send(a.
 						ListBranchMetadataRequest(branch.BranchKey).
 						WithOnSuccess(func(ctx context.Context, result *MetadataDetails) error {
@@ -79,16 +89,6 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	cleanFilesReq := a.
-		ListFilesRequest().
-		WithOnSuccess(func(ctx context.Context, result *[]*File) error {
-			wg := request.NewWaitGroup(ctx)
-			for _, file := range *result {
-				wg.Send(a.DeleteFileRequest(file.ID))
-			}
-			return wg.Wait()
-		})
-
 	cleanTokensReq := a.ListTokensRequest().
 		WithOnSuccess(func(ctx context.Context, result *[]*Token) error {
 			wg := request.NewWaitGroup(ctx)
@@ -100,5 +100,5 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	return request.NewAPIRequest(defaultBranch, request.Parallel(cleanBranchesReq, cleanFilesReq, cleanTokensReq))
+	return request.NewAPIRequest(defaultBranch, request.Parallel(cleanBranchesReq, cleanTokensReq))
 }
