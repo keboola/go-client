@@ -39,6 +39,17 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 					}
 					// Store default branch
 					*defaultBranch = *branch
+					// Clear buckets
+					wg.Send(a.
+						ListBucketsRequest(branch.ID).
+						WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
+							wg := request.NewWaitGroup(ctx)
+							for _, bucket := range *result {
+								wg.Send(a.DeleteBucketRequest(bucket.BranchID, bucket.BucketID, WithForce()))
+							}
+							return wg.Wait()
+						}),
+					)
 					// Clear configs
 					wg.Send(a.DeleteConfigsInBranchRequest(branch.BranchKey))
 					// Clear metadata
@@ -68,16 +79,6 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	cleanBucketsReq := a.
-		ListBucketsRequest().
-		WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
-			wg := request.NewWaitGroup(ctx)
-			for _, bucket := range *result {
-				wg.Send(a.DeleteBucketRequest(bucket.ID, WithForce()))
-			}
-			return wg.Wait()
-		})
-
 	cleanFilesReq := a.
 		ListFilesRequest().
 		WithOnSuccess(func(ctx context.Context, result *[]*File) error {
@@ -99,5 +100,5 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 			return wg.Wait()
 		})
 
-	return request.NewAPIRequest(defaultBranch, request.Parallel(cleanBranchesReq, cleanBucketsReq, cleanFilesReq, cleanTokensReq))
+	return request.NewAPIRequest(defaultBranch, request.Parallel(cleanBranchesReq, cleanFilesReq, cleanTokensReq))
 }
