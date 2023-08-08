@@ -198,7 +198,7 @@ func (c *createFileConfig) toMap() map[string]any {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) request.APIRequest[*FileUploadCredentials] {
+func (a *API) CreateFileResourceRequest(branchID BranchID, name string, opts ...CreateFileOption) request.APIRequest[*FileUploadCredentials] {
 	c := createFileConfig{name: name}
 	for _, opt := range opts {
 		opt.applyCreateFileOption(&c)
@@ -208,7 +208,8 @@ func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) r
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
-		WithPost("files/prepare").
+		WithPost("branch/{branchId}/files/prepare").
+		AndPathParam("branchId", branchID.String()).
 		WithFormBody(request.ToFormBody(c.toMap())).
 		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
 			file.ContentType = c.contentType
@@ -221,12 +222,13 @@ func (a *API) CreateFileResourceRequest(name string, opts ...CreateFileOption) r
 }
 
 // ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
-func (a *API) ListFilesRequest() request.APIRequest[*[]*File] {
+func (a *API) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
 	var files []*File
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(&files).
-		WithGet("files").
+		WithGet("branch/{branchId}/files").
+		AndPathParam("branchId", branchID.String()).
 		AndQueryParam("limit", "200").
 		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
 			sort.Slice(files, func(i, j int) bool {
@@ -238,41 +240,44 @@ func (a *API) ListFilesRequest() request.APIRequest[*[]*File] {
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileRequest(id int) request.APIRequest[*File] {
+func (a *API) GetFileRequest(branchID BranchID, id int) request.APIRequest[*File] {
 	file := &File{}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
-		WithGet("files/{fileId}").
+		WithGet("branch/{branchId}/files/{fileId}").
+		AndPathParam("branchId", branchID.String()).
 		AndPathParam("fileId", strconv.Itoa(id))
 	return request.NewAPIRequest(file, req)
 }
 
 // GetFileWithCredentialsRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileWithCredentialsRequest(id int) request.APIRequest[*FileDownloadCredentials] {
+func (a *API) GetFileWithCredentialsRequest(branchID BranchID, id int) request.APIRequest[*FileDownloadCredentials] {
 	file := &FileDownloadCredentials{}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
-		WithGet("files/{fileId}").
+		WithGet("branch/{branchId}/files/{fileId}").
+		AndPathParam("branchId", branchID.String()).
 		AndPathParam("fileId", strconv.Itoa(id)).
 		AndQueryParam("federationToken", "1")
 	return request.NewAPIRequest(file, req)
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func (a *API) DeleteFileRequest(id int) request.APIRequest[request.NoResult] {
+func (a *API) DeleteFileRequest(branchID BranchID, id int) request.APIRequest[request.NoResult] {
 	req := a.
 		newRequest(StorageAPI).
-		WithDelete("files/{fileId}").
+		WithDelete("branch/{branchId}/files/{fileId}").
+		AndPathParam("branchId", branchID.String()).
+		AndPathParam("fileId", strconv.Itoa(id)).
 		WithOnError(func(ctx context.Context, response request.HTTPResponse, err error) error {
 			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
 			if response.StatusCode() == http.StatusNotFound {
 				return nil
 			}
 			return err
-		}).
-		AndPathParam("fileId", strconv.Itoa(id))
+		})
 	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
