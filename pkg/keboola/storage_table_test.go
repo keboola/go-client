@@ -269,6 +269,7 @@ func TestTableApiCalls(t *testing.T) {
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: bucketName,
@@ -326,6 +327,7 @@ func TestTableApiCalls(t *testing.T) {
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
+			BranchID:    defBranch.ID,
 			BucketID:    table.Bucket.BucketID,
 			DisplayName: table.Bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
@@ -394,6 +396,7 @@ func TestTableApiCalls(t *testing.T) {
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
+			BranchID:    defBranch.ID,
 			BucketID:    table.Bucket.BucketID,
 			DisplayName: table.Bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
@@ -448,6 +451,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: bucketID,
 	}
 
@@ -515,6 +519,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: bucketName,
@@ -601,6 +606,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: bucketID,
 	}
 
@@ -649,6 +655,7 @@ func TestTableUnloadRequest(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: bucketID,
 	}
 
