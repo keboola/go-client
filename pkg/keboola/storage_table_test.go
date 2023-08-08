@@ -226,7 +226,7 @@ func TestMockListTablesRequest(t *testing.T) {
 				},
 				ColumnMetadata: nil,
 				Bucket: &Bucket{
-					ID:             MustParseBucketID("in.c-keboola-ex-http-6336016"),
+					BucketID:       MustParseBucketID("in.c-keboola-ex-http-6336016"),
 					URI:            "https://connection.north-europe.azure.keboola.com/v2/storage/buckets/in.c-keboola-ex-http-6336016",
 					DisplayName:    "keboola-ex-http-6336016",
 					Description:    "",
@@ -254,7 +254,7 @@ func TestTableApiCalls(t *testing.T) {
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
-		ID: BucketID{
+		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: bucketName,
 		},
@@ -266,7 +266,7 @@ func TestTableApiCalls(t *testing.T) {
 	assert.Equal(t, bucket, resBucket)
 
 	tableID := TableID{
-		BucketID:  bucket.ID,
+		BucketID:  bucket.BucketID,
 		TableName: tableName,
 	}
 	table := &Table{
@@ -311,7 +311,7 @@ func TestTableApiCalls(t *testing.T) {
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
-			ID:          table.Bucket.ID,
+			BucketID:    table.Bucket.BucketID,
 			DisplayName: table.Bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
 		},
@@ -378,7 +378,7 @@ func TestTableApiCalls(t *testing.T) {
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
-			ID:          table.Bucket.ID,
+			BucketID:    table.Bucket.BucketID,
 			DisplayName: table.Bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
 		},
@@ -428,7 +428,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
-		ID: bucketID,
+		BucketID: bucketID,
 	}
 
 	// Create bucket
@@ -491,7 +491,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	tableName := fmt.Sprintf("test_%d", rnd.Int())
 
 	bucket := &Bucket{
-		ID: BucketID{
+		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: bucketName,
 		},
@@ -500,9 +500,9 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Create bucket
 	_, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, bucket.ID)
+	assert.NotEmpty(t, bucket.BucketID)
 	tableID := TableID{
-		BucketID:  bucket.ID,
+		BucketID:  bucket.BucketID,
 		TableName: tableName,
 	}
 
@@ -573,7 +573,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
-		ID: bucketID,
+		BucketID: bucketID,
 	}
 
 	// Create bucket
@@ -617,7 +617,7 @@ func TestTableUnloadRequest(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rnd.Int()),
 	}
 	bucket := &Bucket{
-		ID: bucketID,
+		BucketID: bucketID,
 	}
 
 	// Create bucket

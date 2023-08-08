@@ -87,7 +87,7 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 
 	bucket, err := api.CreateBucketRequest(&Bucket{
-		ID: BucketID{
+		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: fmt.Sprintf("c-create_token_test_%d", rand.Int()),
 		},
@@ -97,7 +97,7 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	description := "create token request all perms test"
 	token, err := api.CreateTokenRequest(
 		WithDescription(description),
-		WithBucketPermission(bucket.ID, BucketPermissionRead),
+		WithBucketPermission(bucket.BucketID, BucketPermissionRead),
 		WithComponentAccess("keboola.ex-aws-s3"),
 		WithExpiresIn(5*time.Minute),
 	).Send(ctx)
@@ -105,7 +105,7 @@ func TestCreateToken_SomePerms(t *testing.T) {
 
 	assert.Equal(t, description, token.Description)
 	assert.Equal(t,
-		BucketPermissions{bucket.ID: BucketPermissionRead},
+		BucketPermissions{bucket.BucketID: BucketPermissionRead},
 		token.BucketPermissions,
 	)
 	assert.Equal(t,

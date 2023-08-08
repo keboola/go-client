@@ -18,8 +18,14 @@ func ExampleNewAPI() {
 		log.Fatal(err)
 	}
 
+	// Get default branch
+	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Send request
-	buckets, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest(defaultBranch.ID).Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,8 +46,14 @@ func ExampleNewAPIFromIndex() {
 	// Create API
 	api := keboola.NewAPIFromIndex(host, index)
 
+	// Get default branch
+	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Send request
-	buckets, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest(defaultBranch.ID).Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,8 +74,14 @@ func Example_newAPIFromIndexWithComponents() {
 	// Create API
 	api := keboola.NewAPIFromIndex(host, &index.Index, keboola.WithToken("<my-token>"))
 
+	// Get default branch
+	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Send request
-	buckets, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest(defaultBranch.ID).Send(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
