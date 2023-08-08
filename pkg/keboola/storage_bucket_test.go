@@ -20,12 +20,16 @@ func TestBucketApiCalls(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &keboola.Bucket{
+	bucketKey := keboola.BucketKey{
 		BranchID: defBranch.ID,
 		BucketID: keboola.BucketID{
 			Stage:      keboola.BucketStageIn,
 			BucketName: fmt.Sprintf("c-test_%d", rand.Int()),
 		},
+	}
+
+	bucket := &keboola.Bucket{
+		BucketKey: bucketKey,
 	}
 
 	// Create
@@ -34,7 +38,7 @@ func TestBucketApiCalls(t *testing.T) {
 	assert.Equal(t, bucket, resCreate)
 
 	// Get bucket - find the bucket
-	resGet, err := api.GetBucketRequest(bucket.BranchID, bucket.BucketID).Send(ctx)
+	resGet, err := api.GetBucketRequest(bucketKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resGet)
 
@@ -45,11 +49,11 @@ func TestBucketApiCalls(t *testing.T) {
 	assert.Equal(t, bucket, (*allBuckets)[0])
 
 	// Delete
-	_, err = api.DeleteBucketRequest(bucket.BranchID, bucket.BucketID, keboola.WithForce()).Send(ctx)
+	_, err = api.DeleteBucketRequest(bucketKey, keboola.WithForce()).Send(ctx)
 	assert.NoError(t, err)
 
 	// Get bucket - not found
-	_, err = api.GetBucketRequest(bucket.BranchID, bucket.BucketID).Send(ctx)
+	_, err = api.GetBucketRequest(bucketKey).Send(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s not found", bucket.BucketID.String()))
 

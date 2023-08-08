@@ -43,14 +43,13 @@ func TestTableApiCalls(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
-	tableName := fmt.Sprintf("test_%d", rnd.Int())
-
 	bucket := &Bucket{
-		BranchID: defBranch.ID,
-		BucketID: BucketID{
-			Stage:      BucketStageIn,
-			BucketName: bucketName,
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
 		},
 	}
 
@@ -61,19 +60,24 @@ func TestTableApiCalls(t *testing.T) {
 
 	tableID := TableID{
 		BucketID:  bucket.BucketID,
-		TableName: tableName,
+		TableName: fmt.Sprintf("test_%d", rnd.Int()),
 	}
+
+	tableKey := TableKey{
+		BranchID: defBranch.ID,
+		TableID:  tableID,
+	}
+
 	table := &Table{
-		BranchID:   defBranch.ID,
-		TableID:    tableID,
+		TableKey:   tableKey,
 		Bucket:     bucket,
-		Name:       tableName,
+		Name:       tableKey.TableID.TableName,
 		Columns:    []string{"first", "second", "third", "fourth"},
 		PrimaryKey: []string{"first", "fourth"},
 	}
 
 	// Create table
-	res, err := api.CreateTableRequest(defBranch.ID, tableID, table.Columns).Send(ctx)
+	res, err := api.CreateTableRequest(tableKey, table.Columns).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, table.Name, res.Name)
 
@@ -89,7 +93,7 @@ func TestTableApiCalls(t *testing.T) {
 	assert.True(t, tableFound)
 
 	// Get table (without table and columns metadata)
-	respGet1, err := api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	respGet1, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	respGet1.Created = iso8601.Time{}
 	respGet1.LastImportDate = iso8601.Time{}
@@ -97,19 +101,17 @@ func TestTableApiCalls(t *testing.T) {
 	respGet1.Bucket.Created = iso8601.Time{}
 	respGet1.Bucket.LastChangeDate = nil
 	assert.Equal(t, &Table{
-		BranchID:      defBranch.ID,
-		TableID:       tableID,
+		TableKey:      tableKey,
 		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
-		Name:          tableName,
-		DisplayName:   tableName,
+		Name:          tableKey.TableID.TableName,
+		DisplayName:   tableKey.TableID.TableName,
 		PrimaryKey:    []string{},
 		RowsCount:     0,
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
-			BranchID:    defBranch.ID,
-			BucketID:    table.Bucket.BucketID,
-			DisplayName: table.Bucket.DisplayName,
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
 		},
 		Metadata:       TableMetadata{},
@@ -119,8 +121,7 @@ func TestTableApiCalls(t *testing.T) {
 	// Set metadata
 	resMetadata, err := api.
 		CreateOrUpdateTableMetadata(
-			defBranch.ID,
-			tableID,
+			tableKey,
 			"go-client-test",
 			[]TableMetadataRequest{
 				{Key: "tableMetadata1", Value: "value1"},
@@ -157,7 +158,7 @@ func TestTableApiCalls(t *testing.T) {
 	}, resMetadata)
 
 	// Get table (with table and columns metadata)
-	respGet2, err := api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	respGet2, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	removeDynamicValuesFromTableMetadata(respGet2.Metadata)
 	removeDynamicValuesFromColumnsMetadata(respGet2.ColumnMetadata)
@@ -167,19 +168,17 @@ func TestTableApiCalls(t *testing.T) {
 	respGet2.Bucket.Created = iso8601.Time{}
 	respGet2.Bucket.LastChangeDate = nil
 	assert.Equal(t, &Table{
-		BranchID:      defBranch.ID,
-		TableID:       tableID,
+		TableKey:      tableKey,
 		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
-		Name:          tableName,
-		DisplayName:   tableName,
+		Name:          tableKey.TableID.TableName,
+		DisplayName:   tableKey.TableID.TableName,
 		PrimaryKey:    []string{},
 		RowsCount:     0,
 		DataSizeBytes: 0,
 		Columns:       []string{"first", "second", "third", "fourth"},
 		Bucket: &Bucket{
-			BranchID:    defBranch.ID,
-			BucketID:    table.Bucket.BucketID,
-			DisplayName: table.Bucket.DisplayName,
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
 		},
 		Metadata: TableMetadata{
@@ -223,17 +222,22 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucketID := BucketID{
-		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
-	}
-	tableID := TableID{
-		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rnd.Int()),
-	}
 	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
+			},
+		},
+	}
+
+	tableKey := TableKey{
 		BranchID: defBranch.ID,
-		BucketID: bucketID,
+		TableID: TableID{
+			BucketID:  bucket.BucketID,
+			TableName: fmt.Sprintf("table_%d", rnd.Int()),
+		},
 	}
 
 	// Create bucket
@@ -254,7 +258,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create file
@@ -264,7 +268,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.NotEmpty(t, file2.ID)
 
 	// Check rows count
-	table, err := api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	table, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), table.RowsCount)
 
@@ -277,12 +281,12 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	// Load data to table - added three rows
 	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn2()
-	job, err := api.LoadDataFromFileRequest(defBranch.ID, tableID, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableKey, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx2, job))
 
 	// Check rows count
-	table, err = api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	table, err = api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(4), table.RowsCount)
 }
@@ -296,14 +300,21 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucketName := fmt.Sprintf("c-test_%d", rnd.Int())
-	tableName := fmt.Sprintf("test_%d", rnd.Int())
-
 	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	tableKey := TableKey{
 		BranchID: defBranch.ID,
-		BucketID: BucketID{
-			Stage:      BucketStageIn,
-			BucketName: bucketName,
+		TableID: TableID{
+			BucketID:  bucket.BucketID,
+			TableName: fmt.Sprintf("test_%d", rnd.Int()),
 		},
 	}
 
@@ -311,13 +322,9 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	_, err = api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, bucket.BucketID)
-	tableID := TableID{
-		BucketID:  bucket.BucketID,
-		TableName: tableName,
-	}
 
 	// Create whole file
-	wholeFile, err := api.CreateFileResourceRequest(defBranch.ID, tableName).Send(ctx)
+	wholeFile, err := api.CreateFileResourceRequest(defBranch.ID, "file name").Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, wholeFile.ID)
 
@@ -329,16 +336,16 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, wholeFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, wholeFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
-	table, err := api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	table, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), table.RowsCount)
 
 	// Create sliced file
-	slicedFile, err := api.CreateFileResourceRequest(defBranch.ID, tableName, WithIsSliced(true)).Send(ctx)
+	slicedFile, err := api.CreateFileResourceRequest(defBranch.ID, "file name", WithIsSliced(true)).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, slicedFile.ID)
 
@@ -359,12 +366,12 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Load data to table
 	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn()
-	job, err := api.LoadDataFromFileRequest(defBranch.ID, tableID, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableKey, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx, job))
 
 	// Check rows count
-	table, err = api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	table, err = api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(5), table.RowsCount)
 }
@@ -378,17 +385,22 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucketID := BucketID{
-		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
-	}
-	tableID := TableID{
-		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rnd.Int()),
-	}
 	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	tableKey := TableKey{
 		BranchID: defBranch.ID,
-		BucketID: bucketID,
+		TableID: TableID{
+			BucketID:  bucket.BucketID,
+			TableName: fmt.Sprintf("test_%d", rnd.Int()),
+		},
 	}
 
 	// Create bucket
@@ -409,11 +421,11 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, file1.ID, WithDelimiter("&"), WithEnclosure("'")).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithDelimiter("&"), WithEnclosure("'")).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
-	table, err := api.GetTableRequest(defBranch.ID, tableID).Send(ctx)
+	table, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), table.RowsCount)
 }
@@ -427,17 +439,22 @@ func TestTableUnloadRequest(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucketID := BucketID{
-		Stage:      BucketStageIn,
-		BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
-	}
-	tableID := TableID{
-		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rnd.Int()),
-	}
 	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	tableKey := TableKey{
 		BranchID: defBranch.ID,
-		BucketID: bucketID,
+		TableID: TableID{
+			BucketID:  bucket.BucketID,
+			TableName: fmt.Sprintf("test_%d", rnd.Int()),
+		},
 	}
 
 	// Create bucket
@@ -458,11 +475,11 @@ func TestTableUnloadRequest(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, inputFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, inputFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Unload table as CSV
-	outputFileInfo, err := api.NewTableUnloadRequest(tableID).
+	outputFileInfo, err := api.NewTableUnloadRequest(tableKey).
 		WithColumns("col1").
 		WithChangedSince("-2 days").
 		WithFormat(UnloadFormatCSV).

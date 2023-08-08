@@ -213,13 +213,19 @@ func TestPreviewTableRequest(t *testing.T) {
 		Stage:      BucketStageIn,
 		BucketName: fmt.Sprintf("c-bucket_%d", rand.Int()),
 	}
-	tableID := TableID{
-		BucketID:  bucketID,
-		TableName: fmt.Sprintf("table_%d", rand.Int()),
-	}
 	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: bucketID,
+		},
+	}
+
+	tableKey := TableKey{
 		BranchID: defBranch.ID,
-		BucketID: bucketID,
+		TableID: TableID{
+			BucketID:  bucketID,
+			TableName: fmt.Sprintf("table_%d", rand.Int()),
+		},
 	}
 
 	// Create bucket
@@ -243,11 +249,11 @@ func TestPreviewTableRequest(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, file1.ID, WithPrimaryKey([]string{"id"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithPrimaryKey([]string{"id"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Preview table
-	preview, err := api.PreviewTableRequest(tableID,
+	preview, err := api.PreviewTableRequest(tableKey,
 		WithWhere("value", "ge", []int{10}, TypeInteger),
 		WithWhere("value", CompareLe, []int{15}, TypeInteger),
 		WithOrderBy("value", OrderDesc, TypeInteger),

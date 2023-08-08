@@ -45,7 +45,7 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 						WithOnSuccess(func(ctx context.Context, result *[]*Bucket) error {
 							wg := request.NewWaitGroup(ctx)
 							for _, bucket := range *result {
-								wg.Send(a.DeleteBucketRequest(bucket.BranchID, bucket.BucketID, WithForce()))
+								wg.Send(a.DeleteBucketRequest(bucket.BucketKey, WithForce()))
 							}
 							return wg.Wait()
 						}),

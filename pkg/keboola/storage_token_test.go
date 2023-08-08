@@ -91,10 +91,12 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	require.NoError(t, err)
 
 	bucket, err := api.CreateBucketRequest(&Bucket{
-		BranchID: defBranch.ID,
-		BucketID: BucketID{
-			Stage:      BucketStageIn,
-			BucketName: fmt.Sprintf("c-create_token_test_%d", rand.Int()),
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-create_token_test_%d", rand.Int()),
+			},
 		},
 	}).Send(ctx)
 	assert.NoError(t, err)

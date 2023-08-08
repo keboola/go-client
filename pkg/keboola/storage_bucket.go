@@ -16,9 +16,13 @@ const (
 	featureDisableLegacyBucketPrefix = "disable-legacy-bucket-prefix"
 )
 
+type BucketKey struct {
+	BranchID BranchID `json:"-"`
+	BucketID BucketID `json:"id"`
+}
+
 type Bucket struct {
-	BranchID       BranchID      `json:"-"`
-	BucketID       BucketID      `json:"id"`
+	BucketKey
 	URI            string        `json:"uri"`
 	DisplayName    string        `json:"displayName"`
 	Description    string        `json:"description"`
@@ -45,14 +49,14 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
-func (a *API) GetBucketRequest(branchID BranchID, bucketID BucketID) request.APIRequest[*Bucket] {
-	result := Bucket{BranchID: branchID, BucketID: bucketID}
+func (a *API) GetBucketRequest(k BucketKey) request.APIRequest[*Bucket] {
+	result := Bucket{BucketKey: k}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(&result).
 		WithGet("branch/{branchId}/buckets/{bucketId}").
-		AndPathParam("branchId", branchID.String()).
-		AndPathParam("bucketId", bucketID.String())
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("bucketId", k.BucketID.String())
 	return request.NewAPIRequest(&result, req)
 }
 
@@ -112,7 +116,7 @@ func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
 		AndPathParam("branchId", bucket.BranchID.String()).
 		WithFormBody(request.ToFormBody(params)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
-			if result, err := a.GetBucketRequest(bucket.BranchID, bucket.BucketID).Send(ctx); err == nil {
+			if result, err := a.GetBucketRequest(bucket.BucketKey).Send(ctx); err == nil {
 				*bucket = *result
 				return nil
 			} else {
@@ -123,9 +127,9 @@ func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketRequest(branchID BranchID, bucketID BucketID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
+func (a *API) DeleteBucketRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[request.NoResult] {
 	req := a.
-		DeleteBucketAsyncRequest(branchID, bucketID, opts...).
+		DeleteBucketAsyncRequest(k, opts...).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
@@ -139,7 +143,7 @@ func (a *API) DeleteBucketRequest(branchID BranchID, bucketID BucketID, opts ...
 }
 
 // DeleteBucketAsyncRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketAsyncRequest(branchID BranchID, bucketID BucketID, opts ...DeleteOption) request.APIRequest[*StorageJob] {
+func (a *API) DeleteBucketAsyncRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[*StorageJob] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -152,8 +156,8 @@ func (a *API) DeleteBucketAsyncRequest(branchID BranchID, bucketID BucketID, opt
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithDelete("branch/{branchId}/buckets/{bucketId}").
-		AndPathParam("branchId", branchID.String()).
-		AndPathParam("bucketId", bucketID.String()).
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("bucketId", k.BucketID.String()).
 		AndQueryParam("async", "1")
 
 	if c.force {
