@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPreviewTableRequestOptions(t *testing.T) {
@@ -202,6 +203,10 @@ func TestPreviewTableRequest(t *testing.T) {
 	ctx := context.Background()
 	_, api := APIClientForAnEmptyProject(t, ctx)
 
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
 	rand.Seed(time.Now().Unix())
 
 	bucketID := BucketID{
@@ -223,7 +228,7 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	// Create file
 	fileName1 := fmt.Sprintf("file_%d", rand.Int())
-	file1, err := api.CreateFileResourceRequest(fileName1).Send(ctx)
+	file1, err := api.CreateFileResourceRequest(defBranch.ID, fileName1).Send(ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, file1.ID)
 
@@ -237,7 +242,7 @@ func TestPreviewTableRequest(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(tableID, file1.ID, WithPrimaryKey([]string{"id"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(defBranch.ID, tableID, file1.ID, WithPrimaryKey([]string{"id"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Preview table

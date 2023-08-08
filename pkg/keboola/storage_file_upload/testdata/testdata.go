@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
 
@@ -42,6 +43,12 @@ func (tc UploadTestCase) Name() string {
 }
 
 func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
+	ctx := context.Background()
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
 	t.Helper()
 	t.Run(tc.Name(), func(t *testing.T) {
 		t.Parallel()
@@ -50,7 +57,6 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		content := []byte("col1,col2\nval1,val2\n")
 
 		// Create file resource
-		ctx := context.Background()
 		opts := []keboola.CreateFileOption{
 			keboola.WithIsPermanent(tc.Permanent),
 			keboola.WithIsSliced(tc.Sliced),
@@ -59,7 +65,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		if !tc.Encrypted {
 			opts = append(opts, keboola.WithDisableEncryption())
 		}
-		file, err := api.CreateFileResourceRequest("test", opts...).Send(ctx)
+		file, err := api.CreateFileResourceRequest(defBranch.ID, "test", opts...).Send(ctx)
 		assert.NoError(t, err)
 
 		// Assert common fields
@@ -135,7 +141,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		}
 
 		// Get file download credentials
-		credentials, err := api.GetFileWithCredentialsRequest(file.ID).Send(ctx)
+		credentials, err := api.GetFileWithCredentialsRequest(defBranch.ID, file.ID).Send(ctx)
 		assert.NoError(t, err)
 
 		// Request file content
