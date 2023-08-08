@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/keboola/go-client/pkg/keboola"
 )
@@ -83,10 +84,14 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, api := APIClientForRandomProject(t, ctx)
-
 	rand.Seed(time.Now().Unix())
 
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
 	bucket, err := api.CreateBucketRequest(&Bucket{
+		BranchID: defBranch.ID,
 		BucketID: BucketID{
 			Stage:      BucketStageIn,
 			BucketName: fmt.Sprintf("c-create_token_test_%d", rand.Int()),

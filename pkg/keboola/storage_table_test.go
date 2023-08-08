@@ -64,6 +64,7 @@ func TestTableApiCalls(t *testing.T) {
 		TableName: tableName,
 	}
 	table := &Table{
+		BranchID:   defBranch.ID,
 		TableID:    tableID,
 		Bucket:     bucket,
 		Name:       tableName,
@@ -96,6 +97,7 @@ func TestTableApiCalls(t *testing.T) {
 	respGet1.Bucket.Created = iso8601.Time{}
 	respGet1.Bucket.LastChangeDate = nil
 	assert.Equal(t, &Table{
+		BranchID:      defBranch.ID,
 		TableID:       tableID,
 		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
 		Name:          tableName,
@@ -165,6 +167,7 @@ func TestTableApiCalls(t *testing.T) {
 	respGet2.Bucket.Created = iso8601.Time{}
 	respGet2.Bucket.LastChangeDate = nil
 	assert.Equal(t, &Table{
+		BranchID:      defBranch.ID,
 		TableID:       tableID,
 		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
 		Name:          tableName,

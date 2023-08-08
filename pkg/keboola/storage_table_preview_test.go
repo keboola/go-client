@@ -218,6 +218,7 @@ func TestPreviewTableRequest(t *testing.T) {
 		TableName: fmt.Sprintf("table_%d", rand.Int()),
 	}
 	bucket := &Bucket{
+		BranchID: defBranch.ID,
 		BucketID: bucketID,
 	}
 
