@@ -23,9 +23,13 @@ func TestFileOperations(t *testing.T) {
 	// Create two files
 	file1, err := api.CreateFileResourceRequest(defBranch.ID, "test1").Send(ctx)
 	assert.NoError(t, err)
+	assert.Equal(t, defBranch.ID, file1.BranchID)
+	assert.NotEmpty(t, file1.FileID)
 	time.Sleep(100 * time.Millisecond)
 	file2, err := api.CreateFileResourceRequest(defBranch.ID, "test2").Send(ctx)
 	assert.NoError(t, err)
+	assert.Equal(t, defBranch.ID, file2.BranchID)
+	assert.NotEmpty(t, file2.FileID)
 
 	// List
 	time.Sleep(1 * time.Second)
