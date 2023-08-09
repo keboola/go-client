@@ -69,7 +69,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		assert.NoError(t, err)
 
 		// Assert common fields
-		assert.NotEmpty(t, file.ID)
+		assert.NotEmpty(t, file.FileID)
 		assert.NotEmpty(t, file.URL)
 		assert.NotEmpty(t, file.Created)
 		assert.Equal(t, tc.Permanent, file.IsPermanent)
@@ -141,7 +141,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		}
 
 		// Get file download credentials
-		credentials, err := api.GetFileWithCredentialsRequest(defBranch.ID, file.ID).Send(ctx)
+		credentials, err := api.GetFileWithCredentialsRequest(file.FileKey).Send(ctx)
 		assert.NoError(t, err)
 
 		// Request file content

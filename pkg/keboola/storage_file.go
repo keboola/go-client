@@ -18,8 +18,15 @@ import (
 
 const ManifestFileName = "manifest"
 
+type FileID int
+
+type FileKey struct {
+	BranchID BranchID `json:"-"`
+	FileID   FileID   `json:"id" readonly:"true"`
+}
+
 type File struct {
-	ID              int          `json:"id" readonly:"true"`
+	FileKey
 	Created         iso8601.Time `json:"created" readonly:"true"`
 	IsSliced        bool         `json:"isSliced,omitempty"`
 	IsEncrypted     bool         `json:"isEncrypted,omitempty"`
@@ -53,6 +60,10 @@ type FileDownloadCredentials struct {
 	*S3DownloadParams
 	*ABSDownloadParams
 	*GCSDownloadParams
+}
+
+func (v FileID) String() string {
+	return strconv.Itoa(int(v))
 }
 
 func (f *FileDownloadCredentials) DestinationURL() (string, error) {
@@ -205,6 +216,7 @@ func (a *API) CreateFileResourceRequest(branchID BranchID, name string, opts ...
 	}
 
 	file := &FileUploadCredentials{}
+	file.BranchID = branchID
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
@@ -231,8 +243,14 @@ func (a *API) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
 		AndPathParam("branchId", branchID.String()).
 		AndQueryParam("limit", "200").
 		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
+			for _, file := range files {
+				file.BranchID = branchID
+			}
+			return nil
+		}).
+		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
 			sort.Slice(files, func(i, j int) bool {
-				return files[i].ID < files[j].ID
+				return files[i].FileID < files[j].FileID
 			})
 			return nil
 		})
@@ -240,37 +258,38 @@ func (a *API) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileRequest(branchID BranchID, id int) request.APIRequest[*File] {
-	file := &File{}
+func (a *API) GetFileRequest(k FileKey) request.APIRequest[*File] {
+	file := &File{FileKey: k}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithGet("branch/{branchId}/files/{fileId}").
-		AndPathParam("branchId", branchID.String()).
-		AndPathParam("fileId", strconv.Itoa(id))
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("fileId", k.FileID.String())
 	return request.NewAPIRequest(file, req)
 }
 
 // GetFileWithCredentialsRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileWithCredentialsRequest(branchID BranchID, id int) request.APIRequest[*FileDownloadCredentials] {
+func (a *API) GetFileWithCredentialsRequest(k FileKey) request.APIRequest[*FileDownloadCredentials] {
 	file := &FileDownloadCredentials{}
+	file.FileKey = k
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(file).
 		WithGet("branch/{branchId}/files/{fileId}").
-		AndPathParam("branchId", branchID.String()).
-		AndPathParam("fileId", strconv.Itoa(id)).
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("fileId", k.FileID.String()).
 		AndQueryParam("federationToken", "1")
 	return request.NewAPIRequest(file, req)
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func (a *API) DeleteFileRequest(branchID BranchID, id int) request.APIRequest[request.NoResult] {
+func (a *API) DeleteFileRequest(k FileKey) request.APIRequest[request.NoResult] {
 	req := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/files/{fileId}").
-		AndPathParam("branchId", branchID.String()).
-		AndPathParam("fileId", strconv.Itoa(id)).
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("fileId", k.FileID.String()).
 		WithOnError(func(ctx context.Context, response request.HTTPResponse, err error) error {
 			// Metadata about files are stored in the ElasticSearch, operations may not be reflected immediately.
 			if response.StatusCode() == http.StatusNotFound {

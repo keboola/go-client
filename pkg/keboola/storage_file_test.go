@@ -32,18 +32,18 @@ func TestFileOperations(t *testing.T) {
 	files, err := api.ListFilesRequest(defBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *files, 2)
-	assert.Equal(t, file1.ID, (*files)[0].ID)
-	assert.Equal(t, file2.ID, (*files)[1].ID)
+	assert.Equal(t, file1.FileID, (*files)[0].FileID)
+	assert.Equal(t, file2.FileID, (*files)[1].FileID)
 
 	// Get
-	resp1, err := api.GetFileRequest(defBranch.ID, file1.ID).Send(ctx)
+	resp1, err := api.GetFileRequest(file1.FileKey).Send(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, resp1.ID, file1.ID)
+	assert.Equal(t, resp1.FileID, file1.FileID)
 
 	// Get with download credentials
-	resp2, err := api.GetFileWithCredentialsRequest(defBranch.ID, file1.ID).Send(ctx)
+	resp2, err := api.GetFileWithCredentialsRequest(file1.FileKey).Send(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, resp2.ID, file1.ID)
+	assert.Equal(t, resp2.FileID, file1.FileID)
 	assert.True(t,
 		(resp2.S3DownloadParams != nil && resp2.S3DownloadParams.Path.Key != "") ||
 			(resp2.ABSDownloadParams != nil && resp2.ABSDownloadParams.Path.BlobName != "") ||
@@ -51,7 +51,7 @@ func TestFileOperations(t *testing.T) {
 	)
 
 	// Delete file1
-	_, err = api.DeleteFileRequest(defBranch.ID, file1.ID).Send(ctx)
+	_, err = api.DeleteFileRequest(file1.FileKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// List
@@ -59,10 +59,10 @@ func TestFileOperations(t *testing.T) {
 	files, err = api.ListFilesRequest(defBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *files, 1)
-	assert.Equal(t, file2.ID, (*files)[0].ID)
+	assert.Equal(t, file2.FileID, (*files)[0].FileID)
 
 	// Delete file2
-	_, err = api.DeleteFileRequest(defBranch.ID, file2.ID).Send(ctx)
+	_, err = api.DeleteFileRequest(file2.FileKey).Send(ctx)
 	assert.NoError(t, err)
 
 	// List

@@ -64,7 +64,7 @@ type TableUnloadJobResult struct {
 }
 
 type UnloadedFile struct {
-	ID int `json:"id"`
+	FileKey
 }
 
 // SendAndWait the request and wait for the resulting storage job to finish.
@@ -87,6 +87,7 @@ func (b *TableUnloadRequestBuilder) SendAndWait(ctx context.Context, timeout tim
 
 	// parse result
 	result := &TableUnloadJobResult{}
+	result.File.BranchID = b.tableKey.BranchID
 	data, err := jsonLib.Marshal(job.Results)
 	if err != nil {
 		return nil, err
