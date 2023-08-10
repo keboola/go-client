@@ -42,7 +42,7 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *configs, 0)
 
 	// No buckets - implies no tables
-	buckets, err := api.ListBucketsRequest().Send(ctx)
+	buckets, err := api.ListBucketsRequest(defaultBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *buckets, 0)
 

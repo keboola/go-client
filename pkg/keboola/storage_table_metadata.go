@@ -42,7 +42,7 @@ func (r *ColumnsMetadata) UnmarshalJSON(data []byte) (err error) {
 }
 
 // CreateOrUpdateTableMetadata https://keboola.docs.apiary.io/#reference/metadata/table-metadata/create-or-update
-func (a *API) CreateOrUpdateTableMetadata(tableID TableID, provider string, tableMetadata []TableMetadataRequest, columnsMetadata []ColumnMetadataRequest) request.APIRequest[*TableMetadataResponse] {
+func (a *API) CreateOrUpdateTableMetadata(k TableKey, provider string, tableMetadata []TableMetadataRequest, columnsMetadata []ColumnMetadataRequest) request.APIRequest[*TableMetadataResponse] {
 	params := make(map[string]any)
 	params["provider"] = provider
 	if len(tableMetadata) != 0 {
@@ -58,8 +58,9 @@ func (a *API) CreateOrUpdateTableMetadata(tableID TableID, provider string, tabl
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
-		WithPost("tables/{tableId}/metadata").
-		AndPathParam("tableId", tableID.String()).
+		WithPost("branch/{branchId}/tables/{tableId}/metadata").
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("tableId", k.TableID.String()).
 		WithJSONBody(params)
 
 	return request.NewAPIRequest(result, req)

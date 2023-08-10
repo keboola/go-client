@@ -125,7 +125,7 @@ func TestHack_DeleteTableRequest_NotFound(t *testing.T) {
 	}`))
 	transport.RegisterResponder(
 		http.MethodDelete,
-		`https://connection.keboola.com/v2/storage/tables/in.c-bucket.table`,
+		`https://connection.keboola.com/v2/storage/branch/123/tables/in.c-bucket.table`,
 		httpmock.ResponderFromMultipleResponses([]*http.Response{
 			{
 				StatusCode: http.StatusInternalServerError,
@@ -146,14 +146,14 @@ func TestHack_DeleteTableRequest_NotFound(t *testing.T) {
 
 	// Run request
 	id := MustParseTableID("in.c-bucket.table")
-	_, err = api.DeleteTableRequest(id).Send(context.Background())
+	_, err = api.DeleteTableRequest(123, id).Send(context.Background())
 
 	// The request ended without an error
 	assert.NoError(t, err)
 
 	// Check HTTP requests count
 	assert.Equal(t, map[string]int{
-		"GET https://connection.keboola.com/v2/storage/?exclude=components":         1,
-		"DELETE https://connection.keboola.com/v2/storage/tables/in.c-bucket.table": 2,
+		"GET https://connection.keboola.com/v2/storage/?exclude=components":                    1,
+		"DELETE https://connection.keboola.com/v2/storage/branch/123/tables/in.c-bucket.table": 2,
 	}, transport.GetCallCountInfo())
 }

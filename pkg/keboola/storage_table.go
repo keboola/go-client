@@ -16,9 +16,14 @@ import (
 	"github.com/keboola/go-client/pkg/request"
 )
 
+type TableKey struct {
+	BranchID BranchID `json:"-"`
+	TableID  TableID  `json:"id"`
+}
+
 // Table https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
 type Table struct {
-	ID             TableID         `json:"id"`
+	TableKey
 	URI            string          `json:"uri"`
 	Name           string          `json:"name"`
 	DisplayName    string          `json:"displayName"`
@@ -87,7 +92,7 @@ func WithColumnMetadata() Option {
 }
 
 // ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
-func (a *API) ListTablesRequest(opts ...Option) request.APIRequest[*[]*Table] {
+func (a *API) ListTablesRequest(branchID BranchID, opts ...Option) request.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
@@ -97,7 +102,8 @@ func (a *API) ListTablesRequest(opts ...Option) request.APIRequest[*[]*Table] {
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(&result).
-		WithGet("tables").
+		WithGet("branch/{branchId}/tables").
+		AndPathParam("branchId", branchID.String()).
 		AndQueryParam("include", config.includeString())
 
 	return request.NewAPIRequest(&result, req)
@@ -138,10 +144,10 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 }
 
 // CreateTableRequest creates an empty table with given columns.
-func (a *API) CreateTableRequest(tableID TableID, columns []string, opts ...CreateTableOption) request.APIRequest[*Table] {
+func (a *API) CreateTableRequest(k TableKey, columns []string, opts ...CreateTableOption) request.APIRequest[*Table] {
 	table := &Table{}
 	req := a.
-		CreateFileResourceRequest(tableID.TableName).
+		CreateFileResourceRequest(k.BranchID, k.TableID.String()).
 		WithOnSuccess(func(ctx context.Context, file *FileUploadCredentials) error {
 			// Upload file with the header
 			if err := writeHeaderToCSV(ctx, file, columns); err != nil {
@@ -149,7 +155,7 @@ func (a *API) CreateTableRequest(tableID TableID, columns []string, opts ...Crea
 			}
 
 			// Create the table from the header file
-			res, err := a.CreateTableFromFileRequest(tableID, file.ID, opts...).Send(ctx)
+			res, err := a.CreateTableFromFileRequest(k, file.ID, opts...).Send(ctx)
 			*table = *res
 			return err
 		})
@@ -220,23 +226,24 @@ func WithPrimaryKey(pk []string) primaryKeyOption {
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func (a *API) CreateTableFromFileRequest(tableID TableID, dataFileID int, opts ...CreateTableOption) request.APIRequest[*Table] {
+func (a *API) CreateTableFromFileRequest(k TableKey, dataFileID int, opts ...CreateTableOption) request.APIRequest[*Table] {
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
 	}
 
 	params := request.StructToMap(c, nil)
-	params["name"] = tableID.TableName
+	params["name"] = k.TableID.TableName
 	params["dataFileId"] = dataFileID
 
 	job := &StorageJob{}
-	table := &Table{}
+	table := &Table{TableKey: k}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(job).
-		WithPost("buckets/{bucketId}/tables-async").
-		AndPathParam("bucketId", tableID.BucketID.String()).
+		WithPost("branch/{branchId}/buckets/{bucketId}/tables-async").
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("bucketId", k.TableID.BucketID.String()).
 		WithFormBody(request.ToFormBody(params)).
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			// Wait for storage job
@@ -326,7 +333,7 @@ func WithoutHeader(h bool) withoutHeaderOption {
 }
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...LoadDataOption) request.APIRequest[*StorageJob] {
+func (a *API) LoadDataFromFileRequest(k TableKey, dataFileID int, opts ...LoadDataOption) request.APIRequest[*StorageJob] {
 	c := &loadDataConfig{}
 	for _, o := range opts {
 		o.applyLoadDataOption(c)
@@ -339,26 +346,29 @@ func (a *API) LoadDataFromFileRequest(tableID TableID, dataFileID int, opts ...L
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(job).
-		WithPost("tables/{tableId}/import-async").
-		AndPathParam("tableId", tableID.String()).
+		WithPost("branch/{branchId}/tables/{tableId}/import-async").
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("tableId", k.TableID.String()).
 		WithFormBody(request.ToFormBody(params))
 
 	return request.NewAPIRequest(job, req)
 }
 
 // GetTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/table-detail
-func (a *API) GetTableRequest(tableID TableID) request.APIRequest[*Table] {
-	table := &Table{}
+func (a *API) GetTableRequest(k TableKey) request.APIRequest[*Table] {
+	bucketKey := BucketKey{BranchID: k.BranchID, BucketID: k.TableID.BucketID}
+	table := &Table{TableKey: k, Bucket: &Bucket{BucketKey: bucketKey}}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(table).
-		WithGet("tables/{tableId}").
-		AndPathParam("tableId", tableID.String())
+		WithGet("branch/{branchId}/tables/{tableId}").
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("tableId", k.TableID.String())
 	return request.NewAPIRequest(table, req)
 }
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
-func (a *API) DeleteTableRequest(tableID TableID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
+func (a *API) DeleteTableRequest(branchID BranchID, tableID TableID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}
@@ -368,8 +378,9 @@ func (a *API) DeleteTableRequest(tableID TableID, opts ...DeleteOption) request.
 
 	req := a.
 		newRequest(StorageAPI).
-		WithDelete("tables/{tableId}").
+		WithDelete("branch/{branchId}/tables/{tableId}").
 		WithOnError(ignoreResourceNotFoundError()).
+		AndPathParam("branchId", branchID.String()).
 		AndPathParam("tableId", tableID.String())
 
 	if c.force {
@@ -380,9 +391,9 @@ func (a *API) DeleteTableRequest(tableID TableID, opts ...DeleteOption) request.
 }
 
 type TableUnloadRequestBuilder struct {
-	tableID TableID
-	config  unloadConfig
-	api     *API
+	tableKey TableKey
+	config   unloadConfig
+	api      *API
 }
 
 type UnloadFormat string
@@ -404,10 +415,10 @@ type unloadConfig struct {
 	WhereFilters []whereFilter `json:"whereFilters,omitempty"`
 }
 
-func (a *API) NewTableUnloadRequest(tableID TableID) *TableUnloadRequestBuilder {
+func (a *API) NewTableUnloadRequest(k TableKey) *TableUnloadRequestBuilder {
 	return &TableUnloadRequestBuilder{
-		tableID: tableID,
-		api:     a,
+		tableKey: k,
+		api:      a,
 	}
 }
 
@@ -416,8 +427,9 @@ func (b *TableUnloadRequestBuilder) Build() request.APIRequest[*StorageJob] {
 	req := b.api.newRequest(StorageAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
-		WithURL("tables/{tableId}/export-async").
-		AndPathParam("tableId", b.tableID.String()).
+		WithURL("branch/{branchId}/tables/{tableId}/export-async").
+		AndPathParam("branchId", b.tableKey.BranchID.String()).
+		AndPathParam("tableId", b.tableKey.TableID.String()).
 		WithJSONBody(b.config)
 	return request.NewAPIRequest(result, req)
 }

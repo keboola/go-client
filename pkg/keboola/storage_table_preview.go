@@ -299,7 +299,7 @@ func (c *previewDataConfig) toQueryParams() map[string]string {
 	return out
 }
 
-func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) request.APIRequest[*TablePreview] {
+func (a *API) PreviewTableRequest(k TableKey, opts ...PreviewOption) request.APIRequest[*TablePreview] {
 	config := previewDataConfig{}
 	for _, opt := range opts {
 		opt.applyPreviewOption(&config)
@@ -310,8 +310,9 @@ func (a *API) PreviewTableRequest(tableID TableID, opts ...PreviewOption) reques
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(&responseBytes).
-		WithGet("tables/{tableId}/data-preview").
-		AndPathParam("tableId", tableID.String()).
+		WithGet("branch/{branchId}/tables/{tableId}/data-preview").
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("tableId", k.TableID.String()).
 		WithQueryParams(config.toQueryParams()).
 		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
 			records, err := csv.NewReader(bytes.NewReader(responseBytes)).ReadAll()

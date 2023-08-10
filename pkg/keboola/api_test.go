@@ -59,7 +59,7 @@ func TestAPI_WithToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Register empty list buckets response
-	transport.RegisterResponder(http.MethodGet, "/v2/storage/buckets", func(request *http.Request) (*http.Response, error) {
+	transport.RegisterResponder(http.MethodGet, "/v2/storage/branch/123/buckets", func(request *http.Request) (*http.Response, error) {
 		assert.Equal(t, "my-token", request.Header.Get("X-StorageApi-Token"))
 		return httpmock.NewStringResponse(http.StatusOK, "[]"), nil
 	})
@@ -67,9 +67,9 @@ func TestAPI_WithToken(t *testing.T) {
 	// Test WithToken method
 	apiWithToken := apiWithoutToken.WithToken("my-token")
 	assert.NotSame(t, apiWithToken, apiWithoutToken) // value should be cloned
-	assert.NoError(t, apiWithToken.ListBucketsRequest().SendOrErr(ctx))
+	assert.NoError(t, apiWithToken.ListBucketsRequest(123).SendOrErr(ctx))
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/?exclude=components"])
-	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/buckets"])
+	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/branch/123/buckets"])
 }
 
 func mockedClient() (client.Client, *httpmock.MockTransport) {
