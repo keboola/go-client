@@ -23,7 +23,7 @@ func (a *API) CreateTableRequest(k TableKey, columns []string, opts ...CreateTab
 			}
 
 			// Create the table from the header file
-			res, err := a.CreateTableFromFileRequest(k, file.ID, opts...).Send(ctx)
+			res, err := a.CreateTableFromFileRequest(k, file.FileKey, opts...).Send(ctx)
 			*table = *res
 			return err
 		})
@@ -31,24 +31,31 @@ func (a *API) CreateTableRequest(k TableKey, columns []string, opts ...CreateTab
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func (a *API) CreateTableFromFileRequest(k TableKey, dataFileID int, opts ...CreateTableOption) request.APIRequest[*Table] {
+func (a *API) CreateTableFromFileRequest(tableKey TableKey, fileKey FileKey, opts ...CreateTableOption) request.APIRequest[*Table] {
+	// Check branch ID
+	if tableKey.BranchID != fileKey.BranchID {
+		return request.NewAPIRequest(&Table{}, request.NewReqDefinitionError(
+			fmt.Errorf(`table (branch:%s) and file (branch:%s) must be from the same branch`, tableKey.BranchID.String(), fileKey.BranchID.String()),
+		))
+	}
+
 	c := &createTableConfig{}
 	for _, o := range opts {
 		o.applyCreateTableOption(c)
 	}
 
 	params := request.StructToMap(c, nil)
-	params["name"] = k.TableID.TableName
-	params["dataFileId"] = dataFileID
+	params["name"] = tableKey.TableID.TableName
+	params["dataFileId"] = fileKey.FileID
 
 	job := &StorageJob{}
-	table := &Table{TableKey: k}
+	table := &Table{TableKey: tableKey}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(job).
 		WithPost("branch/{branchId}/buckets/{bucketId}/tables-async").
-		AndPathParam("branchId", k.BranchID.String()).
-		AndPathParam("bucketId", k.TableID.BucketID.String()).
+		AndPathParam("branchId", tableKey.BranchID.String()).
+		AndPathParam("bucketId", tableKey.TableID.BucketID.String()).
 		WithFormBody(request.ToFormBody(params)).
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			// Wait for storage job

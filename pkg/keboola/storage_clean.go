@@ -56,7 +56,7 @@ func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
 						WithOnSuccess(func(ctx context.Context, result *[]*File) error {
 							wg := request.NewWaitGroup(ctx)
 							for _, file := range *result {
-								wg.Send(a.DeleteFileRequest(branch.ID, file.ID))
+								wg.Send(a.DeleteFileRequest(file.FileKey))
 							}
 							return wg.Wait()
 						}))

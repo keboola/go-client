@@ -237,7 +237,7 @@ func TestPreviewTableRequest(t *testing.T) {
 	fileName1 := fmt.Sprintf("file_%d", rand.Int())
 	file1, err := api.CreateFileResourceRequest(defBranch.ID, fileName1).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file1.ID)
+	assert.NotEmpty(t, file1.FileID)
 
 	// Upload file
 	content := []byte("id,value\n")
@@ -249,7 +249,7 @@ func TestPreviewTableRequest(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithPrimaryKey([]string{"id"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.FileKey, WithPrimaryKey([]string{"id"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Preview table

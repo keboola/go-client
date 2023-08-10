@@ -249,7 +249,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
 	file1, err := api.CreateFileResourceRequest(defBranch.ID, fileName1).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file1.ID)
+	assert.NotEmpty(t, file1.FileID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
@@ -258,14 +258,14 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.FileKey, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create file
 	fileName2 := fmt.Sprintf("file_%d", rnd.Int())
 	file2, err := api.CreateFileResourceRequest(defBranch.ID, fileName2).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file2.ID)
+	assert.NotEmpty(t, file2.FileID)
 
 	// Check rows count
 	table, err := api.GetTableRequest(tableKey).Send(ctx)
@@ -281,7 +281,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	// Load data to table - added three rows
 	waitCtx2, waitCancelFn2 := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn2()
-	job, err := api.LoadDataFromFileRequest(tableKey, file2.ID, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableKey, file2.FileKey, WithColumnsHeaders([]string{"col2", "col1"}), WithIncrementalLoad(true)).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx2, job))
 
@@ -326,7 +326,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Create whole file
 	wholeFile, err := api.CreateFileResourceRequest(defBranch.ID, "file name").Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, wholeFile.ID)
+	assert.NotEmpty(t, wholeFile.FileID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
@@ -336,7 +336,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 
 	// Create non-sliced table.
 	// Table cannot be created from a sliced file (https://keboola.atlassian.net/browse/KBC-1861).
-	_, err = api.CreateTableFromFileRequest(tableKey, wholeFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, wholeFile.FileKey, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
@@ -347,7 +347,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Create sliced file
 	slicedFile, err := api.CreateFileResourceRequest(defBranch.ID, "file name", WithIsSliced(true)).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, slicedFile.ID)
+	assert.NotEmpty(t, slicedFile.FileID)
 
 	// Upload slice 1 file
 	content = []byte("val3,val4\nval5,val6\n")
@@ -366,7 +366,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	// Load data to table
 	waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
 	defer waitCancelFn()
-	job, err := api.LoadDataFromFileRequest(tableKey, slicedFile.ID, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
+	job, err := api.LoadDataFromFileRequest(tableKey, slicedFile.FileKey, WithIncrementalLoad(true), WithColumnsHeaders([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 	assert.NoError(t, api.WaitForStorageJob(waitCtx, job))
 
@@ -412,7 +412,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
 	file1, err := api.CreateFileResourceRequest(defBranch.ID, fileName1).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, file1.ID)
+	assert.NotEmpty(t, file1.FileID)
 
 	// Upload file
 	content := []byte("'col1'&'col2'\n'val1'&'val2'\n")
@@ -421,7 +421,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(tableKey, file1.ID, WithDelimiter("&"), WithEnclosure("'")).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, file1.FileKey, WithDelimiter("&"), WithEnclosure("'")).Send(ctx)
 	assert.NoError(t, err)
 
 	// Check rows count
@@ -466,7 +466,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	fileName1 := fmt.Sprintf("file_%d", rnd.Int())
 	inputFile, err := api.CreateFileResourceRequest(defBranch.ID, fileName1).Send(ctx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, inputFile.ID)
+	assert.NotEmpty(t, inputFile.FileID)
 
 	// Upload file
 	content := []byte("col1,col2\nval1,val2\n")
@@ -475,7 +475,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	assert.Equal(t, int64(len(content)), written)
 
 	// Create table
-	_, err = api.CreateTableFromFileRequest(tableKey, inputFile.ID, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
+	_, err = api.CreateTableFromFileRequest(tableKey, inputFile.FileKey, WithPrimaryKey([]string{"col1", "col2"})).Send(ctx)
 	assert.NoError(t, err)
 
 	// Unload table as CSV
@@ -490,7 +490,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Download file
-	credentials, err := api.GetFileWithCredentialsRequest(defBranch.ID, outputFileInfo.File.ID).Send(ctx)
+	credentials, err := api.GetFileWithCredentialsRequest(outputFileInfo.File.FileKey).Send(ctx)
 	assert.NoError(t, err)
 
 	data, err := downloadAllSlices(ctx, credentials)
