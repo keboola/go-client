@@ -1,8 +1,9 @@
 package keboola
 
 import (
-	"regexp"
 	"strings"
+
+	"github.com/umisama/go-regexpcache"
 )
 
 // IsKeyToEncrypt returns true if given key represents an encrypted value.
@@ -12,7 +13,7 @@ func IsKeyToEncrypt(key string) bool {
 
 // IsEncrypted returns true if value match format of encrypted value.
 func IsEncrypted(value string) bool {
-	currentFormatMatch := regexp.MustCompile(`^KBC::(ProjectSecure|ComponentSecure|ConfigSecure|ProjectWideSecure)(KV)?::.+$`).MatchString(value)
-	legacyFormatMatch := regexp.MustCompile(`^KBC::(Encrypted==|ComponentProjectEncrypted==|ComponentEncrypted==).+$`).MatchString(value)
+	currentFormatMatch := regexpcache.MustCompile(`^KBC::.+Secure.*::.+$`).MatchString(value)
+	legacyFormatMatch := regexpcache.MustCompile(`^KBC::(Encrypted==|ComponentProjectEncrypted==|ComponentEncrypted==).+$`).MatchString(value)
 	return currentFormatMatch || legacyFormatMatch
 }

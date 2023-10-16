@@ -22,6 +22,7 @@ require (
 	github.com/relvacode/iso8601 v1.3.0
 	github.com/spf13/cast v1.5.1
 	github.com/stretchr/testify v1.8.2
+	github.com/umisama/go-regexpcache v0.0.0-20150417035358-2444a542492f
 	go.opentelemetry.io/otel v1.15.1
 	go.opentelemetry.io/otel/exporters/prometheus v0.38.1
 	go.opentelemetry.io/otel/metric v0.38.1
