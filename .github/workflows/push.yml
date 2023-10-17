@@ -2,7 +2,7 @@ name: Build and test Go
 on: [push]
 env:
   # Test projects in KBC for E2E tests
-  TEST_KBC_PROJECTS: '[{"host":"connection.keboola.com","project":9293,"token":"${{ secrets.TEST_KBC_PROJECT_9293_TOKEN }}","stagingStorage":"s3"},{"host":"connection.keboola.com","project":9294,"token":"${{ secrets.TEST_KBC_PROJECT_9294_TOKEN }}","stagingStorage":"s3"},{"host":"connection.north-europe.azure.keboola.com","project":10669,"token":"${{ secrets.TEST_KBC_PROJECT_NE_10669_TOKEN }}","stagingStorage":"abs"},{"host":"connection.keboola.com","project":9437,"token":"${{ secrets.TEST_KBC_PROJECT_9437_TOKEN }}","stagingStorage":"gcs"},{"host":"connection.keboola.com","project":9493,"token":"${{ secrets.TEST_KBC_PROJECT_QUEUEV1_9493_TOKEN }}","stagingStorage":"s3","queue":"v1"}]'
+  TEST_KBC_PROJECTS: '[{"host":"connection.keboola.com","project":9293,"token":"${{ secrets.TEST_KBC_PROJECT_9293_TOKEN }}","stagingStorage":"s3"},{"host":"connection.keboola.com","project":9294,"token":"${{ secrets.TEST_KBC_PROJECT_9294_TOKEN }}","stagingStorage":"s3"},{"host":"connection.north-europe.azure.keboola.com","project":10669,"token":"${{ secrets.TEST_KBC_PROJECT_NE_10669_TOKEN }}","stagingStorage":"abs"},{"host":"connection.keboola.com","project":9851,"token":"${{ secrets.TEST_KBC_PROJECT_9851_TOKEN }}","stagingStorage":"gcs"},{"host":"connection.keboola.com","project":9493,"token":"${{ secrets.TEST_KBC_PROJECT_QUEUEV1_9493_TOKEN }}","stagingStorage":"s3","queue":"v1"}]'
 jobs:
   build:
     name: Build
