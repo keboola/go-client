@@ -66,7 +66,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			opts = append(opts, keboola.WithDisableEncryption())
 		}
 		file, err := api.CreateFileResourceRequest(defBranch.ID, "test", opts...).Send(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Assert common fields
 		assert.NotEmpty(t, file.FileID)
@@ -110,14 +110,14 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			} else {
 				bw, err = keboola.NewUploadWriter(ctx, file)
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Wrap the writer with the gzip writer
 			gzw := gzip.NewWriter(bw)
 
 			// Upload
 			written, err := gzw.Write(content)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, len(content), written)
 			assert.NoError(t, gzw.Close())
 			assert.NoError(t, bw.Close())
@@ -130,30 +130,31 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			} else {
 				written, err = keboola.Upload(ctx, file, bytes.NewReader(content))
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, int64(len(content)), written)
 		}
 
 		// Upload manifest
 		if tc.Sliced {
 			_, err := keboola.UploadSlicedFileManifest(ctx, file, []string{"slice1"})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 
 		// Get file download credentials
 		credentials, err := api.GetFileWithCredentialsRequest(file.FileKey).Send(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Request file content
 		if tc.Sliced {
 			// Check manifest content
 			slicesList, err := keboola.DownloadManifest(ctx, credentials)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Len(t, slicesList, 1)
 			assert.Equal(t, "slice1", slicesList[0])
 
 			// Check slice attributes
 			attrs, err := keboola.GetFileAttributes(ctx, credentials, "slice1")
+			require.NoError(t, err)
 			assert.NotEmpty(t, attrs.ModTime)
 			if tc.Gzipped {
 				assert.Equal(t, "application/x-gzip", attrs.ContentType)
@@ -165,7 +166,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			// Read slice
 			var reader io.ReadCloser
 			sliceReader, err := keboola.DownloadSliceReader(ctx, credentials, "slice1")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer func() {
 				assert.NoError(t, sliceReader.Close())
 			}()
@@ -173,7 +174,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			// Decode
 			if tc.Gzipped {
 				gzipReader, err := gzip.NewReader(sliceReader)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				defer func() {
 					assert.NoError(t, gzipReader.Close())
 				}()
@@ -184,11 +185,12 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 
 			// Read slice
 			fileContent, err := io.ReadAll(reader)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, content, fileContent)
 		} else {
 			// Check attributes
 			attrs, err := keboola.GetFileAttributes(ctx, credentials, "")
+			require.NoError(t, err)
 			assert.NotEmpty(t, attrs.ModTime)
 			if tc.Gzipped {
 				assert.Equal(t, "application/x-gzip", attrs.ContentType)
@@ -199,7 +201,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 
 			var reader io.ReadCloser
 			fileReader, err := keboola.DownloadReader(ctx, credentials)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer func() {
 				assert.NoError(t, fileReader.Close())
 			}()
@@ -207,7 +209,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 			// Decode
 			if tc.Gzipped {
 				gzipReader, err := gzip.NewReader(fileReader)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				defer func() {
 					assert.NoError(t, gzipReader.Close())
 				}()
@@ -218,7 +220,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 
 			// Read file
 			fileContent, err := io.ReadAll(reader)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, content, fileContent)
 		}
 	})
