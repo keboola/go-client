@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob"
@@ -75,6 +76,11 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
 		assert.Equal(t, tc.Permanent, file.IsPermanent)
 		assert.Equal(t, tc.Sliced, file.IsSliced)
 		assert.Equal(t, []string{"tag1", "tag2"}, file.Tags)
+
+		// Assert credentials expiration
+		now := time.Now()
+		expiration := file.CredentialsExpiration()
+		assert.True(t, expiration.After(now), expiration.String())
 
 		// Assert provider specific fields
 		switch file.Provider {

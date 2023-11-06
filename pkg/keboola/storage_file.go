@@ -2,6 +2,7 @@ package keboola
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -298,6 +299,19 @@ func (a *API) DeleteFileRequest(k FileKey) request.APIRequest[request.NoResult] 
 			return err
 		})
 	return request.NewAPIRequest(request.NoResult{}, req)
+}
+
+func (v *FileUploadCredentials) CredentialsExpiration() time.Time {
+	switch {
+	case v.S3UploadParams != nil:
+		return v.S3UploadParams.Credentials.Expiration.Time
+	case v.ABSUploadParams != nil:
+		return v.ABSUploadParams.Credentials.Expiration.Time
+	case v.GCSUploadParams != nil:
+		return v.Created.Add(time.Second * time.Duration(v.GCSUploadParams.ExpiresIn))
+	default:
+		panic(errors.New(`no upload parameters found`))
+	}
 }
 
 func NewSliceURL(file *FileUploadCredentials, slice string) (string, error) {
