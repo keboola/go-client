@@ -52,7 +52,7 @@ type Service struct {
 }
 
 // IndexRequest returns index of Storage API without components definitions.
-func (a *API) IndexRequest() request.APIRequest[*Index] {
+func (a *PublicAPI) IndexRequest() request.APIRequest[*Index] {
 	index := &Index{}
 	req := a.
 		newRequest(StorageAPI).
@@ -63,7 +63,7 @@ func (a *API) IndexRequest() request.APIRequest[*Index] {
 }
 
 // IndexComponentsRequest returns index of Storage API with components definitions.
-func (a *API) IndexComponentsRequest() request.APIRequest[*IndexComponents] {
+func (a *PublicAPI) IndexComponentsRequest() request.APIRequest[*IndexComponents] {
 	result := &IndexComponents{}
 	req := a.
 		newRequest(StorageAPI).

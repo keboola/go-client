@@ -126,7 +126,7 @@ func WithExpiresIn(expiresIn time.Duration) CreateTokenOption {
 }
 
 // VerifyTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token-verification/token-verification
-func (a *API) VerifyTokenRequest(token string) request.APIRequest[*Token] {
+func (a *PublicAPI) VerifyTokenRequest(token string) request.APIRequest[*Token] {
 	result := &Token{}
 	req := a.
 		newRequest(StorageAPI).
@@ -141,7 +141,7 @@ func (a *API) VerifyTokenRequest(token string) request.APIRequest[*Token] {
 }
 
 // CreateTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/create-token
-func (a *API) CreateTokenRequest(opts ...CreateTokenOption) request.APIRequest[*Token] {
+func (a *AuthorizedAPI) CreateTokenRequest(opts ...CreateTokenOption) request.APIRequest[*Token] {
 	options := &createTokenOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -157,7 +157,7 @@ func (a *API) CreateTokenRequest(opts ...CreateTokenOption) request.APIRequest[*
 }
 
 // ListTokensRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/list-all-tokens
-func (a *API) ListTokensRequest() request.APIRequest[*[]*Token] {
+func (a *AuthorizedAPI) ListTokensRequest() request.APIRequest[*[]*Token] {
 	var result []*Token
 	req := a.
 		newRequest(StorageAPI).
@@ -167,7 +167,7 @@ func (a *API) ListTokensRequest() request.APIRequest[*[]*Token] {
 }
 
 // DeleteTokenRequest (no documentation).
-func (a *API) DeleteTokenRequest(tokenID string) request.APIRequest[*Token] {
+func (a *AuthorizedAPI) DeleteTokenRequest(tokenID string) request.APIRequest[*Token] {
 	result := &Token{}
 	req := a.
 		newRequest(StorageAPI).
@@ -178,7 +178,7 @@ func (a *API) DeleteTokenRequest(tokenID string) request.APIRequest[*Token] {
 }
 
 // RefreshTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/share-token/refresh-token
-func (a *API) RefreshTokenRequest(tokenID string) request.APIRequest[*Token] {
+func (a *AuthorizedAPI) RefreshTokenRequest(tokenID string) request.APIRequest[*Token] {
 	result := &Token{}
 	req := a.
 		newRequest(StorageAPI).

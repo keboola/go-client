@@ -49,7 +49,7 @@ func (v listBucketsConfig) includeString() string {
 type ListBucketsOption func(c *listBucketsConfig)
 
 // GetBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/bucket-detail
-func (a *API) GetBucketRequest(k BucketKey) request.APIRequest[*Bucket] {
+func (a *AuthorizedAPI) GetBucketRequest(k BucketKey) request.APIRequest[*Bucket] {
 	result := Bucket{BucketKey: k}
 	req := a.
 		newRequest(StorageAPI).
@@ -61,7 +61,7 @@ func (a *API) GetBucketRequest(k BucketKey) request.APIRequest[*Bucket] {
 }
 
 // ListBucketsRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/list-all-buckets
-func (a *API) ListBucketsRequest(branchID BranchID, opts ...ListBucketsOption) request.APIRequest[*[]*Bucket] {
+func (a *AuthorizedAPI) ListBucketsRequest(branchID BranchID, opts ...ListBucketsOption) request.APIRequest[*[]*Bucket] {
 	config := listBucketsConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)
@@ -86,7 +86,7 @@ func (a *API) ListBucketsRequest(branchID BranchID, opts ...ListBucketsOption) r
 }
 
 // CreateBucketRequest https://keboola.docs.apiary.io/#reference/buckets/create-or-list-buckets/create-bucket
-func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
+func (a *AuthorizedAPI) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
 	if bucket.BranchID == 0 {
 		return request.NewAPIRequest(bucket, request.NewReqDefinitionError(
 			errors.New("bucket.BranchID must be set"),
@@ -127,7 +127,7 @@ func (a *API) CreateBucketRequest(bucket *Bucket) request.APIRequest[*Bucket] {
 }
 
 // DeleteBucketRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteBucketRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[request.NoResult] {
 	req := a.
 		DeleteBucketAsyncRequest(k, opts...).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
@@ -143,7 +143,7 @@ func (a *API) DeleteBucketRequest(k BucketKey, opts ...DeleteOption) request.API
 }
 
 // DeleteBucketAsyncRequest https://keboola.docs.apiary.io/#reference/buckets/manage-bucket/drop-bucket
-func (a *API) DeleteBucketAsyncRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) DeleteBucketAsyncRequest(k BucketKey, opts ...DeleteOption) request.APIRequest[*StorageJob] {
 	c := &deleteConfig{
 		force: false,
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 // ActivateScheduleRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/activate
-func (a *API) ActivateScheduleRequest(configID ConfigID, configurationVersionID string) request.APIRequest[*Schedule] {
+func (a *AuthorizedAPI) ActivateScheduleRequest(configID ConfigID, configurationVersionID string) request.APIRequest[*Schedule] {
 	body := map[string]string{
 		"configurationId": configID.String(),
 	}
@@ -28,7 +28,7 @@ func (a *API) ActivateScheduleRequest(configID ConfigID, configurationVersionID 
 }
 
 // DeleteScheduleRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/deleteSchedule
-func (a *API) DeleteScheduleRequest(key ScheduleKey) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteScheduleRequest(key ScheduleKey) request.APIRequest[request.NoResult] {
 	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
 		WithURL("schedules/{scheduleId}").
@@ -37,7 +37,7 @@ func (a *API) DeleteScheduleRequest(key ScheduleKey) request.APIRequest[request.
 }
 
 // DeleteSchedulesForConfigurationRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/deleteSchedulesForConfiguration
-func (a *API) DeleteSchedulesForConfigurationRequest(configID ConfigID) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteSchedulesForConfigurationRequest(configID ConfigID) request.APIRequest[request.NoResult] {
 	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
 		WithURL("configurations/{configurationId}").
@@ -46,7 +46,7 @@ func (a *API) DeleteSchedulesForConfigurationRequest(configID ConfigID) request.
 }
 
 // ListSchedulesRequest https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/get_schedules
-func (a *API) ListSchedulesRequest() request.APIRequest[*[]*Schedule] {
+func (a *AuthorizedAPI) ListSchedulesRequest() request.APIRequest[*[]*Schedule] {
 	result := make([]*Schedule, 0)
 	req := a.newRequest(SchedulerAPI).
 		WithResult(&result).

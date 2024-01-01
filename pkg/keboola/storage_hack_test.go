@@ -96,7 +96,7 @@ func TestHack_CreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api, err := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	api, err := NewAuthorizedAPI(context.Background(), "https://connection.keboola.com", "my-token", WithClient(&c))
 	assert.NoError(t, err)
 
 	// Run request
@@ -141,7 +141,7 @@ func TestHack_DeleteTableRequest_NotFound(t *testing.T) {
 
 	// Create client
 	c := client.New().WithTransport(transport).WithRetry(client.TestingRetry())
-	api, err := NewAPI(context.Background(), "https://connection.keboola.com", WithClient(&c))
+	api, err := NewAuthorizedAPI(context.Background(), "https://connection.keboola.com", "my-token", WithClient(&c))
 	assert.NoError(t, err)
 
 	// Run request

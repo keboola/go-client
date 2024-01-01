@@ -47,7 +47,7 @@ func WithColumnMetadata() ListTableOption {
 }
 
 // ListTablesRequest https://keboola.docs.apiary.io/#reference/tables/list-tables/list-all-tables
-func (a *API) ListTablesRequest(branchID BranchID, opts ...ListTableOption) request.APIRequest[*[]*Table] {
+func (a *AuthorizedAPI) ListTablesRequest(branchID BranchID, opts ...ListTableOption) request.APIRequest[*[]*Table] {
 	config := listTablesConfig{include: make(map[string]bool)}
 	for _, opt := range opts {
 		opt(&config)

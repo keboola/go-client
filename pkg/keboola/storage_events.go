@@ -26,7 +26,7 @@ type Event struct {
 }
 
 // CreateEventRequest https://keboola.docs.apiary.io/#reference/events/events/create-event
-func (a *API) CreateEventRequest(event *Event) request.APIRequest[*Event] {
+func (a *AuthorizedAPI) CreateEventRequest(event *Event) request.APIRequest[*Event] {
 	// Params and results must be a JSON value encoded as string
 	body := request.StructToMap(event, nil)
 	pValue, err := jsonLib.Marshal(event.Params)

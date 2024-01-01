@@ -6,8 +6,14 @@ import (
 	"github.com/keboola/go-client/pkg/request"
 )
 
+// newRequest adds Storage API token header.
+func (a *AuthorizedAPI) newRequest(s ServiceType) request.HTTPRequest {
+	// Authorize
+	return a.PublicAPI.newRequest(s).AndHeader(storageAPITokenHeader, a.token)
+}
+
 // newRequest Creates request, sets base URL and default error type.
-func (a *API) newRequest(s ServiceType) request.HTTPRequest {
+func (a *PublicAPI) newRequest(s ServiceType) request.HTTPRequest {
 	// Set request base URL according to the ServiceType
 	r := request.NewHTTPRequest(a.sender).WithBaseURL(a.baseURLForService(s))
 
@@ -25,15 +31,10 @@ func (a *API) newRequest(s ServiceType) request.HTTPRequest {
 		r = r.WithError(&WorkspacesError{})
 	}
 
-	// Authorize
-	if a.token != "" {
-		r = r.AndHeader(storageAPITokenHeader, a.token)
-	}
-
 	return r
 }
 
-func (a *API) baseURLForService(s ServiceType) string {
+func (a *PublicAPI) baseURLForService(s ServiceType) string {
 	if s == StorageAPI {
 		return "v2/storage"
 	}

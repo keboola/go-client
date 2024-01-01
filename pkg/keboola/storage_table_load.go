@@ -7,7 +7,7 @@ import (
 )
 
 // LoadDataFromFileRequest https://keboola.docs.apiary.io/#reference/tables/load-data-asynchronously/import-data
-func (a *API) LoadDataFromFileRequest(tableKey TableKey, fileKey FileKey, opts ...LoadDataOption) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) LoadDataFromFileRequest(tableKey TableKey, fileKey FileKey, opts ...LoadDataOption) request.APIRequest[*StorageJob] {
 	// Check branch ID
 	if tableKey.BranchID != fileKey.BranchID {
 		return request.NewAPIRequest(&StorageJob{}, request.NewReqDefinitionError(

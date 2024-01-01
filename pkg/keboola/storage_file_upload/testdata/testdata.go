@@ -43,7 +43,7 @@ func (tc UploadTestCase) Name() string {
 	return fmt.Sprintf("permanent[%t]_sliced[%t]_encrypted[%t]_gzipped[%t]", tc.Permanent, tc.Sliced, tc.Encrypted, tc.Gzipped)
 }
 
-func (tc UploadTestCase) Run(t *testing.T, api *keboola.API) {
+func (tc UploadTestCase) Run(t *testing.T, api *keboola.AuthorizedAPI) {
 	ctx := context.Background()
 
 	// Get default branch

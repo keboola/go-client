@@ -9,7 +9,7 @@ import (
 	"github.com/keboola/go-client/pkg/client"
 )
 
-func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testproject.Option) (*testproject.Project, *API) {
+func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testproject.Option) (*testproject.Project, *AuthorizedAPI) {
 	t.Helper()
 
 	project, err := testproject.GetTestProjectForTest(t, opts...)
@@ -18,15 +18,18 @@ func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testpr
 	}
 
 	c := client.NewTestClient()
-	api, err := NewAPI(ctx, project.StorageAPIHost(), WithToken(project.StorageAPIToken()), WithClient(&c))
+
+	publicAPI, err := NewPublicAPI(ctx, project.StorageAPIHost(), WithClient(&c))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	api := publicAPI.WithToken(project.StorageAPIToken())
+
 	return project, api
 }
 
-func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testproject.Option) (*testproject.Project, *API) {
+func APIClientForAnEmptyProject(t *testing.T, ctx context.Context, opts ...testproject.Option) (*testproject.Project, *AuthorizedAPI) {
 	t.Helper()
 
 	project, api := APIClientForRandomProject(t, ctx, opts...)

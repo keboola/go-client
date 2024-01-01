@@ -3,7 +3,7 @@ package keboola
 import "github.com/keboola/go-client/pkg/request"
 
 // DeleteTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/drop-table
-func (a *API) DeleteTableRequest(branchID BranchID, tableID TableID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteTableRequest(branchID BranchID, tableID TableID, opts ...DeleteOption) request.APIRequest[request.NoResult] {
 	c := &deleteConfig{
 		force: false,
 	}

@@ -149,7 +149,7 @@ func WithVariableValuesData(data VariableValuesData) OldQueueJobOption {
 // See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 //
 // CreateOldQueueJobRequest https://kebooladocker.docs.apiary.io/#reference/run/create-a-job/run-job
-func (a *API) CreateOldQueueJobRequest(
+func (a *AuthorizedAPI) CreateOldQueueJobRequest(
 	componentID ComponentID,
 	configID ConfigID,
 	opts ...OldQueueJobOption,
@@ -180,7 +180,7 @@ func WithMetrics() GetOldQueueJobOption {
 // See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 //
 // GetOldQueueJobRequest https://syrupqueue.docs.apiary.io/#reference/jobs/job/view-job-detail
-func (a *API) GetOldQueueJobRequest(
+func (a *AuthorizedAPI) GetOldQueueJobRequest(
 	jobID JobID,
 	opts ...GetOldQueueJobOption,
 ) request.APIRequest[*JobDetail] {
@@ -231,7 +231,7 @@ func (c oldQueueJobConfig) getURL() string {
 // See https://changelog.keboola.com/2021-11-10-what-is-new-queue/ for information on how to migrate your project.
 //
 // WaitForOldQueueJob pulls job status until it is completed.
-func (a *API) WaitForOldQueueJob(ctx context.Context, id JobID) (err error) {
+func (a *AuthorizedAPI) WaitForOldQueueJob(ctx context.Context, id JobID) (err error) {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")

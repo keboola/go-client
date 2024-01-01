@@ -62,11 +62,11 @@ type StorageJobError struct {
 }
 
 // GetStorageJobRequest https://keboola.docs.apiary.io/#reference/jobs/manage-jobs/job-detail
-func (a *API) GetStorageJobRequest(key StorageJobKey) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) GetStorageJobRequest(key StorageJobKey) request.APIRequest[*StorageJob] {
 	return a.getStorageJobRequest(&StorageJob{StorageJobKey: key})
 }
 
-func (a *API) getStorageJobRequest(job *StorageJob) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) getStorageJobRequest(job *StorageJob) request.APIRequest[*StorageJob] {
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(job).
@@ -76,7 +76,7 @@ func (a *API) getStorageJobRequest(job *StorageJob) request.APIRequest[*StorageJ
 }
 
 // WaitForStorageJob pulls job status until it is completed.
-func (a *API) WaitForStorageJob(ctx context.Context, job *StorageJob) (err error) {
+func (a *AuthorizedAPI) WaitForStorageJob(ctx context.Context, job *StorageJob) (err error) {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")

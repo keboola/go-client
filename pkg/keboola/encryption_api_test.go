@@ -16,7 +16,7 @@ func TestEncryptRequest(t *testing.T) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 	c := client.NewTestClient()
-	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	api, err := keboola.NewPublicAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
 	assert.NoError(t, err)
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
@@ -32,7 +32,7 @@ func TestError(t *testing.T) {
 	ctx := context.Background()
 	project, _ := testproject.GetTestProjectForTest(t)
 	c := client.NewTestClient()
-	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
+	api, err := keboola.NewPublicAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c))
 	assert.NoError(t, err)
 
 	mapToEncrypt := map[string]string{"#keyToEncrypt": "value"}
