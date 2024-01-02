@@ -39,3 +39,10 @@ type SourceProject struct {
 	ID   ProjectID `json:"id"`
 	Name string    `json:"name"`
 }
+
+func (v TableKey) BucketKey() BucketKey {
+	return BucketKey{
+		BranchID: v.BranchID,
+		BucketID: v.TableID.BucketID,
+	}
+}

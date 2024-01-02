@@ -19,6 +19,29 @@ import (
 
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+func TestTableKey_BucketKey(t *testing.T) {
+	t.Parallel()
+
+	tableKey := TableKey{
+		BranchID: 123,
+		TableID: TableID{
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: "my-bucket",
+			},
+			TableName: fmt.Sprintf("test_%d", rnd.Int()),
+		},
+	}
+
+	assert.Equal(t, BucketKey{
+		BranchID: 123,
+		BucketID: BucketID{
+			Stage:      BucketStageIn,
+			BucketName: "my-bucket",
+		},
+	}, tableKey.BucketKey())
+}
+
 func TestListTablesRequest(t *testing.T) {
 	t.Parallel()
 
