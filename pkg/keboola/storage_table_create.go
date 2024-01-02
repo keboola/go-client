@@ -14,8 +14,9 @@ import (
 // CreateTableRequest creates an empty table with given columns.
 func (a *AuthorizedAPI) CreateTableRequest(k TableKey, columns []string, opts ...CreateTableOption) request.APIRequest[*Table] {
 	table := &Table{}
+	fileName := fmt.Sprintf("create-table-%s", k.TableID.String())
 	req := a.
-		CreateFileResourceRequest(k.BranchID, k.TableID.String()).
+		CreateFileResourceRequest(k.BranchID, fileName).
 		WithOnSuccess(func(ctx context.Context, file *FileUploadCredentials) error {
 			// Upload file with the header
 			if err := writeHeaderToCSV(ctx, file, columns); err != nil {
