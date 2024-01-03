@@ -42,7 +42,7 @@ func (r *ColumnsMetadata) UnmarshalJSON(data []byte) (err error) {
 }
 
 // CreateOrUpdateTableMetadata https://keboola.docs.apiary.io/#reference/metadata/table-metadata/create-or-update
-func (a *API) CreateOrUpdateTableMetadata(k TableKey, provider string, tableMetadata []TableMetadataRequest, columnsMetadata []ColumnMetadataRequest) request.APIRequest[*TableMetadataResponse] {
+func (a *AuthorizedAPI) CreateOrUpdateTableMetadata(k TableKey, provider string, tableMetadata []TableMetadataRequest, columnsMetadata []ColumnMetadataRequest) request.APIRequest[*TableMetadataResponse] {
 	params := make(map[string]any)
 	params["provider"] = provider
 	if len(tableMetadata) != 0 {

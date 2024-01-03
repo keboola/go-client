@@ -136,7 +136,7 @@ func TestQueueWaitForQueueJobTimeout(t *testing.T) {
 		"features": []
 	}`))
 	transport.RegisterResponder("GET", `=~^https://queue.connection.test/jobs/1234`, httpmock.NewJsonResponderOrPanic(200, job))
-	api, err := NewAPI(context.Background(), "https://connection.test", WithClient(&c))
+	api, err := NewAuthorizedAPI(context.Background(), "https://connection.test", "my-token", WithClient(&c))
 	assert.NoError(t, err)
 
 	// Create context with deadline

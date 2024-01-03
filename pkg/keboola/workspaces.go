@@ -78,7 +78,7 @@ func WorkspaceSupportsSizes(typ string) bool {
 	}
 }
 
-func (a *API) CreateWorkspace(
+func (a *AuthorizedAPI) CreateWorkspace(
 	ctx context.Context,
 	branchID BranchID,
 	workspaceName string,
@@ -106,7 +106,7 @@ func (a *API) CreateWorkspace(
 	return workspace, nil
 }
 
-func (a *API) DeleteWorkspace(
+func (a *AuthorizedAPI) DeleteWorkspace(
 	ctx context.Context,
 	branchID BranchID,
 	configID ConfigID,
@@ -127,7 +127,7 @@ func (a *API) DeleteWorkspace(
 	return nil
 }
 
-func (a *API) GetWorkspace(
+func (a *AuthorizedAPI) GetWorkspace(
 	ctx context.Context,
 	branchID BranchID,
 	configID ConfigID,
@@ -154,7 +154,7 @@ func (a *API) GetWorkspace(
 	return out, nil
 }
 
-func (a *API) ListWorkspaces(
+func (a *AuthorizedAPI) ListWorkspaces(
 	ctx context.Context,
 	branchID BranchID,
 ) ([]*WorkspaceWithConfig, error) {

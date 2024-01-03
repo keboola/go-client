@@ -8,7 +8,7 @@ import (
 
 // CleanAllSchedulesRequest cleans all schedules in whole project.
 // Useful for E2E tests.
-func (a *API) CleanAllSchedulesRequest() request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) CleanAllSchedulesRequest() request.APIRequest[request.NoResult] {
 	req := a.ListSchedulesRequest().
 		WithOnSuccess(func(ctx context.Context, result *[]*Schedule) error {
 			wg := request.NewWaitGroup(ctx)

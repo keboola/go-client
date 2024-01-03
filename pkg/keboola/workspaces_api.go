@@ -40,7 +40,7 @@ type WorkspaceDetails struct {
 	} `json:"connection"`
 }
 
-func (a *API) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) request.APIRequest[*Workspace] {
+func (a *AuthorizedAPI) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) request.APIRequest[*Workspace] {
 	result := &Workspace{}
 	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
@@ -49,7 +49,7 @@ func (a *API) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) request.APIRe
 	return request.NewAPIRequest(result, req)
 }
 
-func (a *API) ListWorkspaceInstancesRequest() request.APIRequest[*[]*Workspace] {
+func (a *AuthorizedAPI) ListWorkspaceInstancesRequest() request.APIRequest[*[]*Workspace] {
 	result := make([]*Workspace, 0)
 	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
@@ -57,7 +57,7 @@ func (a *API) ListWorkspaceInstancesRequest() request.APIRequest[*[]*Workspace] 
 	return request.NewAPIRequest(&result, req)
 }
 
-func (a *API) CleanWorkspaceInstances(ctx context.Context) error {
+func (a *AuthorizedAPI) CleanWorkspaceInstances(ctx context.Context) error {
 	instances, err := a.ListWorkspaceInstancesRequest().Send(ctx)
 	if err != nil {
 		return err

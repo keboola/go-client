@@ -60,7 +60,7 @@ func (p params) toMap() map[string]any {
 	return m
 }
 
-func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string, opts ...CreateWorkspaceOption) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string, opts ...CreateWorkspaceOption) request.APIRequest[request.NoResult] {
 	params := newParams(workspaceType, opts...)
 	req := a.CreateQueueJobConfigDataRequest(WorkspacesComponent, configID, map[string]any{"parameters": params.toMap()}).
 		WithOnSuccess(func(ctx context.Context, result *QueueJob) error {
@@ -69,7 +69,7 @@ func (a *API) CreateWorkspaceJobRequest(configID ConfigID, workspaceType string,
 	return request.NewAPIRequest(request.NoResult{}, req)
 }
 
-func (a *API) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteWorkspaceJobRequest(workspaceID WorkspaceID) request.APIRequest[request.NoResult] {
 	configData := map[string]any{
 		"parameters": map[string]any{
 			"task": "delete",

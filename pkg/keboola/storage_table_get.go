@@ -3,7 +3,7 @@ package keboola
 import "github.com/keboola/go-client/pkg/request"
 
 // GetTableRequest https://keboola.docs.apiary.io/#reference/tables/manage-tables/table-detail
-func (a *API) GetTableRequest(k TableKey) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) GetTableRequest(k TableKey) request.APIRequest[*Table] {
 	bucketKey := BucketKey{BranchID: k.BranchID, BucketID: k.TableID.BucketID}
 	table := &Table{TableKey: k, Bucket: &Bucket{BucketKey: bucketKey}}
 	req := a.

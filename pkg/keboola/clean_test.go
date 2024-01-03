@@ -57,7 +57,7 @@ func TestCleanProject(t *testing.T) {
 	assert.Len(t, *instances, 0)
 }
 
-func deps(t *testing.T) (context.Context, context.CancelFunc, *testproject.Project, *keboola.API) {
+func deps(t *testing.T) (context.Context, context.CancelFunc, *testproject.Project, *keboola.AuthorizedAPI) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -65,7 +65,7 @@ func deps(t *testing.T) (context.Context, context.CancelFunc, *testproject.Proje
 	project, _ := testproject.GetTestProjectForTest(t)
 
 	c := client.NewTestClient()
-	api, err := keboola.NewAPI(ctx, project.StorageAPIHost(), keboola.WithClient(&c), keboola.WithToken(project.StorageAPIToken()))
+	api, err := keboola.NewAuthorizedAPI(ctx, project.StorageAPIHost(), project.StorageAPIToken(), keboola.WithClient(&c))
 	assert.NoError(t, err)
 
 	return timeoutCtx, cancelFn, project, api

@@ -299,7 +299,7 @@ func (c *previewDataConfig) toQueryParams() map[string]string {
 	return out
 }
 
-func (a *API) PreviewTableRequest(k TableKey, opts ...PreviewOption) request.APIRequest[*TablePreview] {
+func (a *AuthorizedAPI) PreviewTableRequest(k TableKey, opts ...PreviewOption) request.APIRequest[*TablePreview] {
 	config := previewDataConfig{}
 	for _, opt := range opts {
 		opt.applyPreviewOption(&config)

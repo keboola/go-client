@@ -7,6 +7,7 @@ package keboola
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -30,43 +31,64 @@ const (
 	storageAPITokenHeader = "X-StorageApi-Token" //nolint: gosec // it is not a token value
 )
 
-type API struct {
+type PublicAPI struct {
 	sender request.Sender
 	index  *Index
-	token  string
+}
+
+type AuthorizedAPI struct {
+	*PublicAPI
+	token string
 }
 
 func APIIndex(ctx context.Context, host string, opts ...APIOption) (*Index, error) {
 	cfg := newAPIConfig(opts)
 	c := newClient(host, cfg)
-	return newAPI(c, nil, cfg).IndexRequest().Send(ctx)
+	return newPublicAPI(c, nil).IndexRequest().Send(ctx)
 }
 
 func APIIndexWithComponents(ctx context.Context, host string, opts ...APIOption) (*IndexComponents, error) {
 	cfg := newAPIConfig(opts)
 	c := newClient(host, cfg)
-	return newAPI(c, nil, cfg).IndexComponentsRequest().Send(ctx)
+	return newPublicAPI(c, nil).IndexComponentsRequest().Send(ctx)
 }
 
-func NewAPI(ctx context.Context, host string, opts ...APIOption) (*API, error) {
+func NewAuthorizedAPI(ctx context.Context, host, token string, opts ...APIOption) (*AuthorizedAPI, error) {
+	if token == "" {
+		panic(errors.New("token must be specified"))
+	}
+
+	publicAPI, err := NewPublicAPI(ctx, host, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return publicAPI.WithToken(token), nil
+}
+
+func NewPublicAPI(ctx context.Context, host string, opts ...APIOption) (*PublicAPI, error) {
 	index, err := APIIndex(ctx, host, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return NewAPIFromIndex(host, index, opts...), nil
+	return NewPublicAPIFromIndex(host, index, opts...), nil
 }
 
-func NewAPIFromIndex(host string, index *Index, opts ...APIOption) *API {
+func NewPublicAPIFromIndex(host string, index *Index, opts ...APIOption) *PublicAPI {
 	cfg := newAPIConfig(opts)
 	c := newClient(host, cfg)
-	return newAPI(c, index, cfg)
+	return newPublicAPI(c, index)
 }
 
-func newAPI(sender request.Sender, index *Index, cfg apiConfig) *API {
-	return &API{sender: sender, index: index, token: cfg.token}
+func newPublicAPI(sender request.Sender, index *Index) *PublicAPI {
+	return &PublicAPI{sender: sender, index: index}
 }
 
 func newClient(host string, cfg apiConfig) client.Client {
+	if host == "" {
+		panic(errors.New("host must be specified"))
+	}
+
 	if !strings.HasPrefix(host, "https://") && !strings.HasPrefix(host, "http://") {
 		host = "https://" + host
 	}
@@ -90,23 +112,24 @@ func newClient(host string, cfg apiConfig) client.Client {
 	return c
 }
 
-func (a *API) Client() request.Sender {
+func (a *PublicAPI) Client() request.Sender {
 	return a.sender
 }
 
-func (a *API) Index() *Index {
+func (a *PublicAPI) Index() *Index {
 	return a.index
 }
 
 // WithToken returns a new authorized instance of the API.
-func (a *API) WithToken(token string) *API {
-	clone := *a
-	clone.token = token
-	return &clone
+func (a *PublicAPI) WithToken(token string) *AuthorizedAPI {
+	return &AuthorizedAPI{
+		PublicAPI: a,
+		token:     token,
+	}
 }
 
 // CreateRequest creates request to create object according its type.
-func (a *API) CreateRequest(object Object) request.APIRequest[Object] {
+func (a *AuthorizedAPI) CreateRequest(object Object) request.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
 		return request.NewAPIRequest(object, a.CreateBranchRequest(v))
@@ -122,7 +145,7 @@ func (a *API) CreateRequest(object Object) request.APIRequest[Object] {
 }
 
 // UpdateRequest creates request to update object according its type.
-func (a *API) UpdateRequest(object Object, changedFields []string) request.APIRequest[Object] {
+func (a *AuthorizedAPI) UpdateRequest(object Object, changedFields []string) request.APIRequest[Object] {
 	switch v := object.(type) {
 	case *Branch:
 		return request.NewAPIRequest(object, a.UpdateBranchRequest(v, changedFields))
@@ -138,7 +161,7 @@ func (a *API) UpdateRequest(object Object, changedFields []string) request.APIRe
 }
 
 // DeleteRequest creates request to delete object according its type.
-func (a *API) DeleteRequest(key any) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteRequest(key any) request.APIRequest[request.NoResult] {
 	switch k := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchRequest(k)
@@ -152,7 +175,7 @@ func (a *API) DeleteRequest(key any) request.APIRequest[request.NoResult] {
 }
 
 // AppendMetadataRequest creates request to append object metadata according its type.
-func (a *API) AppendMetadataRequest(key any, metadata map[string]string) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) AppendMetadataRequest(key any, metadata map[string]string) request.APIRequest[request.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.AppendBranchMetadataRequest(v, metadata)
@@ -164,7 +187,7 @@ func (a *API) AppendMetadataRequest(key any, metadata map[string]string) request
 }
 
 // DeleteMetadataRequest creates request to delete object metadata according its type.
-func (a *API) DeleteMetadataRequest(key any, metaID string) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteMetadataRequest(key any, metaID string) request.APIRequest[request.NoResult] {
 	switch v := key.(type) {
 	case BranchKey:
 		return a.DeleteBranchMetadataRequest(v, metaID)

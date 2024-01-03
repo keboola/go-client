@@ -8,12 +8,13 @@ import (
 	"github.com/keboola/go-client/pkg/keboola"
 )
 
-func ExampleNewAPI() {
+func ExampleNewAuthorizedAPI() {
 	ctx := context.TODO()
 	host := "connection.keboola.com"
+	token := "<my-token>"
 
 	// Create API
-	api, err := keboola.NewAPI(ctx, host, keboola.WithToken("<my-token>"))
+	api, err := keboola.NewAuthorizedAPI(ctx, host, token)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,18 +34,21 @@ func ExampleNewAPI() {
 	fmt.Printf("%#v", buckets)
 }
 
-func ExampleNewAPIFromIndex() {
+func ExampleNewPublicAPIFromIndex() {
 	ctx := context.TODO()
 	host := "connection.keboola.com"
 
 	// Load services list
-	index, err := keboola.APIIndex(ctx, host, keboola.WithToken("<my-token>"))
+	index, err := keboola.APIIndex(ctx, host)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create API
-	api := keboola.NewAPIFromIndex(host, index)
+	publicAPI := keboola.NewPublicAPIFromIndex(host, index)
+
+	// Authorize
+	api := publicAPI.WithToken("<my-token>")
 
 	// Get default branch
 	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -72,7 +76,10 @@ func Example_newAPIFromIndexWithComponents() {
 	}
 
 	// Create API
-	api := keboola.NewAPIFromIndex(host, &index.Index, keboola.WithToken("<my-token>"))
+	publicAPI := keboola.NewPublicAPIFromIndex(host, &index.Index)
+
+	// Authorize
+	api := publicAPI.WithToken("<my-token>")
 
 	// Get default branch
 	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)

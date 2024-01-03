@@ -13,7 +13,7 @@ import (
 )
 
 // EncryptRequest - https://keboolaencryption.docs.apiary.io/#reference/encrypt/encryption/encrypt-data
-func (a *API) EncryptRequest(projectID int, componentID ComponentID, data map[string]string) request.APIRequest[*map[string]string] {
+func (a *PublicAPI) EncryptRequest(projectID int, componentID ComponentID, data map[string]string) request.APIRequest[*map[string]string] {
 	if componentID.String() == "" {
 		panic(fmt.Errorf("the componentId parameter is required"))
 	}

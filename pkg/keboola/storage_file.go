@@ -210,7 +210,7 @@ func (c *createFileConfig) toMap() map[string]any {
 }
 
 // CreateFileResourceRequest https://keboola.docs.apiary.io/#reference/files/upload-file/create-file-resource
-func (a *API) CreateFileResourceRequest(branchID BranchID, name string, opts ...CreateFileOption) request.APIRequest[*FileUploadCredentials] {
+func (a *AuthorizedAPI) CreateFileResourceRequest(branchID BranchID, name string, opts ...CreateFileOption) request.APIRequest[*FileUploadCredentials] {
 	c := createFileConfig{name: name}
 	for _, opt := range opts {
 		opt.applyCreateFileOption(&c)
@@ -235,7 +235,7 @@ func (a *API) CreateFileResourceRequest(branchID BranchID, name string, opts ...
 }
 
 // ListFilesRequest https://keboola.docs.apiary.io/#reference/files/list-files
-func (a *API) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
+func (a *AuthorizedAPI) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
 	var files []*File
 	req := a.
 		newRequest(StorageAPI).
@@ -259,7 +259,7 @@ func (a *API) ListFilesRequest(branchID BranchID) request.APIRequest[*[]*File] {
 }
 
 // GetFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileRequest(k FileKey) request.APIRequest[*File] {
+func (a *AuthorizedAPI) GetFileRequest(k FileKey) request.APIRequest[*File] {
 	file := &File{FileKey: k}
 	req := a.
 		newRequest(StorageAPI).
@@ -271,7 +271,7 @@ func (a *API) GetFileRequest(k FileKey) request.APIRequest[*File] {
 }
 
 // GetFileWithCredentialsRequest https://keboola.docs.apiary.io/#reference/files/manage-files/file-detail
-func (a *API) GetFileWithCredentialsRequest(k FileKey) request.APIRequest[*FileDownloadCredentials] {
+func (a *AuthorizedAPI) GetFileWithCredentialsRequest(k FileKey) request.APIRequest[*FileDownloadCredentials] {
 	file := &FileDownloadCredentials{}
 	file.FileKey = k
 	req := a.
@@ -285,7 +285,7 @@ func (a *API) GetFileWithCredentialsRequest(k FileKey) request.APIRequest[*FileD
 }
 
 // DeleteFileRequest https://keboola.docs.apiary.io/#reference/files/manage-files/delete-file
-func (a *API) DeleteFileRequest(k FileKey) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteFileRequest(k FileKey) request.APIRequest[request.NoResult] {
 	req := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/files/{fileId}").

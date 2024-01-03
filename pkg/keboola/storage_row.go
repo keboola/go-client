@@ -40,7 +40,7 @@ type ConfigRow struct {
 }
 
 // GetConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/row-detail
-func (a *API) GetConfigRowRequest(key ConfigRowKey) request.APIRequest[*ConfigRow] {
+func (a *AuthorizedAPI) GetConfigRowRequest(key ConfigRowKey) request.APIRequest[*ConfigRow] {
 	row := &ConfigRow{}
 	row.BranchID = key.BranchID
 	row.ComponentID = key.ComponentID
@@ -57,7 +57,7 @@ func (a *API) GetConfigRowRequest(key ConfigRowKey) request.APIRequest[*ConfigRo
 }
 
 // CreateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/create-development-branch-configuration-row
-func (a *API) CreateConfigRowRequest(row *ConfigRow) request.APIRequest[*ConfigRow] {
+func (a *AuthorizedAPI) CreateConfigRowRequest(row *ConfigRow) request.APIRequest[*ConfigRow] {
 	// Create request
 	req := a.
 		newRequest(StorageAPI).
@@ -79,7 +79,7 @@ func (a *API) CreateConfigRowRequest(row *ConfigRow) request.APIRequest[*ConfigR
 }
 
 // UpdateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row-for-development-branch
-func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) request.APIRequest[*ConfigRow] {
+func (a *AuthorizedAPI) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) request.APIRequest[*ConfigRow] {
 	// ID is required
 	if row.ID == "" {
 		panic("config row id must be set")
@@ -99,7 +99,7 @@ func (a *API) UpdateConfigRowRequest(row *ConfigRow, changedFields []string) req
 }
 
 // DeleteConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/manage-configuration-rows/update-row
-func (a *API) DeleteConfigRowRequest(key ConfigRowKey) request.APIRequest[request.NoResult] {
+func (a *AuthorizedAPI) DeleteConfigRowRequest(key ConfigRowKey) request.APIRequest[request.NoResult] {
 	req := a.
 		newRequest(StorageAPI).
 		WithDelete("branch/{branchId}/components/{componentId}/configs/{configId}/rows/{rowId}").

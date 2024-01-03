@@ -22,7 +22,7 @@ type UnloadFormat string
 type TableUnloadRequestBuilder struct {
 	tableKey TableKey
 	config   unloadConfig
-	api      *API
+	api      *AuthorizedAPI
 }
 
 type unloadConfig struct {
@@ -35,7 +35,7 @@ type unloadConfig struct {
 	WhereFilters []whereFilter `json:"whereFilters,omitempty"`
 }
 
-func (a *API) NewTableUnloadRequest(k TableKey) *TableUnloadRequestBuilder {
+func (a *AuthorizedAPI) NewTableUnloadRequest(k TableKey) *TableUnloadRequestBuilder {
 	return &TableUnloadRequestBuilder{
 		tableKey: k,
 		api:      a,

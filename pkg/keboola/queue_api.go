@@ -48,11 +48,11 @@ type jobConfig struct {
 
 type CreateQueueJobRequestBuilder struct {
 	config jobConfig
-	api    *API
+	api    *AuthorizedAPI
 }
 
 // NewCreateJobRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
-func (a *API) NewCreateJobRequest(componentID ComponentID) *CreateQueueJobRequestBuilder {
+func (a *AuthorizedAPI) NewCreateJobRequest(componentID ComponentID) *CreateQueueJobRequestBuilder {
 	return &CreateQueueJobRequestBuilder{
 		config: jobConfig{
 			ComponentID: componentID,
@@ -154,7 +154,7 @@ func (b *CreateQueueJobRequestBuilder) Send(ctx context.Context) (*QueueJob, err
 // Deprecated: Use `NewCreateJobRequest` instead.
 //
 // CreateQueueJobRequest - https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/createJob
-func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) request.APIRequest[*QueueJob] {
+func (a *AuthorizedAPI) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) request.APIRequest[*QueueJob] {
 	data := map[string]string{
 		"component": componentID.String(),
 		"mode":      "run",
@@ -176,7 +176,7 @@ func (a *API) CreateQueueJobRequest(componentID ComponentID, configID ConfigID) 
 // Allows setting configData.
 //
 // `configId` can be set to an empty string, and it will be omitted.
-func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) request.APIRequest[*QueueJob] {
+func (a *AuthorizedAPI) CreateQueueJobConfigDataRequest(componentID ComponentID, configID ConfigID, configData map[string]any) request.APIRequest[*QueueJob] {
 	body := map[string]any{
 		"component":  componentID.String(),
 		"mode":       "run",
@@ -196,11 +196,11 @@ func (a *API) CreateQueueJobConfigDataRequest(componentID ComponentID, configID 
 }
 
 // GetJobRequest https://app.swaggerhub.com/apis-docs/keboola/job-queue-api/1.3.2#/Jobs/getJob
-func (a *API) GetQueueJobRequest(key JobKey) request.APIRequest[*QueueJob] {
+func (a *AuthorizedAPI) GetQueueJobRequest(key JobKey) request.APIRequest[*QueueJob] {
 	return a.getQueueJobRequest(key.ID)
 }
 
-func (a *API) getQueueJobRequest(id JobID) request.APIRequest[*QueueJob] {
+func (a *AuthorizedAPI) getQueueJobRequest(id JobID) request.APIRequest[*QueueJob] {
 	job := &QueueJob{}
 	req := a.newRequest(QueueAPI).
 		WithResult(job).
@@ -210,7 +210,7 @@ func (a *API) getQueueJobRequest(id JobID) request.APIRequest[*QueueJob] {
 }
 
 // WaitForQueueJob pulls job status until it is completed.
-func (a *API) WaitForQueueJob(ctx context.Context, id JobID) (err error) {
+func (a *AuthorizedAPI) WaitForQueueJob(ctx context.Context, id JobID) (err error) {
 	_, ok := ctx.Deadline()
 	if !ok {
 		return fmt.Errorf("timeout for the job was not set")

@@ -11,7 +11,6 @@ type apiConfig struct {
 	client         *client.Client
 	tracerProvider otelTrace.TracerProvider
 	meterProvider  otelMetric.MeterProvider
-	token          string
 }
 
 type APIOption func(c *apiConfig)
@@ -39,11 +38,5 @@ func WithTracerProvider(v otelTrace.TracerProvider) APIOption {
 func WithMeterProvider(v otelMetric.MeterProvider) APIOption {
 	return func(c *apiConfig) {
 		c.meterProvider = v
-	}
-}
-
-func WithToken(token string) APIOption {
-	return func(c *apiConfig) {
-		c.token = token
 	}
 }

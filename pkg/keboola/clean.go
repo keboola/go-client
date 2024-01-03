@@ -9,7 +9,7 @@ import (
 
 func CleanProject(
 	ctx context.Context,
-	api *API,
+	api *AuthorizedAPI,
 ) error {
 	wg := &sync.WaitGroup{}
 	m := &sync.Mutex{}

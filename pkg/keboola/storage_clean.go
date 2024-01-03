@@ -12,7 +12,7 @@ const mainBranchDescription = ""
 
 // CleanProjectRequest cleans the whole project, the default branch is reset to the default state and other branches are deleted.
 // Useful for E2E tests. Result is default branch.
-func (a *API) CleanProjectRequest() request.APIRequest[*Branch] {
+func (a *AuthorizedAPI) CleanProjectRequest() request.APIRequest[*Branch] {
 	// Only one delete branch request can run simultaneously.
 	// Branch deletion is performed via Storage StorageJob, which uses locks.
 	// If we ran multiple requests, then only one job would run and the other jobs would wait.

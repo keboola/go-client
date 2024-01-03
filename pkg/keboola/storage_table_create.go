@@ -12,10 +12,11 @@ import (
 )
 
 // CreateTableRequest creates an empty table with given columns.
-func (a *API) CreateTableRequest(k TableKey, columns []string, opts ...CreateTableOption) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) CreateTableRequest(k TableKey, columns []string, opts ...CreateTableOption) request.APIRequest[*Table] {
 	table := &Table{}
+	fileName := fmt.Sprintf("create-table-%s", k.TableID.String())
 	req := a.
-		CreateFileResourceRequest(k.BranchID, k.TableID.String()).
+		CreateFileResourceRequest(k.BranchID, fileName).
 		WithOnSuccess(func(ctx context.Context, file *FileUploadCredentials) error {
 			// Upload file with the header
 			if err := writeHeaderToCSV(ctx, file, columns); err != nil {
@@ -31,7 +32,7 @@ func (a *API) CreateTableRequest(k TableKey, columns []string, opts ...CreateTab
 }
 
 // CreateTableFromFileRequest https://keboola.docs.apiary.io/#reference/tables/create-table-asynchronously/create-new-table-from-csv-file-asynchronously
-func (a *API) CreateTableFromFileRequest(tableKey TableKey, fileKey FileKey, opts ...CreateTableOption) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) CreateTableFromFileRequest(tableKey TableKey, fileKey FileKey, opts ...CreateTableOption) request.APIRequest[*Table] {
 	// Check branch ID
 	if tableKey.BranchID != fileKey.BranchID {
 		return request.NewAPIRequest(&Table{}, request.NewReqDefinitionError(
