@@ -568,7 +568,7 @@ func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
 func TestCreateTableDefinition(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := APIClientForAnEmptyProject(t, ctx)
+	project, api := APIClientForAnEmptyProject(t, ctx)
 
 	// Get default branch
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -599,29 +599,28 @@ func TestCreateTableDefinition(t *testing.T) {
 		TableID:  tableID,
 	}
 
-	requestPayload := &CreateTableRequest{
+	requestPayload := &DefinitionOfTable{
 		Name:             tableID.TableName,
 		PrimaryKeysNames: []string{"name"},
 		Columns: []Column{
 			{
-				Name:       "name",
-				BaseType:   TypeString,
-				Definition: ColumnDefinition{Type: "STRING", Nullable: false},
+				Name:             "name",
+				BaseType:         TypeString,
+				ColumnDefinition: ColumnDefinition{Type: "VARCHAR", Length: "16777216", Nullable: false, Default: ""},
 			}, {
-				Name:       "age",
-				BaseType:   TypeInt,
-				Definition: ColumnDefinition{Type: "INT", Nullable: true},
+				Name:             "age",
+				BaseType:         TypeNumeric,
+				ColumnDefinition: ColumnDefinition{Type: "NUMBER", Length: "35,1", Nullable: true, Default: ""},
 			},
 		},
 	}
 
+	// Create a new table
 	newTable, err := api.CreateTableDefinition(tableKey, requestPayload).Send(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 	assert.NoError(t, err)
 	assert.Equal(t, requestPayload.Name, newTable.Name)
 
+	// Get a list of the tables
 	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 
@@ -633,22 +632,64 @@ func TestCreateTableDefinition(t *testing.T) {
 	}
 	assert.True(t, tableFound)
 
+	// Get a specific table by tableID
 	resTab, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	resTab.Created = iso8601.Time{}
+	resTab.LastImportDate = iso8601.Time{}
+	resTab.LastChangeDate = nil
+	resTab.Bucket.Created = iso8601.Time{}
+	resTab.Bucket.LastChangeDate = nil
+	resTab.Metadata = TableMetadata{}
+	resTab.ColumnMetadata = ColumnsMetadata{}
 	require.NoError(t, err)
-	assert.Equal(t, requestPayload.Name, resTab.Name)
-	assert.Equal(t, 2, len(resTab.Columns))
 
+	assert.Equal(t, &Table{
+		TableKey:       newTable.TableKey,
+		URI:            newTable.URI,
+		Name:           newTable.Name,
+		DisplayName:    newTable.DisplayName,
+		SourceTable:    nil,
+		PrimaryKey:     newTable.PrimaryKey,
+		Created:        iso8601.Time{},
+		LastImportDate: iso8601.Time{},
+		LastChangeDate: nil,
+
+		Definition: Definition{
+			PrimaryKeyNames: newTable.Definition.PrimaryKeyNames,
+			Columns: []Column{
+				{
+					Name:             "age",
+					BaseType:         TypeNumeric,
+					ColumnDefinition: ColumnDefinition{Type: "NUMBER", Length: "35,1", Nullable: true, Default: ""},
+				},
+				{
+					Name:             "name",
+					BaseType:         TypeString,
+					ColumnDefinition: ColumnDefinition{Type: "VARCHAR", Length: "16777216", Nullable: false, Default: ""},
+				},
+			},
+		},
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+		},
+	}, resTab)
+	assert.Equal(t, requestPayload.Name, resTab.Name)
+	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
+
+	// Delete the table that was created in the CreateTableDefinition func
 	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
 	assert.NoError(t, err)
 
+	// Get a list of the tables
 	res, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 
-	tableNotFound := true
-	for _, table := range *res {
-		if table.TableID == tableKey.TableID {
-			tableNotFound = false
-		}
-	}
-	assert.True(t, tableNotFound)
+	assert.Empty(t, res)
 }

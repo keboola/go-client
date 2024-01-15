@@ -113,16 +113,16 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 	return str.Bytes(), nil
 }
 
-type CreateTableRequest struct {
+type DefinitionOfTable struct {
 	Name             string   `json:"name"`
-	PrimaryKeysNames []string `json:"primaryKeysNames,omitempty"`
+	PrimaryKeysNames []string `json:"primaryKeysNames"`
 	Columns          []Column `json:"columns"`
 }
 
 type Column struct {
-	Name       string           `json:"name"`
-	Definition ColumnDefinition `json:"definition"`
-	BaseType   `json:"basetype"`
+	Name             string           `json:"name"`
+	ColumnDefinition ColumnDefinition `json:"definition"`
+	BaseType         `json:"basetype"`
 }
 
 type ColumnDefinition struct {
@@ -132,7 +132,7 @@ type ColumnDefinition struct {
 	Default  string `json:"default,omitempty"`
 }
 
-func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *DefinitionOfTable) request.APIRequest[*StorageJob] {
 	result := &StorageJob{}
 	req := a.
 		newRequest(StorageAPI).
@@ -143,12 +143,15 @@ func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *CreateTable
 	return request.NewAPIRequest(result, req)
 }
 
-func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *DefinitionOfTable) request.APIRequest[*Table] {
 	if b.BucketKey().BucketID.String() == "" {
 		panic(fmt.Errorf("bucketID can't be empty"))
 	}
 
-	table := &Table{TableKey: b}
+	table := &Table{TableKey: b, Definition: Definition{
+		PrimaryKeyNames: payload.PrimaryKeysNames,
+		Columns:         payload.Columns,
+	}}
 	req := a.
 		CreateTableAsyncRequest(b, payload).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
@@ -159,7 +162,7 @@ func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *CreateTableRe
 				return err
 			}
 
-			// Map job results to branch
+			// Map job results to table
 			resultsBytes, err := jsonLib.Marshal(job.Results)
 			if err != nil {
 				return fmt.Errorf("cannot convert job.results to JSON: %w", err)
