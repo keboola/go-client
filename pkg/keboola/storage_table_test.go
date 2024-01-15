@@ -564,3 +564,91 @@ func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
 		}
 	}
 }
+
+func TestCreateTableDefinition(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, api := APIClientForAnEmptyProject(t, ctx)
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	tableID := TableID{
+		BucketID:  bucket.BucketID,
+		TableName: fmt.Sprintf("test_%d", rnd.Int()),
+	}
+
+	tableKey := TableKey{
+		BranchID: defBranch.ID,
+		TableID:  tableID,
+	}
+
+	requestPayload := &CreateTableRequest{
+		Name:             tableID.TableName,
+		PrimaryKeysNames: []string{"name"},
+		Columns: []Column{
+			{
+				Name:       "name",
+				BaseType:   TypeString,
+				Definition: ColumnDefinition{Type: "STRING", Nullable: false},
+			}, {
+				Name:       "age",
+				BaseType:   TypeInt,
+				Definition: ColumnDefinition{Type: "INT", Nullable: true},
+			},
+		},
+	}
+
+	newTable, err := api.CreateTableDefinition(tableKey, requestPayload).Send(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, err)
+	assert.Equal(t, requestPayload.Name, newTable.Name)
+
+	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	assert.NoError(t, err)
+
+	tableFound := false
+	for _, table := range *resTables {
+		if table.TableID == tableKey.TableID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+
+	resTab, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, requestPayload.Name, resTab.Name)
+	assert.Equal(t, 2, len(resTab.Columns))
+
+	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
+	assert.NoError(t, err)
+
+	res, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	assert.NoError(t, err)
+
+	tableNotFound := true
+	for _, table := range *res {
+		if table.TableID == tableKey.TableID {
+			tableNotFound = false
+		}
+	}
+	assert.True(t, tableNotFound)
+}
