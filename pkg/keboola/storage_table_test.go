@@ -613,22 +613,24 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: Definition{Type: "VARCHAR"},
-				}, {
+					Definition: ColumnDefinition{Type: "VARCHAR"},
+				},
+				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: Definition{Type: "NUMBER"},
+					Definition: ColumnDefinition{Type: "NUMBER"},
 				},
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: Definition{Type: "DATE"},
+					Definition: ColumnDefinition{Type: "DATE"},
 				},
-			}},
+			},
+		},
 	}
 
 	// Create a new table
-	newTable, err := api.CreateTableDefinition(tableKey, requestPayload).Send(ctx)
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, requestPayload).Send(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, requestPayload.Name, newTable.Name)
 
@@ -672,17 +674,17 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: Definition{Type: "NUMBER", Length: DefaultNumber, Nullable: true},
+					Definition: ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: true},
 				},
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: Definition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
+					Definition: ColumnDefinition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
 				},
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: Definition{Type: "DATE", Nullable: true},
+					Definition: ColumnDefinition{Type: "DATE", Nullable: true},
 				},
 			},
 		},
@@ -700,7 +702,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	assert.Equal(t, requestPayload.Name, resTab.Name)
 	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
 
-	// Delete the table that was created in the CreateTableDefinition func
+	// Delete the table that was created in the CreateTableDefinitionRequest func
 	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
 	require.NoError(t, err)
 
@@ -709,14 +711,14 @@ func TestCreateTableDefinition(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, res)
 
-	//max-use CreateTable
+	// max-use CreateTable
 	maxUseCaseRequest := &CreateTableRequest{
 		TableDefinition: TableDefinition{
 			PrimaryKeyNames: []string{"email"},
 			Columns: []Column{
 				{
 					Name: "email",
-					Definition: Definition{
+					Definition: ColumnDefinition{
 						Type:     "VARCHAR",
 						Length:   DefaultString,
 						Nullable: false,
@@ -726,7 +728,7 @@ func TestCreateTableDefinition(t *testing.T) {
 				},
 				{
 					Name: "comments",
-					Definition: Definition{
+					Definition: ColumnDefinition{
 						Type:     "NUMBER",
 						Length:   "37",
 						Nullable: true,
@@ -739,8 +741,8 @@ func TestCreateTableDefinition(t *testing.T) {
 		Name: "MaxUseCase",
 	}
 
-	//Create Table
-	minimumUseCase, err := api.CreateTableDefinition(tableKey, maxUseCaseRequest).Send(ctx)
+	// Create Table
+	minimumUseCase, err := api.CreateTableDefinitionRequest(tableKey, maxUseCaseRequest).Send(ctx)
 	require.NoError(t, err)
 
 	maxUseCaseTable, err := api.GetTableRequest(minimumUseCase.TableKey).Send(ctx)
@@ -748,7 +750,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	assert.Equal(t, []Column{
 		{
 			Name: "comments",
-			Definition: Definition{
+			Definition: ColumnDefinition{
 				Type:     "NUMBER",
 				Length:   "37,0",
 				Nullable: true,
@@ -758,7 +760,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		},
 		{
 			Name: "email",
-			Definition: Definition{
+			Definition: ColumnDefinition{
 				Type:     "VARCHAR",
 				Length:   DefaultString,
 				Nullable: false,
@@ -767,7 +769,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		},
 	}, maxUseCaseTable.Definition.Columns)
 
-	// Delete the table that was created in the CreateTableDefinition func
+	// Delete the table that was created in the CreateTableDefinitionRequest func
 	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
 	require.NoError(t, err)
 }

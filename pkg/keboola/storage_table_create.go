@@ -119,19 +119,19 @@ type CreateTableRequest struct {
 }
 
 type Column struct {
-	Name       string     `json:"name"`
-	Definition Definition `json:"definition"`
+	Name       string           `json:"name"`
+	Definition ColumnDefinition `json:"definition"`
 	BaseType   `json:"basetype"`
 }
 
-type Definition struct {
+type ColumnDefinition struct {
 	Type     string `json:"type"`
 	Length   string `json:"length,omitempty"`
 	Nullable bool   `json:"nullable,omitempty"`
 	Default  string `json:"default,omitempty"`
 }
 
-func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
 	result := &StorageJob{}
 	req := a.
 		newRequest(StorageAPI).
@@ -142,14 +142,14 @@ func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *CreateTable
 	return request.NewAPIRequest(result, req)
 }
 
-func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) CreateTableDefinitionRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
 	if b.BucketKey().BucketID.String() == "" {
 		panic(fmt.Errorf("bucketID can't be empty"))
 	}
 
 	table := &Table{TableKey: b, Definition: payload.TableDefinition}
 	req := a.
-		CreateTableAsyncRequest(b, payload).
+		CreateTableDefinitionAsyncRequest(b, payload).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
