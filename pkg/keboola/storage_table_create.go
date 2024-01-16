@@ -113,26 +113,25 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 	return str.Bytes(), nil
 }
 
-type DefinitionOfTable struct {
-	Name             string   `json:"name"`
-	PrimaryKeysNames []string `json:"primaryKeysNames"`
-	Columns          []Column `json:"columns"`
+type CreateTableRequest struct {
+	TableDefinition
+	Name string `json:"name"`
 }
 
 type Column struct {
-	Name             string           `json:"name"`
-	ColumnDefinition ColumnDefinition `json:"definition"`
-	BaseType         `json:"basetype"`
+	Name       string     `json:"name"`
+	Definition Definition `json:"definition"`
+	BaseType   `json:"basetype"`
 }
 
-type ColumnDefinition struct {
+type Definition struct {
 	Type     string `json:"type"`
 	Length   string `json:"length,omitempty"`
 	Nullable bool   `json:"nullable,omitempty"`
 	Default  string `json:"default,omitempty"`
 }
 
-func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *DefinitionOfTable) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
 	result := &StorageJob{}
 	req := a.
 		newRequest(StorageAPI).
@@ -143,15 +142,12 @@ func (a *AuthorizedAPI) CreateTableAsyncRequest(b TableKey, payload *DefinitionO
 	return request.NewAPIRequest(result, req)
 }
 
-func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *DefinitionOfTable) request.APIRequest[*Table] {
+func (a *AuthorizedAPI) CreateTableDefinition(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
 	if b.BucketKey().BucketID.String() == "" {
 		panic(fmt.Errorf("bucketID can't be empty"))
 	}
 
-	table := &Table{TableKey: b, Definition: Definition{
-		PrimaryKeyNames: payload.PrimaryKeysNames,
-		Columns:         payload.Columns,
-	}}
+	table := &Table{TableKey: b, Definition: payload.TableDefinition}
 	req := a.
 		CreateTableAsyncRequest(b, payload).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {

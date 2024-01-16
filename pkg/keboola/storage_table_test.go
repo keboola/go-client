@@ -19,6 +19,11 @@ import (
 
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+const (
+	DefaultNumber = "38,0"
+	DefaultString = "16777216"
+)
+
 func TestTableKey_BucketKey(t *testing.T) {
 	t.Parallel()
 
@@ -599,30 +604,37 @@ func TestCreateTableDefinition(t *testing.T) {
 		TableID:  tableID,
 	}
 
-	requestPayload := &DefinitionOfTable{
-		Name:             tableID.TableName,
-		PrimaryKeysNames: []string{"name"},
-		Columns: []Column{
-			{
-				Name:             "name",
-				BaseType:         TypeString,
-				ColumnDefinition: ColumnDefinition{Type: "VARCHAR", Length: "16777216", Nullable: false, Default: ""},
-			}, {
-				Name:             "age",
-				BaseType:         TypeNumeric,
-				ColumnDefinition: ColumnDefinition{Type: "NUMBER", Length: "35,1", Nullable: true, Default: ""},
-			},
-		},
+	// min use-case Create Table
+	requestPayload := &CreateTableRequest{
+		Name: tableID.TableName,
+		TableDefinition: TableDefinition{
+			PrimaryKeyNames: []string{"name"},
+			Columns: []Column{
+				{
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: Definition{Type: "VARCHAR"},
+				}, {
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: Definition{Type: "NUMBER"},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: Definition{Type: "DATE"},
+				},
+			}},
 	}
 
 	// Create a new table
 	newTable, err := api.CreateTableDefinition(tableKey, requestPayload).Send(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, requestPayload.Name, newTable.Name)
 
 	// Get a list of the tables
 	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tableFound := false
 	for _, table := range *resTables {
@@ -654,18 +666,23 @@ func TestCreateTableDefinition(t *testing.T) {
 		LastImportDate: iso8601.Time{},
 		LastChangeDate: nil,
 
-		Definition: Definition{
-			PrimaryKeyNames: newTable.Definition.PrimaryKeyNames,
+		Definition: TableDefinition{
+			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
 			Columns: []Column{
 				{
-					Name:             "age",
-					BaseType:         TypeNumeric,
-					ColumnDefinition: ColumnDefinition{Type: "NUMBER", Length: "35,1", Nullable: true, Default: ""},
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: Definition{Type: "NUMBER", Length: DefaultNumber, Nullable: true},
 				},
 				{
-					Name:             "name",
-					BaseType:         TypeString,
-					ColumnDefinition: ColumnDefinition{Type: "VARCHAR", Length: "16777216", Nullable: false, Default: ""},
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: Definition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: Definition{Type: "DATE", Nullable: true},
 				},
 			},
 		},
@@ -685,11 +702,72 @@ func TestCreateTableDefinition(t *testing.T) {
 
 	// Delete the table that was created in the CreateTableDefinition func
 	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Get a list of the tables
 	res, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
-	assert.NoError(t, err)
-
+	require.NoError(t, err)
 	assert.Empty(t, res)
+
+	//max-use CreateTable
+	maxUseCaseRequest := &CreateTableRequest{
+		TableDefinition: TableDefinition{
+			PrimaryKeyNames: []string{"email"},
+			Columns: []Column{
+				{
+					Name: "email",
+					Definition: Definition{
+						Type:     "VARCHAR",
+						Length:   DefaultString,
+						Nullable: false,
+						Default:  "",
+					},
+					BaseType: TypeString,
+				},
+				{
+					Name: "comments",
+					Definition: Definition{
+						Type:     "NUMBER",
+						Length:   "37",
+						Nullable: true,
+						Default:  "100",
+					},
+					BaseType: TypeNumeric,
+				},
+			},
+		},
+		Name: "MaxUseCase",
+	}
+
+	//Create Table
+	minimumUseCase, err := api.CreateTableDefinition(tableKey, maxUseCaseRequest).Send(ctx)
+	require.NoError(t, err)
+
+	maxUseCaseTable, err := api.GetTableRequest(minimumUseCase.TableKey).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []Column{
+		{
+			Name: "comments",
+			Definition: Definition{
+				Type:     "NUMBER",
+				Length:   "37,0",
+				Nullable: true,
+				Default:  "100",
+			},
+			BaseType: TypeNumeric,
+		},
+		{
+			Name: "email",
+			Definition: Definition{
+				Type:     "VARCHAR",
+				Length:   DefaultString,
+				Nullable: false,
+			},
+			BaseType: TypeString,
+		},
+	}, maxUseCaseTable.Definition.Columns)
+
+	// Delete the table that was created in the CreateTableDefinition func
+	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
+	require.NoError(t, err)
 }
