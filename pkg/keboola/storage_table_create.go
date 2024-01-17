@@ -112,3 +112,62 @@ func columnsToCSVHeader(columns []string) ([]byte, error) {
 	}
 	return str.Bytes(), nil
 }
+
+type CreateTableRequest struct {
+	TableDefinition
+	Name string `json:"name"`
+}
+
+type Column struct {
+	Name       string           `json:"name"`
+	Definition ColumnDefinition `json:"definition"`
+	BaseType   `json:"basetype"`
+}
+
+type ColumnDefinition struct {
+	Type     string `json:"type"`
+	Length   string `json:"length,omitempty"`
+	Nullable bool   `json:"nullable,omitempty"`
+	Default  string `json:"default,omitempty"`
+}
+
+func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
+	result := &StorageJob{}
+	req := a.
+		newRequest(StorageAPI).
+		WithResult(result).
+		WithPost("buckets/{bucketId}/tables-definition").
+		AndPathParam("bucketId", b.BucketKey().BucketID.String()).
+		WithJSONBody(payload)
+	return request.NewAPIRequest(result, req)
+}
+
+func (a *AuthorizedAPI) CreateTableDefinitionRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
+	if b.BucketKey().BucketID.String() == "" {
+		panic(fmt.Errorf("bucketID can't be empty"))
+	}
+
+	table := &Table{TableKey: b, Definition: payload.TableDefinition}
+	req := a.
+		CreateTableDefinitionAsyncRequest(b, payload).
+		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
+			// Wait for storage job
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			defer waitCancelFn()
+			if err := a.WaitForStorageJob(waitCtx, job); err != nil {
+				return err
+			}
+
+			// Map job results to table
+			resultsBytes, err := jsonLib.Marshal(job.Results)
+			if err != nil {
+				return fmt.Errorf("cannot convert job.results to JSON: %w", err)
+			}
+			if err := jsonLib.Unmarshal(resultsBytes, table); err != nil {
+				return fmt.Errorf("cannot map job.results to table: %w", err)
+			}
+			return nil
+		})
+	// Result is table, not job.
+	return request.NewAPIRequest(table, req)
+}

@@ -19,6 +19,11 @@ import (
 
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+const (
+	DefaultNumber = "38,0"
+	DefaultString = "16777216"
+)
+
 func TestTableKey_BucketKey(t *testing.T) {
 	t.Parallel()
 
@@ -563,4 +568,208 @@ func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
 			item.Timestamp = ""
 		}
 	}
+}
+
+func TestCreateTableDefinition(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx)
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: defBranch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	tableID := TableID{
+		BucketID:  bucket.BucketID,
+		TableName: fmt.Sprintf("test_%d", rnd.Int()),
+	}
+
+	tableKey := TableKey{
+		BranchID: defBranch.ID,
+		TableID:  tableID,
+	}
+
+	// min use-case Create Table
+	requestPayload := &CreateTableRequest{
+		Name: tableID.TableName,
+		TableDefinition: TableDefinition{
+			PrimaryKeyNames: []string{"name"},
+			Columns: []Column{
+				{
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: ColumnDefinition{Type: "VARCHAR"},
+				},
+				{
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: ColumnDefinition{Type: "NUMBER"},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: ColumnDefinition{Type: "DATE"},
+				},
+			},
+		},
+	}
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, requestPayload).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, requestPayload.Name, newTable.Name)
+
+	// Get a list of the tables
+	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	require.NoError(t, err)
+
+	tableFound := false
+	for _, table := range *resTables {
+		if table.TableID == tableKey.TableID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+
+	// Get a specific table by tableID
+	resTab, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	resTab.Created = iso8601.Time{}
+	resTab.LastImportDate = iso8601.Time{}
+	resTab.LastChangeDate = nil
+	resTab.Bucket.Created = iso8601.Time{}
+	resTab.Bucket.LastChangeDate = nil
+	resTab.Metadata = TableMetadata{}
+	resTab.ColumnMetadata = ColumnsMetadata{}
+	require.NoError(t, err)
+
+	assert.Equal(t, &Table{
+		TableKey:       newTable.TableKey,
+		URI:            newTable.URI,
+		Name:           newTable.Name,
+		DisplayName:    newTable.DisplayName,
+		SourceTable:    nil,
+		PrimaryKey:     newTable.PrimaryKey,
+		Created:        iso8601.Time{},
+		LastImportDate: iso8601.Time{},
+		LastChangeDate: nil,
+
+		Definition: TableDefinition{
+			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
+			Columns: []Column{
+				{
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: true},
+				},
+				{
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: ColumnDefinition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: ColumnDefinition{Type: "DATE", Nullable: true},
+				},
+			},
+		},
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+		},
+	}, resTab)
+	assert.Equal(t, requestPayload.Name, resTab.Name)
+	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
+
+	// Delete the table that was created in the CreateTableDefinitionRequest func
+	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
+	require.NoError(t, err)
+
+	// Get a list of the tables
+	res, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, res)
+
+	// max-use CreateTable
+	maxUseCaseRequest := &CreateTableRequest{
+		TableDefinition: TableDefinition{
+			PrimaryKeyNames: []string{"email"},
+			Columns: []Column{
+				{
+					Name: "email",
+					Definition: ColumnDefinition{
+						Type:     "VARCHAR",
+						Length:   DefaultString,
+						Nullable: false,
+						Default:  "",
+					},
+					BaseType: TypeString,
+				},
+				{
+					Name: "comments",
+					Definition: ColumnDefinition{
+						Type:     "NUMBER",
+						Length:   "37",
+						Nullable: true,
+						Default:  "100",
+					},
+					BaseType: TypeNumeric,
+				},
+			},
+		},
+		Name: "MaxUseCase",
+	}
+
+	// Create Table
+	minimumUseCase, err := api.CreateTableDefinitionRequest(tableKey, maxUseCaseRequest).Send(ctx)
+	require.NoError(t, err)
+
+	maxUseCaseTable, err := api.GetTableRequest(minimumUseCase.TableKey).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []Column{
+		{
+			Name: "comments",
+			Definition: ColumnDefinition{
+				Type:     "NUMBER",
+				Length:   "37,0",
+				Nullable: true,
+				Default:  "100",
+			},
+			BaseType: TypeNumeric,
+		},
+		{
+			Name: "email",
+			Definition: ColumnDefinition{
+				Type:     "VARCHAR",
+				Length:   DefaultString,
+				Nullable: false,
+			},
+			BaseType: TypeString,
+		},
+	}, maxUseCaseTable.Definition.Columns)
+
+	// Delete the table that was created in the CreateTableDefinitionRequest func
+	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
+	require.NoError(t, err)
 }

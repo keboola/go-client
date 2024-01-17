@@ -20,6 +20,7 @@ type Table struct {
 	Created        iso8601.Time    `json:"created"`
 	LastImportDate iso8601.Time    `json:"lastImportDate"`
 	LastChangeDate *iso8601.Time   `json:"lastChangeDate"`
+	Definition     TableDefinition `json:"definition"`
 	RowsCount      uint64          `json:"rowsCount"`
 	DataSizeBytes  uint64          `json:"dataSizeBytes"`
 	Columns        []string        `json:"columns"`
@@ -38,6 +39,11 @@ type SourceTable struct {
 type SourceProject struct {
 	ID   ProjectID `json:"id"`
 	Name string    `json:"name"`
+}
+
+type TableDefinition struct {
+	PrimaryKeyNames []string `json:"primaryKeysNames"`
+	Columns         []Column `json:"columns"`
 }
 
 func (v TableKey) BucketKey() BucketKey {
