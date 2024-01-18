@@ -113,8 +113,9 @@ func TestTableApiCalls(t *testing.T) {
 	resList, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
 	assert.NoError(t, err)
 	tableFound := false
-	for _, t := range *resList {
-		if t.TableID == table.TableID {
+	for _, resTable := range *resList {
+		assert.Equal(t, resTable.BranchID, defBranch.ID)
+		if resTable.TableID == table.TableID {
 			tableFound = true
 		}
 	}
