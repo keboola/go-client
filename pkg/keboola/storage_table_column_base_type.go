@@ -11,7 +11,3 @@ const (
 	TypeString    BaseType = "STRING"
 	TypeTimestamp BaseType = "TIMESTAMP"
 )
-
-func (bt BaseType) String() string {
-	return string(bt)
-}
