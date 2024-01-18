@@ -1,6 +1,7 @@
 package keboola
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -59,7 +60,13 @@ func (a *AuthorizedAPI) ListTablesRequest(branchID BranchID, opts ...ListTableOp
 		WithResult(&result).
 		WithGet("branch/{branchId}/tables").
 		AndPathParam("branchId", branchID.String()).
-		AndQueryParam("include", config.includeString())
+		AndQueryParam("include", config.includeString()).
+		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
+			for _, table := range result {
+				table.BranchID = branchID
+			}
+			return nil
+		})
 
 	return request.NewAPIRequest(&result, req)
 }
