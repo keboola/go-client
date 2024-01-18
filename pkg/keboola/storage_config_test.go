@@ -153,18 +153,7 @@ func expectedComponentsConfigTest() string {
     "id": "ex-generic-v2",
     "type": "extractor",
     "name": "Generic",
-    "flags": [
-      "genericUI",
-      "encrypt"
-    ],
-    "configurationSchema": {},
-    "configurationRowSchema": {},
-    "emptyConfiguration": {},
-    "emptyConfigurationRow": {},
-    "data": {
-      "default_bucket": false,
-      "default_bucket_stage": ""
-    },
+    %A,
     "configurations": [
       {
         "branchId": %s,
