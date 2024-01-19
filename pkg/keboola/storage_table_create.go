@@ -147,7 +147,7 @@ func (a *AuthorizedAPI) CreateTableDefinitionRequest(b TableKey, payload *Create
 		panic(fmt.Errorf("bucketID can't be empty"))
 	}
 
-	table := &Table{TableKey: b, Definition: payload.TableDefinition}
+	table := &Table{TableKey: b, Definition: &payload.TableDefinition}
 	req := a.
 		CreateTableDefinitionAsyncRequest(b, payload).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
