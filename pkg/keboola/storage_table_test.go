@@ -635,6 +635,14 @@ func TestCreateTableDefinition(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, requestPayload.Name, newTable.Name)
 
+	for _, column := range newTable.Definition.Columns {
+		for _, primaryKey := range newTable.PrimaryKey {
+			if column.Name == primaryKey {
+				assert.False(t, column.Definition.Nullable)
+			}
+		}
+	}
+
 	// Get a list of the tables
 	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
 	require.NoError(t, err)
@@ -669,7 +677,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		LastImportDate: iso8601.Time{},
 		LastChangeDate: nil,
 
-		Definition: TableDefinition{
+		Definition: &TableDefinition{
 			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
 			Columns: []Column{
 				{
@@ -730,6 +738,15 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name: "comments",
 					Definition: ColumnDefinition{
+						Type:    "NUMBER",
+						Length:  "37",
+						Default: "100",
+					},
+					BaseType: TypeNumeric,
+				},
+				{
+					Name: "favorite_number",
+					Definition: ColumnDefinition{
 						Type:     "NUMBER",
 						Length:   "37",
 						Nullable: true,
@@ -767,6 +784,16 @@ func TestCreateTableDefinition(t *testing.T) {
 				Nullable: false,
 			},
 			BaseType: TypeString,
+		},
+		{
+			Name: "favorite_number",
+			Definition: ColumnDefinition{
+				Type:     "NUMBER",
+				Length:   "37,0",
+				Nullable: true,
+				Default:  "100",
+			},
+			BaseType: TypeNumeric,
 		},
 	}, maxUseCaseTable.Definition.Columns)
 
