@@ -614,12 +614,12 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: "VARCHAR"},
+					Definition: ColumnDefinition{Type: "STRING"},
 				},
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: "NUMBER"},
+					Definition: ColumnDefinition{Type: "INT"},
 				},
 				{
 					Name:       "time",
