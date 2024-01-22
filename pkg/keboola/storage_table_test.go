@@ -71,7 +71,7 @@ func TestTableApiCalls(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -225,7 +225,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -287,7 +287,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	_, err = api.CreateBucketRequest(bucket).Send(ctx)
@@ -356,7 +356,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -394,7 +394,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -490,7 +490,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket, tableKey := getBucketAndTableKey(defBranch)
+	bucket, tableKey := createBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -694,7 +694,7 @@ func removeDynamicValueFromTable(table *Table) {
 	table.Bucket.LastChangeDate = nil
 }
 
-func getBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
+func createBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
 	bucket := &Bucket{
 		BucketKey: BucketKey{
 			BranchID: branch.ID,
