@@ -71,30 +71,12 @@ func TestTableApiCalls(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
-			},
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resBucket)
-
-	tableID := TableID{
-		BucketID:  bucket.BucketID,
-		TableName: fmt.Sprintf("test_%d", rnd.Int()),
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID:  tableID,
-	}
 
 	table := &Table{
 		TableKey:   tableKey,
@@ -124,14 +106,10 @@ func TestTableApiCalls(t *testing.T) {
 	// Get table (without table and columns metadata)
 	respGet1, err := api.GetTableRequest(tableKey).Send(ctx)
 	assert.NoError(t, err)
-	respGet1.Created = iso8601.Time{}
-	respGet1.LastImportDate = iso8601.Time{}
-	respGet1.LastChangeDate = nil
-	respGet1.Bucket.Created = iso8601.Time{}
-	respGet1.Bucket.LastChangeDate = nil
+	removeDynamicValueFromTable(respGet1)
 	assert.Equal(t, &Table{
 		TableKey:      tableKey,
-		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
+		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableKey.TableID.String(),
 		Name:          tableKey.TableID.TableName,
 		DisplayName:   tableKey.TableID.TableName,
 		PrimaryKey:    []string{},
@@ -141,7 +119,7 @@ func TestTableApiCalls(t *testing.T) {
 		Bucket: &Bucket{
 			BucketKey:   bucket.BucketKey,
 			DisplayName: bucket.DisplayName,
-			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.BucketKey().BucketID.String(),
 		},
 		Metadata:       TableMetadata{},
 		ColumnMetadata: ColumnsMetadata{},
@@ -191,14 +169,10 @@ func TestTableApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	removeDynamicValuesFromTableMetadata(respGet2.Metadata)
 	removeDynamicValuesFromColumnsMetadata(respGet2.ColumnMetadata)
-	respGet2.Created = iso8601.Time{}
-	respGet2.LastImportDate = iso8601.Time{}
-	respGet2.LastChangeDate = nil
-	respGet2.Bucket.Created = iso8601.Time{}
-	respGet2.Bucket.LastChangeDate = nil
+	removeDynamicValueFromTable(respGet2)
 	assert.Equal(t, &Table{
 		TableKey:      tableKey,
-		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableID.String(),
+		URI:           "https://" + project.StorageAPIHost() + "/v2/storage/tables/" + tableKey.TableID.String(),
 		Name:          tableKey.TableID.TableName,
 		DisplayName:   tableKey.TableID.TableName,
 		PrimaryKey:    []string{},
@@ -208,7 +182,7 @@ func TestTableApiCalls(t *testing.T) {
 		Bucket: &Bucket{
 			BucketKey:   bucket.BucketKey,
 			DisplayName: bucket.DisplayName,
-			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.BucketKey().BucketID.String(),
 		},
 		Metadata: TableMetadata{
 			{Key: "tableMetadata1", Value: "value1", Provider: "go-client-test"},
@@ -251,23 +225,7 @@ func TestTableCreateLoadDataFromFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-bucket_%d", rnd.Int()),
-			},
-		},
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID: TableID{
-			BucketID:  bucket.BucketID,
-			TableName: fmt.Sprintf("table_%d", rnd.Int()),
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -329,23 +287,7 @@ func TestTableCreateFromSlicedFile(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
-			},
-		},
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID: TableID{
-			BucketID:  bucket.BucketID,
-			TableName: fmt.Sprintf("test_%d", rnd.Int()),
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	_, err = api.CreateBucketRequest(bucket).Send(ctx)
@@ -414,23 +356,7 @@ func TestTableCreateFromFileOtherOptions(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
-			},
-		},
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID: TableID{
-			BucketID:  bucket.BucketID,
-			TableName: fmt.Sprintf("test_%d", rnd.Int()),
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -468,23 +394,7 @@ func TestTableUnloadRequest(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
-			},
-		},
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID: TableID{
-			BucketID:  bucket.BucketID,
-			TableName: fmt.Sprintf("test_%d", rnd.Int()),
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
@@ -580,34 +490,16 @@ func TestCreateTableDefinition(t *testing.T) {
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
 
-	bucket := &Bucket{
-		BucketKey: BucketKey{
-			BranchID: defBranch.ID,
-			BucketID: BucketID{
-				Stage:      BucketStageIn,
-				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
-			},
-		},
-	}
+	bucket, tableKey := getBucketAndTableKey(defBranch)
 
 	// Create bucket
 	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, bucket, resBucket)
 
-	tableID := TableID{
-		BucketID:  bucket.BucketID,
-		TableName: fmt.Sprintf("test_%d", rnd.Int()),
-	}
-
-	tableKey := TableKey{
-		BranchID: defBranch.ID,
-		TableID:  tableID,
-	}
-
 	// min use-case Create Table
 	requestPayload := &CreateTableRequest{
-		Name: tableID.TableName,
+		Name: tableKey.TableID.TableName,
 		TableDefinition: TableDefinition{
 			PrimaryKeyNames: []string{"name"},
 			Columns: []Column{
@@ -657,26 +549,18 @@ func TestCreateTableDefinition(t *testing.T) {
 
 	// Get a specific table by tableID
 	resTab, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
-	resTab.Created = iso8601.Time{}
-	resTab.LastImportDate = iso8601.Time{}
-	resTab.LastChangeDate = nil
-	resTab.Bucket.Created = iso8601.Time{}
-	resTab.Bucket.LastChangeDate = nil
+	removeDynamicValueFromTable(resTab)
 	resTab.Metadata = TableMetadata{}
 	resTab.ColumnMetadata = ColumnsMetadata{}
 	require.NoError(t, err)
 
 	assert.Equal(t, &Table{
-		TableKey:       newTable.TableKey,
-		URI:            newTable.URI,
-		Name:           newTable.Name,
-		DisplayName:    newTable.DisplayName,
-		SourceTable:    nil,
-		PrimaryKey:     newTable.PrimaryKey,
-		Created:        iso8601.Time{},
-		LastImportDate: iso8601.Time{},
-		LastChangeDate: nil,
-
+		TableKey:    newTable.TableKey,
+		URI:         newTable.URI,
+		Name:        newTable.Name,
+		DisplayName: newTable.DisplayName,
+		SourceTable: nil,
+		PrimaryKey:  newTable.PrimaryKey,
 		Definition: &TableDefinition{
 			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
 			Columns: []Column{
@@ -705,7 +589,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		Bucket: &Bucket{
 			BucketKey:   bucket.BucketKey,
 			DisplayName: bucket.DisplayName,
-			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableID.BucketID.String(),
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
 		},
 	}, resTab)
 	assert.Equal(t, requestPayload.Name, resTab.Name)
@@ -800,4 +684,33 @@ func TestCreateTableDefinition(t *testing.T) {
 	// Delete the table that was created in the CreateTableDefinitionRequest func
 	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
 	require.NoError(t, err)
+}
+
+func removeDynamicValueFromTable(table *Table) {
+	table.Created = iso8601.Time{}
+	table.LastImportDate = iso8601.Time{}
+	table.LastChangeDate = nil
+	table.Bucket.Created = iso8601.Time{}
+	table.Bucket.LastChangeDate = nil
+}
+
+func getBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
+	bucket := &Bucket{
+		BucketKey: BucketKey{
+			BranchID: branch.ID,
+			BucketID: BucketID{
+				Stage:      BucketStageIn,
+				BucketName: fmt.Sprintf("c-test_%d", rnd.Int()),
+			},
+		},
+	}
+
+	tableKey := TableKey{
+		BranchID: branch.ID,
+		TableID: TableID{
+			BucketID:  bucket.BucketID,
+			TableName: fmt.Sprintf("test_%d", rnd.Int()),
+		},
+	}
+	return bucket, tableKey
 }
