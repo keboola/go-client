@@ -484,7 +484,7 @@ func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
 func TestCreateTableDefinition(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project, api := APIClientForAnEmptyProject(t, ctx)
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithSnowflakeBackend())
 
 	// Get default branch
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)

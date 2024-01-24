@@ -2,6 +2,7 @@ package keboola_test
 
 import (
 	"context"
+	"github.com/keboola/go-utils/pkg/testproject"
 	"testing"
 	"time"
 
@@ -60,7 +61,7 @@ func TestWorkspacesCreateAndDeletePython(t *testing.T) {
 func TestWorkspacesCreateAndDeleteSnowflake(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	_, api := keboola.APIClientForAnEmptyProject(t, ctx)
+	_, api := keboola.APIClientForAnEmptyProject(t, ctx, testproject.WithSnowflakeBackend())
 
 	// Get default branch
 	branch, err := api.GetDefaultBranchRequest().Send(ctx)
