@@ -2,10 +2,10 @@ package keboola_test
 
 import (
 	"context"
-	"github.com/keboola/go-utils/pkg/testproject"
 	"testing"
 	"time"
 
+	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/keboola/go-client/pkg/keboola"
