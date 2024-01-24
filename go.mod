@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jarcoal/httpmock v1.3.0
 	github.com/json-iterator/go v1.1.12
-	github.com/keboola/go-utils v0.8.1
+	github.com/keboola/go-utils v0.8.4
 	github.com/relvacode/iso8601 v1.3.0
 	github.com/spf13/cast v1.5.1
 	github.com/stretchr/testify v1.8.2

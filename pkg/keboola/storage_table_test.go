@@ -484,7 +484,7 @@ func removeDynamicValuesFromColumnsMetadata(in ColumnsMetadata) {
 func TestCreateTableDefinition(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	project, api := APIClientForAnEmptyProject(t, ctx)
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithSnowflakeBackend())
 
 	// Get default branch
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -684,6 +684,98 @@ func TestCreateTableDefinition(t *testing.T) {
 	// Delete the table that was created in the CreateTableDefinitionRequest func
 	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
 	require.NoError(t, err)
+}
+
+func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithBigQueryBackend())
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket, tableKey := createBucketAndTableKey(defBranch)
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// min use-case Create Table
+	requestPayload := &CreateTableRequest{
+		Name: tableKey.TableID.TableName,
+		TableDefinition: TableDefinition{
+			PrimaryKeyNames: []string{"name"},
+			Columns: []Column{
+				{
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: ColumnDefinition{Type: TypeString.String()},
+				},
+				{
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: ColumnDefinition{Type: TypeNumeric.String()},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: ColumnDefinition{Type: TypeDate.String()},
+				},
+			},
+		},
+	}
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, requestPayload).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, requestPayload.Name, newTable.Name)
+
+	// Get table
+	res, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	require.NoError(t, err)
+	removeDynamicValueFromTable(res)
+	res.Metadata = TableMetadata{}
+	res.ColumnMetadata = ColumnsMetadata{}
+	assert.Equal(t, &Table{
+		TableKey:    newTable.TableKey,
+		URI:         newTable.URI,
+		Name:        newTable.Name,
+		DisplayName: newTable.DisplayName,
+		SourceTable: nil,
+		PrimaryKey:  newTable.PrimaryKey,
+		Definition: &TableDefinition{
+			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
+			Columns: []Column{
+				{
+					Name:       "age",
+					BaseType:   TypeNumeric,
+					Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+				},
+				{
+					Name:       "name",
+					BaseType:   TypeString,
+					Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   TypeDate,
+					Definition: ColumnDefinition{Type: "DATE", Nullable: true},
+				},
+			},
+		},
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
+		},
+	}, res)
 }
 
 func removeDynamicValueFromTable(table *Table) {
