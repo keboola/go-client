@@ -567,7 +567,7 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: true},
+					Definition: ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: false},
 				},
 				{
 					Name:       "name",
@@ -577,7 +577,7 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: "DATE", Nullable: true},
+					Definition: ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
 		},
@@ -622,9 +622,10 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name: "comments",
 					Definition: ColumnDefinition{
-						Type:    "NUMBER",
-						Length:  "37",
-						Default: "100",
+						Type:     "NUMBER",
+						Length:   "37",
+						Default:  "100",
+						Nullable: true,
 					},
 					BaseType: TypeNumeric,
 				},
@@ -711,17 +712,17 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: TypeString.String()},
+					Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
 				},
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: TypeNumeric.String()},
+					Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
 				},
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: TypeDate.String()},
+					Definition: ColumnDefinition{Type: TypeDate.String(), Nullable: false},
 				},
 			},
 		},
@@ -761,7 +762,7 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: "DATE", Nullable: true},
+					Definition: ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
 		},

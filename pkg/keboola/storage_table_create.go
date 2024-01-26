@@ -126,9 +126,9 @@ type Column struct {
 
 type ColumnDefinition struct {
 	Type     string `json:"type"`
-	Length   string `json:"length,omitempty"`
-	Nullable bool   `json:"nullable,omitempty"`
-	Default  string `json:"default,omitempty"`
+	Length   string `json:"length"`
+	Nullable bool   `json:"nullable"`
+	Default  string `json:"default"`
 }
 
 func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
