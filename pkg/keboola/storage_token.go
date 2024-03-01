@@ -173,7 +173,8 @@ func (a *AuthorizedAPI) DeleteTokenRequest(tokenID string) request.APIRequest[*T
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithDelete("tokens/{tokenId}").
-		AndPathParam("tokenId", tokenID)
+		AndPathParam("tokenId", tokenID).
+		WithOnError(ignoreResourceNotFoundError())
 	return request.NewAPIRequest(result, req)
 }
 
