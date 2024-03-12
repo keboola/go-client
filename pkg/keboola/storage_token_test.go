@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/keboola/go-utils/pkg/testproject"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -205,4 +206,18 @@ func ignoreMasterTokens(in []*Token) (out []*Token) {
 		}
 	}
 	return out
+}
+
+func TestVerifyToken_BackendProjectSnowflake(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	project, api := APIClientForRandomProject(t, ctx, testproject.WithSnowflakeBackend())
+
+	token, err := api.VerifyTokenRequest(project.StorageAPIToken()).Send(ctx)
+	require.NoError(t, err)
+	assert.True(t, token.Owner.HasSnowflake)
+	assert.Equal(t, token.Owner.DefaultBackend, "snowflake")
+	assert.False(t, token.Owner.HasRedshift)
+	assert.False(t, token.Owner.HasBigquery)
 }
