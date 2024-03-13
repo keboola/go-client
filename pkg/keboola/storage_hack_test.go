@@ -145,8 +145,8 @@ func TestHack_DeleteTableRequest_NotFound(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Run request
-	id := MustParseTableID("in.c-bucket.table")
-	_, err = api.DeleteTableRequest(123, id).Send(context.Background())
+	k := TableKey{BranchID: 123, TableID: MustParseTableID("in.c-bucket.table")}
+	_, err = api.DeleteTableRequest(k).Send(context.Background())
 
 	// The request ended without an error
 	assert.NoError(t, err)

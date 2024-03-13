@@ -201,7 +201,7 @@ func TestTableApiCalls(t *testing.T) {
 	}, respGet2)
 
 	// Delete table
-	_, err = api.DeleteTableRequest(defBranch.ID, table.TableID, WithForce()).Send(ctx)
+	_, err = api.DeleteTableRequest(tableKey, WithForce()).Send(ctx)
 	assert.NoError(t, err)
 
 	// List tables again - without the deleted table
@@ -596,7 +596,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
 
 	// Delete the table that was created in the CreateTableDefinitionRequest func
-	_, err = api.DeleteTableRequest(defBranch.ID, newTable.TableID).Send(ctx)
+	_, err = api.DeleteTableRequest(tableKey).Send(ctx)
 	require.NoError(t, err)
 
 	// Get a list of the tables
@@ -683,7 +683,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	}, maxUseCaseTable.Definition.Columns)
 
 	// Delete the table that was created in the CreateTableDefinitionRequest func
-	_, err = api.DeleteTableRequest(defBranch.ID, maxUseCaseTable.TableID).Send(ctx)
+	_, err = api.DeleteTableRequest(maxUseCaseTable.TableKey).Send(ctx)
 	require.NoError(t, err)
 }
 
