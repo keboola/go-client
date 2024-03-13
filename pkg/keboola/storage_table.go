@@ -1,6 +1,8 @@
 package keboola
 
 import (
+	"fmt"
+
 	"github.com/relvacode/iso8601"
 )
 
@@ -51,4 +53,8 @@ func (v TableKey) BucketKey() BucketKey {
 		BranchID: v.BranchID,
 		BucketID: v.TableID.BucketID,
 	}
+}
+
+func (v TableKey) String() string {
+	return fmt.Sprintf("%s/%s", v.BranchID.String(), v.TableID.String())
 }

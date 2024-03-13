@@ -3,6 +3,7 @@ package keboola
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,10 @@ const (
 type BucketKey struct {
 	BranchID BranchID `json:"-"`
 	BucketID BucketID `json:"id"`
+}
+
+func (v BucketKey) String() string {
+	return fmt.Sprintf("%s/%s", v.BranchID.String(), v.BucketID.String())
 }
 
 type Bucket struct {

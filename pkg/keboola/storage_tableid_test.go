@@ -33,3 +33,9 @@ func TestTableID(t *testing.T) {
 		}
 	}
 }
+
+func TestTableKey_String(t *testing.T) {
+	t.Parallel()
+	tableKey := TableKey{BranchID: 123, TableID: MustParseTableID("in.bucket.table")}
+	assert.Equal(t, "123/in.bucket.table", tableKey.String())
+}
