@@ -31,3 +31,9 @@ func TestParseBucketID(t *testing.T) {
 		}
 	}
 }
+
+func TestBucketKey_String(t *testing.T) {
+	t.Parallel()
+	bucketKey := BucketKey{BranchID: 123, BucketID: MustParseBucketID("in.bucket")}
+	assert.Equal(t, "123/in.bucket", bucketKey.String())
+}
