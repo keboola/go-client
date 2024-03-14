@@ -1,3 +1,4 @@
+// nolint: dupl
 package keboola
 
 import (
@@ -15,8 +16,13 @@ type EncryptionError struct {
 }
 
 func (e *EncryptionError) Error() string {
-	req := e.request
-	msg := fmt.Sprintf(`%s, method: "%s", url: "%s", httpCode: "%d"`, e.Message, req.Method, req.URL, e.StatusCode())
+	msg := e.Message
+	if e.request != nil {
+		msg += fmt.Sprintf(`, method: "%s", url: "%s"`, e.request.Method, e.request.URL)
+	}
+	if e.response != nil {
+		msg += fmt.Sprintf(`, httpCode: "%d"`, e.StatusCode())
+	}
 	if e.ErrCode > 0 {
 		msg += fmt.Sprintf(`, errCode: "%d"`, e.ErrCode)
 	}
@@ -43,6 +49,9 @@ func (e *EncryptionError) ErrorExceptionID() string {
 
 // StatusCode returns HTTP status code.
 func (e *EncryptionError) StatusCode() int {
+	if e.response == nil {
+		return 0
+	}
 	return e.response.StatusCode
 }
 

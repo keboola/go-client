@@ -16,7 +16,17 @@ type SchedulerError struct {
 }
 
 func (e *SchedulerError) Error() string {
-	return fmt.Sprintf("scheduler api error[%d]: %s", e.ErrCode, e.Message)
+	msg := fmt.Sprintf("scheduler api error[%d]: %s", e.ErrCode, e.Message)
+	if e.request != nil {
+		msg += fmt.Sprintf(`, method: "%s", url: "%s"`, e.request.Method, e.request.URL)
+	}
+	if e.response != nil {
+		msg += fmt.Sprintf(`, httpCode: "%d"`, e.StatusCode())
+	}
+	if len(e.ExceptionID) > 0 {
+		msg += fmt.Sprintf(`, exceptionId: "%s"`, e.ExceptionID)
+	}
+	return msg
 }
 
 // ErrorName returns a human-readable name of the error.
@@ -36,6 +46,9 @@ func (e *SchedulerError) ErrorExceptionID() string {
 
 // StatusCode returns HTTP status code.
 func (e *SchedulerError) StatusCode() int {
+	if e.response == nil {
+		return 0
+	}
 	return e.response.StatusCode
 }
 
