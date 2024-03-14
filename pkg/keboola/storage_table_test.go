@@ -498,34 +498,31 @@ func TestCreateTableDefinition(t *testing.T) {
 	assert.Equal(t, bucket, resBucket)
 
 	// min use-case Create Table
-	requestPayload := &CreateTableRequest{
-		Name: tableKey.TableID.TableName,
-		TableDefinition: TableDefinition{
-			PrimaryKeyNames: []string{"name"},
-			Columns: []Column{
-				{
-					Name:       "name",
-					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: "STRING"},
-				},
-				{
-					Name:       "age",
-					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: "INT"},
-				},
-				{
-					Name:       "time",
-					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: "DATE"},
-				},
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"name"},
+		Columns: []Column{
+			{
+				Name:       "name",
+				BaseType:   TypeString,
+				Definition: ColumnDefinition{Type: "STRING"},
+			},
+			{
+				Name:       "age",
+				BaseType:   TypeNumeric,
+				Definition: ColumnDefinition{Type: "INT"},
+			},
+			{
+				Name:       "time",
+				BaseType:   TypeDate,
+				Definition: ColumnDefinition{Type: "DATE"},
 			},
 		},
 	}
 
 	// Create a new table
-	newTable, err := api.CreateTableDefinitionRequest(tableKey, requestPayload).Send(ctx)
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, requestPayload.Name, newTable.Name)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
 
 	for _, column := range newTable.Definition.Columns {
 		for _, primaryKey := range newTable.PrimaryKey {
@@ -562,7 +559,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		SourceTable: nil,
 		PrimaryKey:  newTable.PrimaryKey,
 		Definition: &TableDefinition{
-			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
+			PrimaryKeyNames: tableDef.PrimaryKeyNames,
 			Columns: []Column{
 				{
 					Name:       "age",
@@ -592,7 +589,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
 		},
 	}, resTab)
-	assert.Equal(t, requestPayload.Name, resTab.Name)
+	assert.Equal(t, tableKey.TableID.TableName, resTab.Name)
 	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
 
 	// Delete the table that was created in the CreateTableDefinitionRequest func
@@ -604,9 +601,10 @@ func TestCreateTableDefinition(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, res)
 
-	// max-use CreateTable
-	maxUseCaseRequest := &CreateTableRequest{
-		TableDefinition: TableDefinition{
+	// CreateTable: maximum use-case
+	{
+		maxUseCaseTableKey := TableKey{BranchID: defBranch.ID, TableID: TableID{BucketID: bucket.BucketID, TableName: "maxUseCase"}}
+		maxUseCaseTableDef := TableDefinition{
 			PrimaryKeyNames: []string{"email"},
 			Columns: []Column{
 				{
@@ -640,51 +638,50 @@ func TestCreateTableDefinition(t *testing.T) {
 					BaseType: TypeNumeric,
 				},
 			},
-		},
-		Name: "MaxUseCase",
+		}
+
+		// Create Table
+		_, err = api.CreateTableDefinitionRequest(maxUseCaseTableKey, maxUseCaseTableDef).Send(ctx)
+		require.NoError(t, err)
+
+		maxUseCaseTable, err := api.GetTableRequest(maxUseCaseTableKey).Send(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, []Column{
+			{
+				Name: "comments",
+				Definition: ColumnDefinition{
+					Type:     "NUMBER",
+					Length:   "37,0",
+					Nullable: true,
+					Default:  "100",
+				},
+				BaseType: TypeNumeric,
+			},
+			{
+				Name: "email",
+				Definition: ColumnDefinition{
+					Type:     "VARCHAR",
+					Length:   DefaultString,
+					Nullable: false,
+				},
+				BaseType: TypeString,
+			},
+			{
+				Name: "favorite_number",
+				Definition: ColumnDefinition{
+					Type:     "NUMBER",
+					Length:   "37,0",
+					Nullable: true,
+					Default:  "100",
+				},
+				BaseType: TypeNumeric,
+			},
+		}, maxUseCaseTable.Definition.Columns)
+
+		// Delete the table that was created in the CreateTableDefinitionRequest func
+		_, err = api.DeleteTableRequest(maxUseCaseTable.TableKey).Send(ctx)
+		require.NoError(t, err)
 	}
-
-	// Create Table
-	minimumUseCase, err := api.CreateTableDefinitionRequest(tableKey, maxUseCaseRequest).Send(ctx)
-	require.NoError(t, err)
-
-	maxUseCaseTable, err := api.GetTableRequest(minimumUseCase.TableKey).Send(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, []Column{
-		{
-			Name: "comments",
-			Definition: ColumnDefinition{
-				Type:     "NUMBER",
-				Length:   "37,0",
-				Nullable: true,
-				Default:  "100",
-			},
-			BaseType: TypeNumeric,
-		},
-		{
-			Name: "email",
-			Definition: ColumnDefinition{
-				Type:     "VARCHAR",
-				Length:   DefaultString,
-				Nullable: false,
-			},
-			BaseType: TypeString,
-		},
-		{
-			Name: "favorite_number",
-			Definition: ColumnDefinition{
-				Type:     "NUMBER",
-				Length:   "37,0",
-				Nullable: true,
-				Default:  "100",
-			},
-			BaseType: TypeNumeric,
-		},
-	}, maxUseCaseTable.Definition.Columns)
-
-	// Delete the table that was created in the CreateTableDefinitionRequest func
-	_, err = api.DeleteTableRequest(maxUseCaseTable.TableKey).Send(ctx)
-	require.NoError(t, err)
 }
 
 func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
@@ -704,34 +701,31 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 	assert.Equal(t, bucket, resBucket)
 
 	// min use-case Create Table
-	requestPayload := &CreateTableRequest{
-		Name: tableKey.TableID.TableName,
-		TableDefinition: TableDefinition{
-			PrimaryKeyNames: []string{"name"},
-			Columns: []Column{
-				{
-					Name:       "name",
-					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
-				},
-				{
-					Name:       "age",
-					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
-				},
-				{
-					Name:       "time",
-					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: TypeDate.String(), Nullable: false},
-				},
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"name"},
+		Columns: []Column{
+			{
+				Name:       "name",
+				BaseType:   TypeString,
+				Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
+			},
+			{
+				Name:       "age",
+				BaseType:   TypeNumeric,
+				Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+			},
+			{
+				Name:       "time",
+				BaseType:   TypeDate,
+				Definition: ColumnDefinition{Type: TypeDate.String(), Nullable: false},
 			},
 		},
 	}
 
 	// Create a new table
-	newTable, err := api.CreateTableDefinitionRequest(tableKey, requestPayload).Send(ctx)
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, requestPayload.Name, newTable.Name)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
 
 	// Get table
 	res, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
@@ -747,7 +741,7 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 		SourceTable: nil,
 		PrimaryKey:  newTable.PrimaryKey,
 		Definition: &TableDefinition{
-			PrimaryKeyNames: requestPayload.PrimaryKeyNames,
+			PrimaryKeyNames: tableDef.PrimaryKeyNames,
 			Columns: []Column{
 				{
 					Name:       "age",

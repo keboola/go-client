@@ -131,26 +131,26 @@ type ColumnDefinition struct {
 	Default  string `json:"default"`
 }
 
-func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*StorageJob] {
+func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(k TableKey, definition TableDefinition) request.APIRequest[*StorageJob] {
 	result := &StorageJob{}
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("branch/{branchId}/buckets/{bucketId}/tables-definition").
-		AndPathParam("branchId", b.BranchID.String()).
-		AndPathParam("bucketId", b.BucketKey().BucketID.String()).
-		WithJSONBody(payload)
+		AndPathParam("branchId", k.BranchID.String()).
+		AndPathParam("bucketId", k.BucketKey().BucketID.String()).
+		WithJSONBody(CreateTableRequest{TableDefinition: definition, Name: k.TableID.TableName})
 	return request.NewAPIRequest(result, req)
 }
 
-func (a *AuthorizedAPI) CreateTableDefinitionRequest(b TableKey, payload *CreateTableRequest) request.APIRequest[*Table] {
-	if b.BucketKey().BucketID.String() == "" {
+func (a *AuthorizedAPI) CreateTableDefinitionRequest(k TableKey, definition TableDefinition) request.APIRequest[*Table] {
+	if k.BucketKey().BucketID.String() == "" {
 		panic(fmt.Errorf("bucketID can't be empty"))
 	}
 
-	table := &Table{TableKey: b, Definition: &payload.TableDefinition}
+	table := &Table{TableKey: k, Definition: &definition}
 	req := a.
-		CreateTableDefinitionAsyncRequest(b, payload).
+		CreateTableDefinitionAsyncRequest(k, definition).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
