@@ -124,6 +124,15 @@ type Column struct {
 	BaseType   `json:"basetype"`
 }
 
+type Columns []Column
+
+func (v Columns) Names() (out []string) {
+	for _, c := range v {
+		out = append(out, c.Name)
+	}
+	return out
+}
+
 type ColumnDefinition struct {
 	Type     string `json:"type"`
 	Length   string `json:"length"`

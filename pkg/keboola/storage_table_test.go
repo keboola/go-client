@@ -500,7 +500,7 @@ func TestCreateTableDefinition(t *testing.T) {
 	// min use-case Create Table
 	tableDef := TableDefinition{
 		PrimaryKeyNames: []string{"name"},
-		Columns: []Column{
+		Columns: Columns{
 			{
 				Name:       "name",
 				BaseType:   TypeString,
@@ -518,6 +518,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			},
 		},
 	}
+	assert.Equal(t, []string{"name", "age", "time"}, tableDef.Columns.Names())
 
 	// Create a new table
 	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
@@ -560,7 +561,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		PrimaryKey:  newTable.PrimaryKey,
 		Definition: &TableDefinition{
 			PrimaryKeyNames: tableDef.PrimaryKeyNames,
-			Columns: []Column{
+			Columns: Columns{
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
@@ -606,7 +607,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		maxUseCaseTableKey := TableKey{BranchID: defBranch.ID, TableID: TableID{BucketID: bucket.BucketID, TableName: "maxUseCase"}}
 		maxUseCaseTableDef := TableDefinition{
 			PrimaryKeyNames: []string{"email"},
-			Columns: []Column{
+			Columns: Columns{
 				{
 					Name: "email",
 					Definition: ColumnDefinition{
@@ -646,7 +647,7 @@ func TestCreateTableDefinition(t *testing.T) {
 
 		maxUseCaseTable, err := api.GetTableRequest(maxUseCaseTableKey).Send(ctx)
 		require.NoError(t, err)
-		assert.Equal(t, []Column{
+		assert.Equal(t, Columns{
 			{
 				Name: "comments",
 				Definition: ColumnDefinition{
@@ -703,7 +704,7 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 	// min use-case Create Table
 	tableDef := TableDefinition{
 		PrimaryKeyNames: []string{"name"},
-		Columns: []Column{
+		Columns: Columns{
 			{
 				Name:       "name",
 				BaseType:   TypeString,
@@ -742,7 +743,7 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 		PrimaryKey:  newTable.PrimaryKey,
 		Definition: &TableDefinition{
 			PrimaryKeyNames: tableDef.PrimaryKeyNames,
-			Columns: []Column{
+			Columns: Columns{
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
