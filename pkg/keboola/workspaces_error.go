@@ -1,3 +1,4 @@
+// nolint: dupl
 package keboola
 
 import (
@@ -14,13 +15,13 @@ type WorkspacesError struct {
 }
 
 func (e *WorkspacesError) Error() string {
-	if e.request == nil {
-		panic(fmt.Errorf("http request is not set"))
+	msg := e.Message
+	if e.request != nil {
+		msg += fmt.Sprintf(`, method: "%s", url: "%s"`, e.request.Method, e.request.URL)
 	}
-	if e.response == nil {
-		panic(fmt.Errorf("http response is not set"))
+	if e.response != nil {
+		msg += fmt.Sprintf(`, httpCode: "%d"`, e.StatusCode())
 	}
-	msg := fmt.Sprintf(`%s, method: "%s", url: "%s", httpCode: "%d"`, e.Message, e.request.Method, e.request.URL, e.StatusCode())
 	return msg
 }
 
@@ -36,6 +37,9 @@ func (e *WorkspacesError) ErrorUserMessage() string {
 
 // StatusCode returns HTTP status code.
 func (e *WorkspacesError) StatusCode() int {
+	if e.response == nil {
+		return 0
+	}
 	return e.response.StatusCode
 }
 
