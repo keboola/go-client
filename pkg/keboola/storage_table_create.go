@@ -136,7 +136,8 @@ func (a *AuthorizedAPI) CreateTableDefinitionAsyncRequest(b TableKey, payload *C
 	req := a.
 		newRequest(StorageAPI).
 		WithResult(result).
-		WithPost("buckets/{bucketId}/tables-definition").
+		WithPost("branch/{branchId}/buckets/{bucketId}/tables-definition").
+		AndPathParam("branchId", b.BranchID.String()).
 		AndPathParam("bucketId", b.BucketKey().BucketID.String()).
 		WithJSONBody(payload)
 	return request.NewAPIRequest(result, req)
