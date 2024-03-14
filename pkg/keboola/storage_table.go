@@ -45,7 +45,7 @@ type SourceProject struct {
 
 type TableDefinition struct {
 	PrimaryKeyNames []string `json:"primaryKeysNames"`
-	Columns         []Column `json:"columns"`
+	Columns         Columns  `json:"columns"`
 }
 
 func (v TableKey) BucketKey() BucketKey {
