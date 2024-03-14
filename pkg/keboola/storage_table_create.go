@@ -57,7 +57,7 @@ func (a *AuthorizedAPI) CreateTableFromFileRequest(tableKey TableKey, fileKey Fi
 		WithPost("branch/{branchId}/buckets/{bucketId}/tables-async").
 		AndPathParam("branchId", tableKey.BranchID.String()).
 		AndPathParam("bucketId", tableKey.TableID.BucketID.String()).
-		WithFormBody(request.ToFormBody(params)).
+		WithJSONBody(params).
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			// Wait for storage job
 			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)

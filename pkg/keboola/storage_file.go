@@ -195,11 +195,7 @@ func (c *createFileConfig) toMap() map[string]any {
 	if c.notify {
 		m["notify"] = true
 	}
-	if len(c.tags) > 0 {
-		for i, tag := range c.tags {
-			m[fmt.Sprintf("tags[%d]", i)] = tag
-		}
-	}
+	m["tags"] = c.tags
 	if c.isSliced {
 		m["isSliced"] = true
 	}
@@ -223,7 +219,7 @@ func (a *AuthorizedAPI) CreateFileResourceRequest(branchID BranchID, name string
 		WithResult(file).
 		WithPost("branch/{branchId}/files/prepare").
 		AndPathParam("branchId", branchID.String()).
-		WithFormBody(request.ToFormBody(c.toMap())).
+		WithJSONBody(c.toMap()).
 		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
 			file.ContentType = c.contentType
 			file.FederationToken = true

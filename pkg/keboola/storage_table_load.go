@@ -30,7 +30,7 @@ func (a *AuthorizedAPI) LoadDataFromFileRequest(tableKey TableKey, fileKey FileK
 		WithPost("branch/{branchId}/tables/{tableId}/import-async").
 		AndPathParam("branchId", tableKey.BranchID.String()).
 		AndPathParam("tableId", tableKey.TableID.String()).
-		WithFormBody(request.ToFormBody(params))
+		WithJSONBody(params)
 
 	return request.NewAPIRequest(job, req)
 }
