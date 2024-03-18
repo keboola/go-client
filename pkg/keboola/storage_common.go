@@ -1,11 +1,22 @@
 package keboola
 
+import "sort"
+
 type Object interface {
 	ObjectID() any
 }
 
 // Metadata - object metadata.
 type Metadata map[string]string
+
+type MetadataKV struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type MetadataPayload struct {
+	Metadata []MetadataKV `json:"metadata"`
+}
 
 // MetadataDetails - metadata with details (id, timestamp).
 type MetadataDetails []MetadataDetail
@@ -26,6 +37,16 @@ func (v MetadataDetails) ToMap() Metadata {
 		out[item.Key] = item.Value
 	}
 	return out
+}
+
+func (m Metadata) ToPayload() (payload MetadataPayload) {
+	for k, v := range m {
+		payload.Metadata = append(payload.Metadata, MetadataKV{Key: k, Value: v})
+	}
+	sort.SliceStable(payload.Metadata, func(i, j int) bool {
+		return payload.Metadata[i].Key < payload.Metadata[j].Key
+	})
+	return payload
 }
 
 // DeleteOption for requests to delete bucket or table.

@@ -2,7 +2,6 @@ package keboola
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
@@ -151,7 +150,7 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 		WithPost("branch/{branchId}/components/{componentId}/configs").
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
-		WithFormBody(request.ToFormBody(request.StructToMap(config.Config, nil))).
+		WithJSONBody(request.StructToMap(config.Config, nil)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetConfigRequest(config.ConfigKey).Send(ctx); err == nil {
 				*config.Config = *result
@@ -190,7 +189,7 @@ func (a *AuthorizedAPI) UpdateConfigRequest(config *Config, changedFields []stri
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
 		AndPathParam("configId", string(config.ID)).
-		WithFormBody(request.ToFormBody(request.StructToMap(config, changedFields)))
+		WithJSONBody(request.StructToMap(config, changedFields))
 	return request.NewAPIRequest(config, req)
 }
 
@@ -247,20 +246,14 @@ func (a *AuthorizedAPI) AppendConfigMetadataRequest(key ConfigKey, metadata Meta
 	if len(metadata) == 0 {
 		return request.NewNoOperationAPIRequest(request.NoResult{})
 	}
-	formBody := make(map[string]string)
-	i := 0
-	for k, v := range metadata {
-		formBody[fmt.Sprintf("metadata[%d][key]", i)] = k
-		formBody[fmt.Sprintf("metadata[%d][value]", i)] = v
-		i++
-	}
+
 	req := a.
 		newRequest(StorageAPI).
 		WithPost("branch/{branchId}/components/{componentId}/configs/{configId}/metadata").
 		AndPathParam("branchId", key.BranchID.String()).
 		AndPathParam("componentId", string(key.ComponentID)).
 		AndPathParam("configId", string(key.ID)).
-		WithFormBody(formBody)
+		WithJSONBody(metadata.ToPayload())
 	return request.NewAPIRequest(request.NoResult{}, req)
 }
 

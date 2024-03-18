@@ -118,7 +118,7 @@ func (a *AuthorizedAPI) CreateBranchAsyncRequest(branch *Branch) request.APIRequ
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("dev-branches").
-		WithFormBody(request.ToFormBody(request.StructToMap(branch, nil)))
+		WithJSONBody(request.StructToMap(branch, nil))
 	return request.NewAPIRequest(result, req)
 }
 
@@ -143,7 +143,7 @@ func (a *AuthorizedAPI) UpdateBranchRequest(branch *Branch, changedFields []stri
 		WithResult(branch).
 		WithPut("dev-branches/{branchId}").
 		AndPathParam("branchId", branch.ID.String()).
-		WithFormBody(request.ToFormBody(request.StructToMap(branch, changedFields)))
+		WithJSONBody(request.StructToMap(branch, changedFields))
 	return request.NewAPIRequest(branch, req)
 }
 
@@ -191,14 +191,13 @@ func (a *AuthorizedAPI) AppendBranchMetadataRequest(key BranchKey, metadata Meta
 
 	// Metadata with empty values must be collected and deleted separately
 	toDelete := map[string]bool{}
-	formBody := make(map[string]string)
+	var payload MetadataPayload
 	i := 0
 	for k, v := range metadata {
 		if v == "" {
 			toDelete[k] = true
 		} else {
-			formBody[fmt.Sprintf("metadata[%d][key]", i)] = k
-			formBody[fmt.Sprintf("metadata[%d][value]", i)] = v
+			payload.Metadata = append(payload.Metadata, MetadataKV{Key: k, Value: v})
 			i++
 		}
 	}
@@ -207,7 +206,7 @@ func (a *AuthorizedAPI) AppendBranchMetadataRequest(key BranchKey, metadata Meta
 		newRequest(StorageAPI).
 		WithPost("branch/{branchId}/metadata").
 		AndPathParam("branchId", key.ID.String()).
-		WithFormBody(formBody)
+		WithJSONBody(payload)
 
 	// Delete metadata with empty values
 	if len(toDelete) > 0 {
@@ -223,7 +222,7 @@ func (a *AuthorizedAPI) AppendBranchMetadataRequest(key BranchKey, metadata Meta
 				return wg.Wait()
 			})
 
-		if len(formBody) > 0 {
+		if len(payload.Metadata) > 0 {
 			return request.NewAPIRequest(request.NoResult{}, requestAppend, requestListDelete)
 		}
 		return request.NewAPIRequest(request.NoResult{}, requestListDelete)

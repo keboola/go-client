@@ -119,7 +119,7 @@ func (a *AuthorizedAPI) CreateBucketRequest(bucket *Bucket) request.APIRequest[*
 		WithResult(bucket).
 		WithPost("branch/{branchId}/buckets").
 		AndPathParam("branchId", bucket.BranchID.String()).
-		WithFormBody(request.ToFormBody(params)).
+		WithJSONBody(params).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetBucketRequest(bucket.BucketKey).Send(ctx); err == nil {
 				*bucket = *result

@@ -66,7 +66,7 @@ func (a *AuthorizedAPI) CreateConfigRowRequest(row *ConfigRow) request.APIReques
 		AndPathParam("branchId", row.BranchID.String()).
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
-		WithFormBody(request.ToFormBody(request.StructToMap(row, nil))).
+		WithJSONBody(request.StructToMap(row, nil)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetConfigRowRequest(row.ConfigRowKey).Send(ctx); err == nil {
 				*row = *result
@@ -94,7 +94,7 @@ func (a *AuthorizedAPI) UpdateConfigRowRequest(row *ConfigRow, changedFields []s
 		AndPathParam("componentId", string(row.ComponentID)).
 		AndPathParam("configId", string(row.ConfigID)).
 		AndPathParam("rowId", string(row.ID)).
-		WithFormBody(request.ToFormBody(request.StructToMap(row, changedFields)))
+		WithJSONBody(request.StructToMap(row, changedFields))
 	return request.NewAPIRequest(row, req)
 }
 

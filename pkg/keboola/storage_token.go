@@ -160,7 +160,7 @@ func (a *AuthorizedAPI) CreateTokenRequest(opts ...CreateTokenOption) request.AP
 		newRequest(StorageAPI).
 		WithResult(result).
 		WithPost("tokens").
-		WithFormBody(request.ToFormBody(request.StructToMap(options, nil)))
+		WithJSONBody(request.StructToMap(options, nil))
 	return request.NewAPIRequest(result, req)
 }
 
