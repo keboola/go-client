@@ -504,17 +504,17 @@ func TestCreateTableDefinition(t *testing.T) {
 			{
 				Name:       "name",
 				BaseType:   TypeString,
-				Definition: ColumnDefinition{Type: "STRING"},
+				Definition: &ColumnDefinition{Type: "STRING"},
 			},
 			{
 				Name:       "age",
 				BaseType:   TypeNumeric,
-				Definition: ColumnDefinition{Type: "INT"},
+				Definition: &ColumnDefinition{Type: "INT"},
 			},
 			{
 				Name:       "time",
 				BaseType:   TypeDate,
-				Definition: ColumnDefinition{Type: "DATE"},
+				Definition: &ColumnDefinition{Type: "DATE"},
 			},
 		},
 	}
@@ -565,17 +565,17 @@ func TestCreateTableDefinition(t *testing.T) {
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: false},
+					Definition: &ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: false},
 				},
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
+					Definition: &ColumnDefinition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
 				},
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: "DATE", Nullable: false},
+					Definition: &ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
 		},
@@ -610,7 +610,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			Columns: Columns{
 				{
 					Name: "email",
-					Definition: ColumnDefinition{
+					Definition: &ColumnDefinition{
 						Type:     "VARCHAR",
 						Length:   DefaultString,
 						Nullable: false,
@@ -620,7 +620,7 @@ func TestCreateTableDefinition(t *testing.T) {
 				},
 				{
 					Name: "comments",
-					Definition: ColumnDefinition{
+					Definition: &ColumnDefinition{
 						Type:     "NUMBER",
 						Length:   "37",
 						Default:  "100",
@@ -630,7 +630,7 @@ func TestCreateTableDefinition(t *testing.T) {
 				},
 				{
 					Name: "favorite_number",
-					Definition: ColumnDefinition{
+					Definition: &ColumnDefinition{
 						Type:     "NUMBER",
 						Length:   "37",
 						Nullable: true,
@@ -650,7 +650,7 @@ func TestCreateTableDefinition(t *testing.T) {
 		assert.Equal(t, Columns{
 			{
 				Name: "comments",
-				Definition: ColumnDefinition{
+				Definition: &ColumnDefinition{
 					Type:     "NUMBER",
 					Length:   "37,0",
 					Nullable: true,
@@ -660,7 +660,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			},
 			{
 				Name: "email",
-				Definition: ColumnDefinition{
+				Definition: &ColumnDefinition{
 					Type:     "VARCHAR",
 					Length:   DefaultString,
 					Nullable: false,
@@ -669,7 +669,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			},
 			{
 				Name: "favorite_number",
-				Definition: ColumnDefinition{
+				Definition: &ColumnDefinition{
 					Type:     "NUMBER",
 					Length:   "37,0",
 					Nullable: true,
@@ -708,17 +708,17 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 			{
 				Name:       "name",
 				BaseType:   TypeString,
-				Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
+				Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
 			},
 			{
 				Name:       "age",
 				BaseType:   TypeNumeric,
-				Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+				Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
 			},
 			{
 				Name:       "time",
 				BaseType:   TypeDate,
-				Definition: ColumnDefinition{Type: TypeDate.String(), Nullable: false},
+				Definition: &ColumnDefinition{Type: TypeDate.String(), Nullable: false},
 			},
 		},
 	}
@@ -747,17 +747,17 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 				{
 					Name:       "age",
 					BaseType:   TypeNumeric,
-					Definition: ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+					Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
 				},
 				{
 					Name:       "name",
 					BaseType:   TypeString,
-					Definition: ColumnDefinition{Type: TypeString.String(), Nullable: false},
+					Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
 				},
 				{
 					Name:       "time",
 					BaseType:   TypeDate,
-					Definition: ColumnDefinition{Type: "DATE", Nullable: false},
+					Definition: &ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
 		},

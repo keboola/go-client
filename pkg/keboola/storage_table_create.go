@@ -119,8 +119,8 @@ type CreateTableRequest struct {
 }
 
 type Column struct {
-	Name       string           `json:"name"`
-	Definition ColumnDefinition `json:"definition"`
+	Name       string            `json:"name"`
+	Definition *ColumnDefinition `json:"definition,omitempty"`
 	BaseType   `json:"basetype"`
 }
 
