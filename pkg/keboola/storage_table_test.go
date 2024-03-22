@@ -503,17 +503,17 @@ func TestCreateTableDefinition(t *testing.T) {
 		Columns: Columns{
 			{
 				Name:       "name",
-				BaseType:   TypeString,
+				BaseType:   ptr(TypeString),
 				Definition: &ColumnDefinition{Type: "STRING"},
 			},
 			{
 				Name:       "age",
-				BaseType:   TypeNumeric,
+				BaseType:   ptr(TypeNumeric),
 				Definition: &ColumnDefinition{Type: "INT"},
 			},
 			{
 				Name:       "time",
-				BaseType:   TypeDate,
+				BaseType:   ptr(TypeDate),
 				Definition: &ColumnDefinition{Type: "DATE"},
 			},
 		},
@@ -564,17 +564,17 @@ func TestCreateTableDefinition(t *testing.T) {
 			Columns: Columns{
 				{
 					Name:       "age",
-					BaseType:   TypeNumeric,
+					BaseType:   ptr(TypeNumeric),
 					Definition: &ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: false},
 				},
 				{
 					Name:       "name",
-					BaseType:   TypeString,
+					BaseType:   ptr(TypeString),
 					Definition: &ColumnDefinition{Type: "VARCHAR", Length: DefaultString, Nullable: false},
 				},
 				{
 					Name:       "time",
-					BaseType:   TypeDate,
+					BaseType:   ptr(TypeDate),
 					Definition: &ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
@@ -616,7 +616,7 @@ func TestCreateTableDefinition(t *testing.T) {
 						Nullable: false,
 						Default:  "",
 					},
-					BaseType: TypeString,
+					BaseType: ptr(TypeString),
 				},
 				{
 					Name: "comments",
@@ -626,7 +626,7 @@ func TestCreateTableDefinition(t *testing.T) {
 						Default:  "100",
 						Nullable: true,
 					},
-					BaseType: TypeNumeric,
+					BaseType: ptr(TypeNumeric),
 				},
 				{
 					Name: "favorite_number",
@@ -636,7 +636,7 @@ func TestCreateTableDefinition(t *testing.T) {
 						Nullable: true,
 						Default:  "100",
 					},
-					BaseType: TypeNumeric,
+					BaseType: ptr(TypeNumeric),
 				},
 			},
 		}
@@ -656,7 +656,7 @@ func TestCreateTableDefinition(t *testing.T) {
 					Nullable: true,
 					Default:  "100",
 				},
-				BaseType: TypeNumeric,
+				BaseType: ptr(TypeNumeric),
 			},
 			{
 				Name: "email",
@@ -665,7 +665,7 @@ func TestCreateTableDefinition(t *testing.T) {
 					Length:   DefaultString,
 					Nullable: false,
 				},
-				BaseType: TypeString,
+				BaseType: ptr(TypeString),
 			},
 			{
 				Name: "favorite_number",
@@ -675,7 +675,7 @@ func TestCreateTableDefinition(t *testing.T) {
 					Nullable: true,
 					Default:  "100",
 				},
-				BaseType: TypeNumeric,
+				BaseType: ptr(TypeNumeric),
 			},
 		}, maxUseCaseTable.Definition.Columns)
 
@@ -683,6 +683,102 @@ func TestCreateTableDefinition(t *testing.T) {
 		_, err = api.DeleteTableRequest(maxUseCaseTable.TableKey).Send(ctx)
 		require.NoError(t, err)
 	}
+}
+
+func TestWithoutDefinition(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithSnowflakeBackend())
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket, tableKey := createBucketAndTableKey(defBranch)
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// min use-case Create Table
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"name"},
+		Columns: Columns{
+			{
+				Name: "name",
+			},
+			{
+				Name: "age",
+			},
+			{
+				Name: "time",
+			},
+		},
+	}
+	assert.Equal(t, []string{"name", "age", "time"}, tableDef.Columns.Names())
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
+
+	// Get a list of the tables
+	resTables, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	require.NoError(t, err)
+
+	tableFound := false
+	for _, table := range *resTables {
+		if table.TableID == tableKey.TableID {
+			tableFound = true
+		}
+	}
+	assert.True(t, tableFound)
+
+	// Get a specific table by tableID
+	resTab, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	removeDynamicValueFromTable(resTab)
+	resTab.Metadata = TableMetadata{}
+	resTab.ColumnMetadata = ColumnsMetadata{}
+	require.NoError(t, err)
+
+	assert.Equal(t, &Table{
+		TableKey:       newTable.TableKey,
+		URI:            newTable.URI,
+		Name:           newTable.Name,
+		DisplayName:    newTable.DisplayName,
+		SourceTable:    nil,
+		PrimaryKey:     newTable.PrimaryKey,
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
+		},
+	}, resTab)
+	assert.Equal(t, tableKey.TableID.TableName, resTab.Name)
+	assert.Equal(t, len(newTable.Columns), len(resTab.Columns))
+
+	// Delete the table that was created in the CreateTableDefinitionRequest func
+	_, err = api.DeleteTableRequest(tableKey).Send(ctx)
+	require.NoError(t, err)
+
+	// Get a list of the tables
+	res, err := api.ListTablesRequest(defBranch.ID).Send(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, res)
+
+	found := false
+	for _, table := range *res {
+		if table.TableID == tableKey.TableID {
+			found = true
+		}
+	}
+	assert.False(t, found)
 }
 
 func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
@@ -707,17 +803,17 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 		Columns: Columns{
 			{
 				Name:       "name",
-				BaseType:   TypeString,
+				BaseType:   ptr(TypeString),
 				Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
 			},
 			{
 				Name:       "age",
-				BaseType:   TypeNumeric,
+				BaseType:   ptr(TypeNumeric),
 				Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
 			},
 			{
 				Name:       "time",
-				BaseType:   TypeDate,
+				BaseType:   ptr(TypeDate),
 				Definition: &ColumnDefinition{Type: TypeDate.String(), Nullable: false},
 			},
 		},
@@ -746,17 +842,17 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 			Columns: Columns{
 				{
 					Name:       "age",
-					BaseType:   TypeNumeric,
+					BaseType:   ptr(TypeNumeric),
 					Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
 				},
 				{
 					Name:       "name",
-					BaseType:   TypeString,
+					BaseType:   ptr(TypeString),
 					Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
 				},
 				{
 					Name:       "time",
-					BaseType:   TypeDate,
+					BaseType:   ptr(TypeDate),
 					Definition: &ColumnDefinition{Type: "DATE", Nullable: false},
 				},
 			},
@@ -801,4 +897,8 @@ func createBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
 		},
 	}
 	return bucket, tableKey
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }

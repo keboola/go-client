@@ -121,7 +121,7 @@ type CreateTableRequest struct {
 type Column struct {
 	Name       string            `json:"name"`
 	Definition *ColumnDefinition `json:"definition,omitempty"`
-	BaseType   `json:"basetype"`
+	*BaseType  `json:"basetype,omitempty"`
 }
 
 type Columns []Column
