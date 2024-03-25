@@ -106,6 +106,15 @@ func (m FeaturesMap) Has(feature string) bool {
 	return m.data[feature]
 }
 
+// ToSlice converts FeatureMap to Features slice.
+func (m FeaturesMap) ToSlice() Features {
+	result := make(Features, 0, len(m.data))
+	for k := range m.data {
+		result = append(result, k)
+	}
+	return result
+}
+
 // AllServices converts services slice to map.
 func (i Index) AllServices() ServicesMap {
 	return i.Services.ToMap()
