@@ -799,22 +799,40 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 
 	// min use-case Create Table
 	tableDef := TableDefinition{
-		PrimaryKeyNames: []string{"name"},
+		PrimaryKeyNames: []string{"id"},
 		Columns: Columns{
 			{
-				Name:       "name",
-				BaseType:   ptr(TypeString),
-				Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
+				Name:       "id",
+				BaseType:   ptr(TypeInt),
+				Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
 			},
 			{
 				Name:       "age",
-				BaseType:   ptr(TypeNumeric),
-				Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+				BaseType:   ptr(TypeInt),
+				Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: true},
 			},
 			{
 				Name:       "time",
-				BaseType:   ptr(TypeDate),
-				Definition: &ColumnDefinition{Type: TypeDate.String(), Nullable: false},
+				BaseType:   ptr(TypeTimestamp),
+				Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+			},
+		},
+		TimePartitioning: &TimePartitioning{
+			Type:         Day,
+			ExpirationMs: "864000000",
+			Field:        "time",
+		},
+		Clustering: &Clustering{
+			Fields: []string{
+				"id",
+			},
+		},
+		RangePartitioning: &RangePartitioning{
+			Field: "id",
+			Range: Range{
+				Start:    "0",
+				End:      "10",
+				Interval: "1",
 			},
 		},
 	}
@@ -842,21 +860,24 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 			Columns: Columns{
 				{
 					Name:       "age",
-					BaseType:   ptr(TypeNumeric),
-					Definition: &ColumnDefinition{Type: TypeNumeric.String(), Nullable: true},
+					BaseType:   ptr(TypeInt),
+					Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: true},
 				},
 				{
-					Name:       "name",
-					BaseType:   ptr(TypeString),
-					Definition: &ColumnDefinition{Type: TypeString.String(), Nullable: false},
+					Name:       "id",
+					BaseType:   ptr(TypeInt),
+					Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
 				},
 				{
 					Name:       "time",
-					BaseType:   ptr(TypeDate),
-					Definition: &ColumnDefinition{Type: "DATE", Nullable: false},
+					BaseType:   ptr(TypeTimestamp),
+					Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
 				},
 			},
+			RangePartitioning: tableDef.RangePartitioning,
+			Clustering:        tableDef.Clustering,
 		},
+
 		RowsCount:      0,
 		DataSizeBytes:  0,
 		Columns:        newTable.Columns,
