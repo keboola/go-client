@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -206,8 +205,6 @@ func TestPreviewTableRequest(t *testing.T) {
 	// Get default branch
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
 	require.NoError(t, err)
-
-	rand.Seed(time.Now().Unix())
 
 	bucketID := BucketID{
 		Stage:      BucketStageIn,

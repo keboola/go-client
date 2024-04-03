@@ -41,6 +41,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	otelTrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/keboola/go-client/pkg/client/trace"
 	"github.com/keboola/go-client/pkg/request"
@@ -85,7 +86,7 @@ const (
 func NewTrace(tracerProvider otelTrace.TracerProvider, meterProvider otelMetric.MeterProvider, opts ...Option) trace.Factory {
 	cfg := newConfig(opts)
 	if tracerProvider == nil {
-		tracerProvider = otelTrace.NewNoopTracerProvider()
+		tracerProvider = noop.NewTracerProvider()
 	}
 	if meterProvider == nil {
 		meterProvider = metricNoop.NewMeterProvider()
