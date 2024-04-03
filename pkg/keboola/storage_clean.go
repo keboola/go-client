@@ -2,6 +2,8 @@ package keboola
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"golang.org/x/sync/semaphore"
 
@@ -94,7 +96,19 @@ func (a *AuthorizedAPI) CleanProjectRequest() request.APIRequest[*Branch] {
 			wg := request.NewWaitGroup(ctx)
 			for _, token := range *result {
 				if !token.IsMaster {
-					wg.Send(a.DeleteTokenRequest(token.ID))
+					wg.Send(a.DeleteTokenRequest(token.ID).
+						// Ignore not found error.
+						// Some objects, which are deleted in parallel with tokens,
+						// can have their own tokens assigned. When the object is deleted, the token is also deleted.
+						// Since the deletion is parallel, it is not determined what will happen first.
+						WithOnError(func(ctx context.Context, err error) error {
+							var storageErr *StorageError
+							if errors.As(err, &storageErr) && storageErr.StatusCode() == http.StatusNotFound {
+								return nil // mask error
+							}
+							return err
+						}),
+					)
 				}
 			}
 			return wg.Wait()
