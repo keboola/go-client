@@ -6,6 +6,15 @@ import (
 	"github.com/relvacode/iso8601"
 )
 
+type TimePartitioningType string
+
+const (
+	Day   TimePartitioningType = "DAY"
+	Hour  TimePartitioningType = "HOUR"
+	Month TimePartitioningType = "MONTH"
+	Year  TimePartitioningType = "YEAR"
+)
+
 type TableKey struct {
 	BranchID BranchID `json:"-"`
 	TableID  TableID  `json:"id"`
@@ -44,8 +53,32 @@ type SourceProject struct {
 }
 
 type TableDefinition struct {
-	PrimaryKeyNames []string `json:"primaryKeysNames"`
-	Columns         Columns  `json:"columns"`
+	PrimaryKeyNames   []string           `json:"primaryKeysNames"`
+	Columns           Columns            `json:"columns"`
+	TimePartitioning  *TimePartitioning  `json:"timePartitioning,omitempty"`
+	RangePartitioning *RangePartitioning `json:"rangePartitioning,omitempty"`
+	Clustering        *Clustering        `json:"clustering,omitempty"`
+}
+
+type TimePartitioning struct {
+	Type         TimePartitioningType `json:"type"`
+	ExpirationMs string               `json:"expirationMs,omitempty"`
+	Field        string               `json:"field,omitempty"`
+}
+
+type RangePartitioning struct {
+	Field string `json:"field"`
+	Range Range  `json:"range"`
+}
+
+type Range struct {
+	Start    string `json:"start"`
+	End      string `json:"end"`
+	Interval string `json:"interval"`
+}
+
+type Clustering struct {
+	Fields []string `json:"fields"`
 }
 
 func (v TableKey) BucketKey() BucketKey {
@@ -53,6 +86,10 @@ func (v TableKey) BucketKey() BucketKey {
 		BranchID: v.BranchID,
 		BucketID: v.TableID.BucketID,
 	}
+}
+
+func (t TimePartitioningType) String() string {
+	return string(t)
 }
 
 func (v TableKey) String() string {
