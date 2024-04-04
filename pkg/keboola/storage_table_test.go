@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"github.com/relvacode/iso8601"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/keboola/go-utils/pkg/testproject"
-	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -871,14 +871,6 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 	}, res)
 }
 
-func removeDynamicValueFromTable(table *Table) {
-	table.Created = iso8601.Time{}
-	table.LastImportDate = iso8601.Time{}
-	table.LastChangeDate = nil
-	table.Bucket.Created = iso8601.Time{}
-	table.Bucket.LastChangeDate = nil
-}
-
 // TestCreateTableDefinition_TimePartitioning tests special settings 'timePartitioning' to create a table for a BigQuery project.
 func TestCreateTableDefinition_TimePartitioning(t *testing.T) {
 	t.Parallel()
@@ -1165,6 +1157,14 @@ func createBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
 		},
 	}
 	return bucket, tableKey
+}
+
+func removeDynamicValueFromTable(table *Table) {
+	table.Created = iso8601.Time{}
+	table.LastImportDate = iso8601.Time{}
+	table.LastChangeDate = nil
+	table.Bucket.Created = iso8601.Time{}
+	table.Bucket.LastChangeDate = nil
 }
 
 func ptr[T any](v T) *T {

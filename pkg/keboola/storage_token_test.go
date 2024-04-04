@@ -85,7 +85,6 @@ func TestCreateToken_SomePerms(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	_, api := APIClientForRandomProject(t, ctx)
-	rand.Seed(time.Now().Unix())
 
 	// Get default branch
 	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
