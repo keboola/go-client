@@ -817,24 +817,6 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 				Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
 			},
 		},
-		TimePartitioning: &TimePartitioning{
-			Type:         Day,
-			ExpirationMs: "864000000",
-			Field:        "time",
-		},
-		Clustering: &Clustering{
-			Fields: []string{
-				"id",
-			},
-		},
-		RangePartitioning: &RangePartitioning{
-			Field: "id",
-			Range: Range{
-				Start:    "0",
-				End:      "10",
-				Interval: "1",
-			},
-		},
 	}
 
 	// Create a new table
@@ -874,8 +856,6 @@ func TestCreateTableDefinitionWithBigQuery(t *testing.T) {
 					Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
 				},
 			},
-			RangePartitioning: tableDef.RangePartitioning,
-			Clustering:        tableDef.Clustering,
 		},
 
 		RowsCount:      0,
@@ -897,6 +877,273 @@ func removeDynamicValueFromTable(table *Table) {
 	table.LastChangeDate = nil
 	table.Bucket.Created = iso8601.Time{}
 	table.Bucket.LastChangeDate = nil
+}
+
+// TestCreateTableDefinition_TimePartitioning tests special settings 'timePartitioning' to create a table for a BigQuery project.
+func TestCreateTableDefinition_TimePartitioning(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithBigQueryBackend())
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket, tableKey := createBucketAndTableKey(defBranch)
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// min use-case Create Table
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"id"},
+		Columns: Columns{
+			{
+				Name:       "id",
+				BaseType:   ptr(TypeInt),
+				Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+			},
+			{
+				Name:       "time",
+				BaseType:   ptr(TypeTimestamp),
+				Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+			},
+		},
+		TimePartitioning: &TimePartitioning{
+			Type:         Day,
+			ExpirationMs: "864000000",
+			Field:        "time",
+		},
+	}
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
+
+	// Get table
+	res, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	require.NoError(t, err)
+	removeDynamicValueFromTable(res)
+	res.Metadata = TableMetadata{}
+	res.ColumnMetadata = ColumnsMetadata{}
+	assert.Equal(t, &Table{
+		TableKey:    newTable.TableKey,
+		URI:         newTable.URI,
+		Name:        newTable.Name,
+		DisplayName: newTable.DisplayName,
+		SourceTable: nil,
+		PrimaryKey:  newTable.PrimaryKey,
+		Definition: &TableDefinition{
+			PrimaryKeyNames: tableDef.PrimaryKeyNames,
+			Columns: Columns{
+				{
+					Name:       "id",
+					BaseType:   ptr(TypeInt),
+					Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   ptr(TypeTimestamp),
+					Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+				},
+			},
+			TimePartitioning: tableDef.TimePartitioning,
+		},
+
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
+		},
+	}, res)
+}
+
+// TestCreateTableDefinition_Clustering tests special settings 'clustering' to create a table for a BigQuery project.
+func TestCreateTableDefinition_Clustering(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithBigQueryBackend())
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket, tableKey := createBucketAndTableKey(defBranch)
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// min use-case Create Table
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"id"},
+		Columns: Columns{
+			{
+				Name:       "id",
+				BaseType:   ptr(TypeInt),
+				Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+			},
+			{
+				Name:       "time",
+				BaseType:   ptr(TypeTimestamp),
+				Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+			},
+		},
+		Clustering: &Clustering{
+			Fields: []string{
+				"id",
+			},
+		},
+	}
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
+
+	// Get table
+	res, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	require.NoError(t, err)
+	removeDynamicValueFromTable(res)
+	res.Metadata = TableMetadata{}
+	res.ColumnMetadata = ColumnsMetadata{}
+	assert.Equal(t, &Table{
+		TableKey:    newTable.TableKey,
+		URI:         newTable.URI,
+		Name:        newTable.Name,
+		DisplayName: newTable.DisplayName,
+		SourceTable: nil,
+		PrimaryKey:  newTable.PrimaryKey,
+		Definition: &TableDefinition{
+			PrimaryKeyNames: tableDef.PrimaryKeyNames,
+			Columns: Columns{
+				{
+					Name:       "id",
+					BaseType:   ptr(TypeInt),
+					Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   ptr(TypeTimestamp),
+					Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+				},
+			},
+			Clustering: tableDef.Clustering,
+		},
+
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
+		},
+	}, res)
+}
+
+// TestCreateTableDefinition_RangePartitioning tests special settings 'rangePartitioning' to create a table for a BigQuery project.
+func TestCreateTableDefinition_RangePartitioning(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	project, api := APIClientForAnEmptyProject(t, ctx, testproject.WithBigQueryBackend())
+
+	// Get default branch
+	defBranch, err := api.GetDefaultBranchRequest().Send(ctx)
+	require.NoError(t, err)
+
+	bucket, tableKey := createBucketAndTableKey(defBranch)
+
+	// Create bucket
+	resBucket, err := api.CreateBucketRequest(bucket).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, bucket, resBucket)
+
+	// min use-case Create Table
+	tableDef := TableDefinition{
+		PrimaryKeyNames: []string{"id"},
+		Columns: Columns{
+			{
+				Name:       "id",
+				BaseType:   ptr(TypeInt),
+				Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+			},
+			{
+				Name:       "time",
+				BaseType:   ptr(TypeTimestamp),
+				Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+			},
+		},
+		RangePartitioning: &RangePartitioning{
+			Field: "id",
+			Range: Range{
+				Start:    "0",
+				End:      "10",
+				Interval: "1",
+			},
+		},
+	}
+
+	// Create a new table
+	newTable, err := api.CreateTableDefinitionRequest(tableKey, tableDef).Send(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, tableKey.TableID.TableName, newTable.Name)
+
+	// Get table
+	res, err := api.GetTableRequest(newTable.TableKey).Send(ctx)
+	require.NoError(t, err)
+	removeDynamicValueFromTable(res)
+	res.Metadata = TableMetadata{}
+	res.ColumnMetadata = ColumnsMetadata{}
+	assert.Equal(t, &Table{
+		TableKey:    newTable.TableKey,
+		URI:         newTable.URI,
+		Name:        newTable.Name,
+		DisplayName: newTable.DisplayName,
+		SourceTable: nil,
+		PrimaryKey:  newTable.PrimaryKey,
+		Definition: &TableDefinition{
+			PrimaryKeyNames: tableDef.PrimaryKeyNames,
+			Columns: Columns{
+				{
+					Name:       "id",
+					BaseType:   ptr(TypeInt),
+					Definition: &ColumnDefinition{Type: TypeInt.String(), Nullable: false},
+				},
+				{
+					Name:       "time",
+					BaseType:   ptr(TypeTimestamp),
+					Definition: &ColumnDefinition{Type: TypeTimestamp.String(), Nullable: false},
+				},
+			},
+			RangePartitioning: tableDef.RangePartitioning,
+		},
+
+		RowsCount:      0,
+		DataSizeBytes:  0,
+		Columns:        newTable.Columns,
+		Metadata:       TableMetadata{},
+		ColumnMetadata: ColumnsMetadata{},
+		Bucket: &Bucket{
+			BucketKey:   bucket.BucketKey,
+			DisplayName: bucket.DisplayName,
+			URI:         "https://" + project.StorageAPIHost() + "/v2/storage/buckets/" + tableKey.TableID.BucketID.String(),
+		},
+	}, res)
 }
 
 func createBucketAndTableKey(branch *Branch) (*Bucket, TableKey) {
