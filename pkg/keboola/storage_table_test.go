@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/relvacode/iso8601"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/keboola/go-utils/pkg/testproject"
+	"github.com/relvacode/iso8601"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
