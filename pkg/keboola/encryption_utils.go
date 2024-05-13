@@ -15,5 +15,6 @@ func IsKeyToEncrypt(key string) bool {
 func IsEncrypted(value string) bool {
 	currentFormatMatch := regexpcache.MustCompile(`^KBC::.+Secure.*::.+$`).MatchString(value)
 	legacyFormatMatch := regexpcache.MustCompile(`^KBC::(Encrypted==|ComponentProjectEncrypted==|ComponentEncrypted==).+$`).MatchString(value)
-	return currentFormatMatch || legacyFormatMatch
+	vaultFormatMatch := regexpcache.MustCompile(`\{\{\s*vault\.[^\}]+\}\}`).MatchString(value)
+	return currentFormatMatch || legacyFormatMatch || vaultFormatMatch
 }
