@@ -19,6 +19,9 @@ func TestEncryptionAPI_IsKeyToEncrypt(t *testing.T) {
 
 func TestEncryptionAPI_IsValueEncrypted(t *testing.T) {
 	t.Parallel()
+
+	assert.False(t, IsEncrypted("{{ test_writer_pass }}"))
+	assert.False(t, IsEncrypted("{{test_writer_pass"))
 	assert.False(t, IsEncrypted("somevalue"))
 	assert.False(t, IsEncrypted("kbc:value"))
 	assert.False(t, IsEncrypted("kbc::project"))
@@ -37,6 +40,9 @@ func TestEncryptionAPI_IsValueEncrypted(t *testing.T) {
 	assert.False(t, IsEncrypted("fooBarKBC::ComponentProjectEncrypted==aaa"))
 	assert.False(t, IsEncrypted("fooBarKBC::ConfigSecureKV::aaaa"))
 
+	assert.True(t, IsEncrypted("{{ vault.test_writer_pass }}"))
+	assert.True(t, IsEncrypted("{{vault.test_writer_pass}}"))
+	assert.True(t, IsEncrypted("{{	vault.test_writer_pass	}}"))
 	assert.True(t, IsEncrypted("KBC::ProjectSecure::adasdasdasdkjashdkjahsdkjahsdkjasd"))
 	assert.True(t, IsEncrypted("KBC::ConfigSecure::adasdasdasdkjashdkjahsdkjahsdkjasd"))
 	assert.True(t, IsEncrypted("KBC::ComponentSecure::adasdasdasdkjashdkjahsdkjahsdkjasd"))
