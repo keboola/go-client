@@ -49,22 +49,16 @@ func (p *DownloadParams) DestinationURL() (string, error) {
 }
 
 func NewUploadWriter(ctx context.Context, params *UploadParams, region string, slice string, transport http.RoundTripper) (*blob.Writer, error) {
-	cred := config.WithCredentialsProvider(
-		credentials.NewStaticCredentialsProvider(
-			params.Credentials.AccessKeyID,
-			params.Credentials.SecretAccessKey,
-			params.Credentials.SessionToken,
-		),
-	)
+	// Create static configuration, don't load AWS ENVs
 	var cfg aws.Config
-	var err error
+	cfg.Region = region
+	cfg.Credentials = credentials.NewStaticCredentialsProvider(
+		params.Credentials.AccessKeyID,
+		params.Credentials.SecretAccessKey,
+		params.Credentials.SessionToken,
+	)
 	if transport != nil {
-		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region), config.WithHTTPClient(&http.Client{Transport: transport}))
-	} else {
-		cfg, err = config.LoadDefaultConfig(ctx, cred, config.WithRegion(region))
-	}
-	if err != nil {
-		return nil, err
+		cfg.HTTPClient = &http.Client{Transport: transport}
 	}
 
 	client := s3.NewFromConfig(cfg)
