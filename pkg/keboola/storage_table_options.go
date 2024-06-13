@@ -99,20 +99,38 @@ func (o enclosureOption) applyCreateTableOption(c *createTableConfig) {
 	c.Enclosure = string(o)
 }
 
-func (o enclosureOption) applyLoadDataOption(c *loadDataConfig) {
-	c.Enclosure = string(o)
+func (o columnsHeadersOption) applyCreateTableOption(c *createTableConfig) {
+	c.Columns = o
+}
+
+func (o withoutHeaderOption) applyCreateTableOption(c *createTableConfig) {
+	c.WithoutHeaders = 0
+	if o {
+		c.WithoutHeaders = 1
+	}
+}
+
+func (o incrementalLoadOption) applyCreateTableOption(c *createTableConfig) {
+	c.IncrementalLoad = 0
+	if o {
+		c.IncrementalLoad = 1
+	}
 }
 
 func (o escapedByOption) applyCreateTableOption(c *createTableConfig) {
 	c.EscapedBy = string(o)
 }
 
-func (o escapedByOption) applyLoadDataOption(c *loadDataConfig) {
-	c.EscapedBy = string(o)
-}
-
 func (o primaryKeyOption) applyCreateTableOption(c *createTableConfig) {
 	c.PrimaryKey = string(o)
+}
+
+func (o enclosureOption) applyLoadDataOption(c *loadDataConfig) {
+	c.Enclosure = string(o)
+}
+
+func (o escapedByOption) applyLoadDataOption(c *loadDataConfig) {
+	c.EscapedBy = string(o)
 }
 
 func (o incrementalLoadOption) applyLoadDataOption(c *loadDataConfig) {
