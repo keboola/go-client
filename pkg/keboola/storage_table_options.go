@@ -21,7 +21,7 @@ type loadDataFromFileConfig struct {
 
 // createTableConfig contains params to create table from file resource.
 type createTableConfig struct {
-	loadDataFromFileConfig
+	loadDataConfig
 	PrimaryKey string `json:"primaryKey,omitempty" writeoptional:"true"`
 }
 
