@@ -200,6 +200,35 @@ func TestTableApiCalls(t *testing.T) {
 		},
 	}, respGet2)
 
+	// add new keys and update existing key for table metadata
+	err = api.
+		CreateOrUpdateTableMetadata(
+			respGet2.TableKey,
+			"go-client-test",
+			[]TableMetadataRequest{
+				{Key: "tableMetadata1", Value: "value1-updated"},
+				{Key: "tableMetadata3", Value: "value3"},
+				{Key: "tableMetadata4", Value: "value4"},
+			},
+			[]ColumnMetadataRequest{},
+		).
+		SendOrErr(ctx)
+	assert.NoError(t, err)
+
+	// Get table (with table and columns metadata)
+	respGet3, err := api.GetTableRequest(tableKey).Send(ctx)
+	assert.NoError(t, err)
+	removeDynamicValuesFromTableMetadata(respGet3.Metadata)
+	removeDynamicValuesFromColumnsMetadata(respGet3.ColumnMetadata)
+	removeDynamicValueFromTable(respGet3)
+	// check table metadata
+	assert.Equal(t, TableMetadata{
+		{Key: "tableMetadata1", Value: "value1-updated", Provider: "go-client-test"},
+		{Key: "tableMetadata2", Value: "value2", Provider: "go-client-test"},
+		{Key: "tableMetadata3", Value: "value3", Provider: "go-client-test"},
+		{Key: "tableMetadata4", Value: "value4", Provider: "go-client-test"},
+	}, respGet3.Metadata)
+
 	// Delete table
 	_, err = api.DeleteTableRequest(tableKey, WithForce()).Send(ctx)
 	assert.NoError(t, err)
