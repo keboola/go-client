@@ -18,6 +18,13 @@ import (
 // StorageJobID is an ID of a storage job.
 type StorageJobID int
 
+const (
+	StorageJobStatusSuccess    string = "success"
+	StorageJobStatusWaiting    string = "waiting"
+	StorageJobStatusProcessing string = "processing"
+	StorageJobStatusError      string = "error"
+)
+
 func (id StorageJobID) String() string {
 	return strconv.Itoa(int(id))
 }
@@ -102,9 +109,9 @@ func (a *AuthorizedAPI) WaitForStorageJob(ctx context.Context, job *StorageJob) 
 		}
 
 		// Check status
-		if job.Status == "success" {
+		if job.Status == StorageJobStatusSuccess {
 			return nil
-		} else if job.Status == "error" {
+		} else if job.Status == StorageJobStatusError {
 			return fmt.Errorf(`job "%s" failed: %s (exception id: %s)`, job.ID, job.Error.Message, job.Error.ExceptionID)
 		}
 
