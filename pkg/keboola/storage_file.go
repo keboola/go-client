@@ -22,7 +22,7 @@ const ManifestFileName = "manifest"
 type FileID int
 
 type FileKey struct {
-	BranchID BranchID `json:"-"`
+	BranchID BranchID `json:"branchId" readonly:"true"`
 	FileID   FileID   `json:"id" readonly:"true"`
 }
 

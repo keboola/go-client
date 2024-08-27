@@ -70,6 +70,7 @@ func (tc UploadTestCase) Run(t *testing.T, api *keboola.AuthorizedAPI) {
 		require.NoError(t, err)
 
 		// Assert common fields
+		assert.NotEmpty(t, file.BranchID)
 		assert.NotEmpty(t, file.FileID)
 		assert.NotEmpty(t, file.URL)
 		assert.NotEmpty(t, file.Created)
