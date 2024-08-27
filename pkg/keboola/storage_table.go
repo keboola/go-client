@@ -16,7 +16,7 @@ const (
 )
 
 type TableKey struct {
-	BranchID BranchID `json:"-"`
+	BranchID BranchID `json:"branchId" readonly:"true"`
 	TableID  TableID  `json:"id"`
 }
 
