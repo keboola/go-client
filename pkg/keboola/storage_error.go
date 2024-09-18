@@ -17,17 +17,9 @@ type StorageError struct {
 
 func (e *StorageError) Error() string {
 	msg := e.Message
-	if e.request != nil {
-		msg += fmt.Sprintf(`, method: "%s", url: "%s"`, e.request.Method, e.request.URL)
-	}
-	if e.response != nil {
-		msg += fmt.Sprintf(`, httpCode: "%d"`, e.StatusCode())
-	}
-	if len(e.ErrCode) > 0 {
-		msg += fmt.Sprintf(`, errCode: "%s"`, e.ErrCode)
-	}
+
 	if len(e.ExceptionID) > 0 {
-		msg += fmt.Sprintf(`, exceptionId: "%s"`, e.ExceptionID)
+		msg += fmt.Sprintf(` (%s)`, e.ExceptionID)
 	}
 	return msg
 }
