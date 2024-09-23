@@ -101,11 +101,13 @@ func (a *AuthorizedAPI) WaitForStorageJob(ctx context.Context, job *StorageJob) 
 		span.End()
 	}()
 
+	i := 0
+	startedAt := time.Now()
 	retry := newStorageJobBackoff()
 	for {
 		// Get job status
 		if err := a.getStorageJobRequest(job).SendOrErr(ctx); err != nil {
-			return err
+			return fmt.Errorf(`error after %d retries, total time %s: %w`, i, time.Since(startedAt), err)
 		}
 
 		// Check status
@@ -122,6 +124,8 @@ func (a *AuthorizedAPI) WaitForStorageJob(ctx context.Context, job *StorageJob) 
 		case <-time.After(retry.NextBackOff()):
 			// try again
 		}
+
+		i += 1
 	}
 }
 
