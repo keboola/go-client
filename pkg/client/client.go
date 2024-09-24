@@ -370,12 +370,12 @@ func handleSendError(startedAt time.Time, clientTimeout time.Duration, req *http
 	// Timeout
 	var netErr net.Error
 	if deadline, ok := req.Context().Deadline(); ok && errors.Is(err, context.DeadlineExceeded) {
-		err = urlError(req, fmt.Errorf("timeout after %s", deadline.Sub(startedAt)))
+		err = urlError(req, fmt.Errorf("timeout after (deadline) %s: %w", deadline.Sub(startedAt), err))
 	} else if errors.Is(err, context.Canceled) {
 		err = urlError(req, fmt.Errorf("canceled after %s", time.Since(startedAt)))
 	} else if errors.As(err, &netErr) && netErr.Timeout() {
 		if strings.Contains(err.Error(), "Client.Timeout exceeded") {
-			err = urlError(req, fmt.Errorf("timeout after %s", clientTimeout))
+			err = urlError(req, fmt.Errorf("timeout after (client) %s: %w", clientTimeout, netErr))
 		} else {
 			err = urlError(req, fmt.Errorf("timeout after %s", time.Since(startedAt)))
 		}
