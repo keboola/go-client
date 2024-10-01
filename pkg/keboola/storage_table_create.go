@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	jsonLib "encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/keboola/go-client/pkg/request"
 )
@@ -60,7 +59,7 @@ func (a *AuthorizedAPI) CreateTableFromFileRequest(tableKey TableKey, fileKey Fi
 		WithJSONBody(params).
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*5)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, a.onSuccessTimeout)
 			defer waitCancelFn()
 			return a.WaitForStorageJob(waitCtx, job)
 		}).
@@ -162,7 +161,7 @@ func (a *AuthorizedAPI) CreateTableDefinitionRequest(k TableKey, definition Tabl
 		CreateTableDefinitionAsyncRequest(k, definition).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, a.onSuccessTimeout)
 			defer waitCancelFn()
 			if err := a.WaitForStorageJob(waitCtx, job); err != nil {
 				return err
