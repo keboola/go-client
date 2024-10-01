@@ -3,6 +3,7 @@ package keboola
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/keboola/go-utils/pkg/testproject"
 
@@ -24,7 +25,7 @@ func APIClientForRandomProject(t *testing.T, ctx context.Context, opts ...testpr
 		t.Fatal(err)
 	}
 
-	api := publicAPI.WithToken(project.StorageAPIToken())
+	api := publicAPI.NewAuthorizedAPI(project.StorageAPIToken(), 1*time.Minute)
 
 	return project, api
 }

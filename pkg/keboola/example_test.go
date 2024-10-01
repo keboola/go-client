@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/keboola/go-client/pkg/keboola"
 )
@@ -48,7 +49,7 @@ func ExampleNewPublicAPIFromIndex() {
 	publicAPI := keboola.NewPublicAPIFromIndex(host, index)
 
 	// Authorize
-	api := publicAPI.WithToken("<my-token>")
+	api := publicAPI.NewAuthorizedAPI("<my-token>", 1*time.Minute)
 
 	// Get default branch
 	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
@@ -79,7 +80,7 @@ func Example_newAPIFromIndexWithComponents() {
 	publicAPI := keboola.NewPublicAPIFromIndex(host, &index.Index)
 
 	// Authorize
-	api := publicAPI.WithToken("<my-token>")
+	api := publicAPI.NewAuthorizedAPI("<my-token>", 1*time.Minute)
 
 	// Get default branch
 	defaultBranch, err := api.GetDefaultBranchRequest().Send(ctx)
