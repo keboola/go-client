@@ -4,6 +4,7 @@
         "project": 9293,
         "token": "$TEST_KBC_PROJECT_9293_TOKEN",
         "stagingStorage": "s3",
+        "legacyTransformation": true,
         "backend": "snowflake"
     },
     {
@@ -11,6 +12,7 @@
         "project": 9294,
         "token": "$TEST_KBC_PROJECT_9294_TOKEN",
         "stagingStorage": "s3",
+        "legacyTransformation": true,
         "backend": "snowflake"
     },
     {
@@ -18,6 +20,7 @@
         "project": 10669,
         "token": "$TEST_KBC_PROJECT_NE_10669_TOKEN",
         "stagingStorage": "abs",
+        "legacyTransformation": true,
         "backend": "snowflake"
     },
     {
@@ -25,6 +28,7 @@
         "project": 9851,
         "token": "$TEST_KBC_PROJECT_9851_TOKEN",
         "stagingStorage": "gcs",
+        "legacyTransformation": true,
         "backend": "bigquery"
     },
     {
@@ -32,6 +36,7 @@
         "project": 9493,
         "token": "$TEST_KBC_PROJECT_QUEUEV1_9493_TOKEN",
         "stagingStorage": "s3",
+        "legacyTransformation": true,
         "backend": "snowflake",
         "queue": "v1"
     }
