@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/client/trace/otel"
@@ -38,7 +39,8 @@ type PublicAPI struct {
 
 type AuthorizedAPI struct {
 	*PublicAPI
-	token string
+	onSuccessTimeout time.Duration
+	token            string
 }
 
 func APIIndex(ctx context.Context, host string, opts ...APIOption) (*Index, error) {
@@ -63,7 +65,9 @@ func NewAuthorizedAPI(ctx context.Context, host, token string, opts ...APIOption
 		return nil, err
 	}
 
-	return publicAPI.WithToken(token), nil
+	cfg := newAPIConfig(opts)
+	authorizedAPI := publicAPI.NewAuthorizedAPI(token, cfg.onSuccessTimeout)
+	return authorizedAPI, nil
 }
 
 func NewPublicAPI(ctx context.Context, host string, opts ...APIOption) (*PublicAPI, error) {
@@ -120,11 +124,12 @@ func (a *PublicAPI) Index() *Index {
 	return a.index
 }
 
-// WithToken returns a new authorized instance of the API.
-func (a *PublicAPI) WithToken(token string) *AuthorizedAPI {
+// NewAuthorizedAPI returns a new authorized instance of the API.
+func (a *PublicAPI) NewAuthorizedAPI(token string, timeout time.Duration) *AuthorizedAPI {
 	return &AuthorizedAPI{
-		PublicAPI: a,
-		token:     token,
+		PublicAPI:        a,
+		token:            token,
+		onSuccessTimeout: timeout,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestAPI_WithToken(t *testing.T) {
 	})
 
 	// Test WithToken method
-	apiWithToken := apiWithoutToken.WithToken("my-token")
+	apiWithToken := apiWithoutToken.NewAuthorizedAPI("my-token", 1*time.Minute)
 	assert.NotSame(t, apiWithToken, apiWithoutToken) // value should be cloned
 	assert.NoError(t, apiWithToken.ListBucketsRequest(123).SendOrErr(ctx))
 	assert.Equal(t, 1, transport.GetCallCountInfo()["GET /v2/storage/?exclude=components"])

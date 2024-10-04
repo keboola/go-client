@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/relvacode/iso8601"
 
@@ -81,7 +80,7 @@ func (a *AuthorizedAPI) CreateBranchRequest(branch *Branch) request.APIRequest[*
 		CreateBranchAsyncRequest(branch).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, a.onSuccessTimeout)
 			defer waitCancelFn()
 			if err := a.WaitForStorageJob(waitCtx, job); err != nil {
 				return err
@@ -153,7 +152,7 @@ func (a *AuthorizedAPI) DeleteBranchRequest(key BranchKey) request.APIRequest[re
 		DeleteBranchAsyncRequest(key).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, a.onSuccessTimeout)
 			defer waitCancelFn()
 			return a.WaitForStorageJob(waitCtx, job)
 		})

@@ -1,6 +1,8 @@
 package keboola
 
 import (
+	"time"
+
 	otelMetric "go.opentelemetry.io/otel/metric"
 	otelTrace "go.opentelemetry.io/otel/trace"
 
@@ -8,9 +10,10 @@ import (
 )
 
 type apiConfig struct {
-	client         *client.Client
-	tracerProvider otelTrace.TracerProvider
-	meterProvider  otelMetric.MeterProvider
+	client           *client.Client
+	onSuccessTimeout time.Duration
+	tracerProvider   otelTrace.TracerProvider
+	meterProvider    otelMetric.MeterProvider
 }
 
 type APIOption func(c *apiConfig)
@@ -26,6 +29,12 @@ func newAPIConfig(opts []APIOption) apiConfig {
 func WithClient(cl *client.Client) APIOption {
 	return func(c *apiConfig) {
 		c.client = cl
+	}
+}
+
+func WithOnSuccessTimeout(timeout time.Duration) APIOption {
+	return func(c *apiConfig) {
+		c.onSuccessTimeout = timeout
 	}
 }
 

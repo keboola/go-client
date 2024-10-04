@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/relvacode/iso8601"
 
@@ -137,7 +136,7 @@ func (a *AuthorizedAPI) DeleteBucketRequest(k BucketKey, opts ...DeleteOption) r
 		DeleteBucketAsyncRequest(k, opts...).
 		WithOnSuccess(func(ctx context.Context, job *StorageJob) error {
 			// Wait for storage job
-			waitCtx, waitCancelFn := context.WithTimeout(ctx, time.Minute*1)
+			waitCtx, waitCancelFn := context.WithTimeout(ctx, a.onSuccessTimeout)
 			defer waitCancelFn()
 			if err := a.WaitForStorageJob(waitCtx, job); err != nil {
 				return err
