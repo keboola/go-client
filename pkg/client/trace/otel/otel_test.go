@@ -298,8 +298,10 @@ func cleanAndSortSpans(spans tracetest.SpanStubs) {
 		span.StartTime = time.Time{}
 		span.EndTime = time.Time{}
 		span.Resource = nil
-		span.InstrumentationLibrary.Name = ""
-		span.InstrumentationLibrary.Version = ""
+		span.InstrumentationScope.Name = ""
+		span.InstrumentationScope.Version = ""
+		span.InstrumentationLibrary.Name = ""    // nolint: staticcheck
+		span.InstrumentationLibrary.Version = "" // nolint: staticcheck
 		for j := range span.Events {
 			event := &span.Events[j]
 			event.Time = time.Time{}
@@ -356,6 +358,7 @@ func cleanAndSortMetrics(metrics []metricdata.Metrics) {
 				point := &record.DataPoints[k]
 				point.StartTime = time.Time{}
 				point.Time = time.Time{}
+				point.Exemplars = nil
 			}
 		case metricdata.Sum[float64]:
 			sort.SliceStable(record.DataPoints, func(i, j int) bool {
@@ -365,6 +368,7 @@ func cleanAndSortMetrics(metrics []metricdata.Metrics) {
 				point := &record.DataPoints[k]
 				point.StartTime = time.Time{}
 				point.Time = time.Time{}
+				point.Exemplars = nil
 			}
 		case metricdata.Histogram[int64]:
 			sort.SliceStable(record.DataPoints, func(i, j int) bool {
@@ -378,6 +382,7 @@ func cleanAndSortMetrics(metrics []metricdata.Metrics) {
 				point.Min = metricdata.Extrema[int64]{}
 				point.Max = metricdata.Extrema[int64]{}
 				point.Sum = 0
+				point.Exemplars = nil
 			}
 		case metricdata.Histogram[float64]:
 			sort.SliceStable(record.DataPoints, func(i, j int) bool {
@@ -391,6 +396,7 @@ func cleanAndSortMetrics(metrics []metricdata.Metrics) {
 				point.Min = metricdata.Extrema[float64]{}
 				point.Max = metricdata.Extrema[float64]{}
 				point.Sum = 0
+				point.Exemplars = nil
 			}
 		}
 	}
