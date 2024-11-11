@@ -593,7 +593,7 @@ func TestCreateTableDefinition(t *testing.T) {
 			Columns: Columns{
 				{
 					Name:       "age",
-					BaseType:   ptr(TypeNumeric),
+					BaseType:   ptr(TypeInt),
 					Definition: &ColumnDefinition{Type: "NUMBER", Length: DefaultNumber, Nullable: false},
 				},
 				{
