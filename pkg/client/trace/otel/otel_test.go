@@ -75,7 +75,7 @@ func TestSimpleRealRequest(t *testing.T) {
 	// Send request
 	str := ""
 	httpRequest := request.NewHTTPRequest(c).
-		WithGet("https://www.jsontest.com").
+		WithGet("https://www.google.com").
 		WithResult(&str)
 	apiRequest := request.NewAPIRequest(&str, httpRequest)
 	result, err := apiRequest.Send(ctx)
