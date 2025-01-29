@@ -53,17 +53,18 @@ type TokenAdmin struct {
 
 // TokenOwner - owner of Token.
 type TokenOwner struct {
-	ID             int      `json:"id"`
-	Name           string   `json:"name"`
-	Features       Features `json:"features"`
-	HasMysql       bool     `json:"hasMysql"`
-	HasSynapse     bool     `json:"hasSynapse"`
-	HasRedshift    bool     `json:"hasRedshift"`
-	HasSnowflake   bool     `json:"hasSnowflake"`
-	HasExasol      bool     `json:"hasExasol"`
-	HasTeradata    bool     `json:"hasTeradata"`
-	HasBigquery    bool     `json:"hasBigquery"`
-	DefaultBackend string   `json:"defaultBackend"`
+	ID                  int      `json:"id"`
+	Name                string   `json:"name"`
+	Features            Features `json:"features"`
+	HasMysql            bool     `json:"hasMysql"`
+	HasSynapse          bool     `json:"hasSynapse"`
+	HasRedshift         bool     `json:"hasRedshift"`
+	HasSnowflake        bool     `json:"hasSnowflake"`
+	HasExasol           bool     `json:"hasExasol"`
+	HasTeradata         bool     `json:"hasTeradata"`
+	HasBigquery         bool     `json:"hasBigquery"`
+	DefaultBackend      string   `json:"defaultBackend"`
+	FileStorageProvider string   `json:"fileStorageProvider"`
 }
 
 type CreatorToken struct {

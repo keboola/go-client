@@ -18,7 +18,7 @@ func TestDefaultTransport(t *testing.T) {
 	defer cancel()
 
 	out := ""
-	url := "https://www.jsontest.com"
+	url := "https://www.google.com"
 	c := client.New().WithTransport(client.DefaultTransport()) // <<<<<<<<<
 	apiRequest := request.NewAPIRequest(&out, request.NewHTTPRequest(c).WithGet(url).WithResult(&out))
 	result, err := apiRequest.Send(ctx)
@@ -33,7 +33,7 @@ func TestHTTP2Transport(t *testing.T) {
 	defer cancel()
 
 	out := ""
-	url := "https://www.jsontest.com"
+	url := "https://www.google.com"
 	c := client.New().WithTransport(client.HTTP2Transport()) // <<<<<<<<<
 	apiRequest := request.NewAPIRequest(&out, request.NewHTTPRequest(c).WithGet(url).WithResult(&out))
 	result, err := apiRequest.Send(ctx)
