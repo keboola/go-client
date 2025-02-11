@@ -30,14 +30,5 @@
         "stagingStorage": "gcs",
         "legacyTransformation": true,
         "backend": "bigquery"
-    },
-    {
-        "host": "connection.keboola.com",
-        "project": 9493,
-        "token": "$TEST_KBC_PROJECT_QUEUEV1_9493_TOKEN",
-        "stagingStorage": "s3",
-        "legacyTransformation": true,
-        "backend": "snowflake",
-        "queue": "v1"
     }
 ]
