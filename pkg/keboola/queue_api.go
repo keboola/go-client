@@ -46,6 +46,15 @@ type jobConfig struct {
 	BackendSize        string              `json:"backend,omitempty"`
 }
 
+type VariableValuesData struct {
+	Values []VariableData `json:"values"`
+}
+
+type VariableData struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type CreateQueueJobRequestBuilder struct {
 	config jobConfig
 	api    *AuthorizedAPI

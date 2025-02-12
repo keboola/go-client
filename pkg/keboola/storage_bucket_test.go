@@ -55,7 +55,7 @@ func TestBucketApiCalls(t *testing.T) {
 	// Get bucket - not found
 	_, err = api.GetBucketRequest(bucketKey).Send(ctx)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Bucket %s not found", bucket.BucketID.String()))
+	assert.Contains(t, err.Error(), fmt.Sprintf(`bucket "%s" was not found`, bucket.BucketID.String()))
 
 	// List - empty
 	allBuckets, err = api.ListBucketsRequest(bucket.BranchID).Send(ctx)
