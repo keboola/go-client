@@ -24,7 +24,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/umisama/go-regexpcache v0.0.0-20150417035358-2444a542492f
 	go.opentelemetry.io/otel v1.34.0
-	go.opentelemetry.io/otel/exporters/prometheus v0.54.0
+	go.opentelemetry.io/otel/exporters/prometheus v0.56.0
 	go.opentelemetry.io/otel/metric v1.34.0
 	go.opentelemetry.io/otel/sdk v1.34.0
 	go.opentelemetry.io/otel/sdk/metric v1.34.0
@@ -99,7 +99,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.60.1 // indirect
+	github.com/prometheus/common v0.61.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.7.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
