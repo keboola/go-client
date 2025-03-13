@@ -155,9 +155,9 @@ func (a *AuthorizedAPI) UpdateRequest(object Object, changedFields []string) req
 	case *Branch:
 		return request.NewAPIRequest(object, a.UpdateBranchRequest(v, changedFields))
 	case *ConfigWithRows:
-		return request.NewAPIRequest(object, a.UpdateConfigRequest(v.Config, changedFields))
-	case *Config:
 		return request.NewAPIRequest(object, a.UpdateConfigRequest(v, changedFields))
+	case *Config:
+		return request.NewAPIRequest(object, a.UpdateConfigRequest(&ConfigWithRows{Config: v}, changedFields))
 	case *ConfigRow:
 		return request.NewAPIRequest(object, a.UpdateConfigRowRequest(v, changedFields))
 	default:

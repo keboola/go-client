@@ -63,6 +63,7 @@ func TestConfigApiCalls(t *testing.T) {
 					}),
 				},
 			}),
+			RowsSortOrder: []string{},
 		},
 		Rows: []*ConfigRow{row1, row2},
 	}
@@ -104,8 +105,9 @@ func TestConfigApiCalls(t *testing.T) {
 			}),
 		},
 	})
-	_, err = api.UpdateConfigRequest(config.Config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
+	resConfig, err = api.UpdateConfigRequest(config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
 	assert.NoError(t, err)
+	assert.Equal(t, *config.Config, *resConfig.Config)
 
 	// List components
 	components, err = api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
@@ -161,10 +163,10 @@ func expectedComponentsConfigTest() string {
         "id": "%s",
         "name": "Test modified +++úěš!@#",
         "description": "Test description modified",
-        "changeDescription": "updated",
+        "changeDescription": "Row%d test",
         "isDeleted": false,
         "created": "%s",
-        "version": 4,
+        "version": 6,
         "state": null,
         "isDisabled": false,
         "configuration": {
@@ -179,7 +181,7 @@ func expectedComponentsConfigTest() string {
             "description": "Row1 description",
             "changeDescription": "Row1 test",
             "isDisabled": false,
-            "version": 1,
+            "version": 2,
             "state": null,
             "configuration": {
               "row1": "value1"
@@ -191,7 +193,7 @@ func expectedComponentsConfigTest() string {
             "description": "Row2 description",
             "changeDescription": "Row2 test",
             "isDisabled": true,
-            "version": 1,
+            "version": 2,
             "state": null,
             "configuration": {
               "row2": "value2"
