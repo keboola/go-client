@@ -93,6 +93,24 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Len(t, *configList, 1)
 	assert.Equal(t, config.Config, (*configList)[0])
 
+	// Create a new row (row3) and add it to the existing configuration
+	row3 := &ConfigRow{
+		Name:              "Row3",
+		Description:       "Row3 description",
+		ChangeDescription: "Row3 test",
+		IsDisabled:        false,
+		Content: orderedmap.FromPairs([]orderedmap.Pair{
+			{Key: "row3", Value: "value3"},
+		}),
+		ConfigRowKey: ConfigRowKey{
+			BranchID:    config.BranchID,
+			ComponentID: config.ComponentID,
+			ConfigID:    config.ID,
+		},
+	}
+
+	config.Rows = append(config.Rows, row3)
+
 	// Update config
 	config.Name = "Test modified +++úěš!@#"
 	config.Description = "Test description modified"
@@ -166,7 +184,7 @@ func expectedComponentsConfigTest() string {
         "changeDescription": "Row%d test",
         "isDeleted": false,
         "created": "%s",
-        "version": 6,
+        "version": 7,
         "state": null,
         "isDisabled": false,
         "configuration": {
@@ -197,6 +215,18 @@ func expectedComponentsConfigTest() string {
             "state": null,
             "configuration": {
               "row2": "value2"
+            }
+          },
+          {
+            "id": "%s",
+            "name": "Row3",
+            "description": "Row3 description",
+            "changeDescription": "Row3 test",
+            "isDisabled": false,
+            "version": 1,
+            "state": null,
+            "configuration": {
+              "row3": "value3"
             }
           }
         ]

@@ -164,7 +164,6 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			wg := request.NewWaitGroup(ctx)
 			for _, row := range config.Rows {
-				row := row
 				row.BranchID = config.BranchID
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
@@ -205,9 +204,19 @@ func (a *AuthorizedAPI) UpdateConfigRequest(config *ConfigWithRows, changedField
 				row.BranchID = config.BranchID
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
+				if row.ID == "" {
+					resp, err := a.CreateConfigRowRequest(row).Send(ctx)
+					if err != nil {
+						break
+					}
+
+					*row = *resp
+					continue
+				}
+
 				resp, err := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
 				if err != nil {
-					continue
+					break
 				}
 
 				// Update all fields from response
