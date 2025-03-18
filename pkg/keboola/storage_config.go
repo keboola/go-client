@@ -40,6 +40,7 @@ type Config struct {
 	State             *orderedmap.OrderedMap `json:"state" readonly:"true"`
 	IsDisabled        bool                   `json:"isDisabled"`
 	Content           *orderedmap.OrderedMap `json:"configuration"`
+	RowsSortOrder     []string               `json:"rowsSortOrder,omitempty"`
 }
 
 // ConfigWithRows is a configuration with its configuration rows.
@@ -163,7 +164,6 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 		WithOnSuccess(func(ctx context.Context, _ request.HTTPResponse) error {
 			wg := request.NewWaitGroup(ctx)
 			for _, row := range config.Rows {
-				row := row
 				row.BranchID = config.BranchID
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
@@ -174,22 +174,60 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 	return request.NewAPIRequest(config, req)
 }
 
-// UpdateConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/update-development-branch-configuration
-func (a *AuthorizedAPI) UpdateConfigRequest(config *Config, changedFields []string) request.APIRequest[*Config] {
+// UpdateConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/update-configuration
+func (a *AuthorizedAPI) UpdateConfigRequest(config *ConfigWithRows, changedFields []string) request.APIRequest[*ConfigWithRows] {
 	// ID is required
 	if config.ID == "" {
 		panic("config id must be set")
 	}
 
 	// Update config
+	tmpConfig := &ConfigWithRows{}
 	req := a.
 		newRequest(StorageAPI).
-		WithResult(config).
+		WithResult(tmpConfig).
 		WithPut("branch/{branchId}/components/{componentId}/configs/{configId}").
 		AndPathParam("branchId", config.BranchID.String()).
 		AndPathParam("componentId", string(config.ComponentID)).
 		AndPathParam("configId", string(config.ID)).
-		WithJSONBody(request.StructToMap(config, changedFields))
+		WithJSONBody(request.StructToMap(config, changedFields)).
+		// Update config rows
+		WithOnSuccess(func(ctx context.Context, resp request.HTTPResponse) error {
+			// Update config fields from tmpConfig, preserving Rows
+			tmpConfig.BranchID = config.BranchID
+			tmpConfig.ComponentID = config.ComponentID
+			tmpConfig.ID = config.ID
+			*config.Config = *tmpConfig.Config
+
+			var err error
+			for _, row := range config.Rows {
+				row.BranchID = config.BranchID
+				row.ComponentID = config.ComponentID
+				row.ConfigID = config.ID
+				if row.ID == "" {
+					resp, vErr := a.CreateConfigRowRequest(row).Send(ctx)
+					if vErr != nil {
+						err = vErr
+						break
+					}
+
+					*row = *resp
+					continue
+				}
+
+				resp, vErr := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
+				if vErr != nil {
+					err = vErr
+					break
+				}
+
+				// Update all fields from response
+				*row = *resp
+			}
+
+			return err
+		})
+
 	return request.NewAPIRequest(config, req)
 }
 

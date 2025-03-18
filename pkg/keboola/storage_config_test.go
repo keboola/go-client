@@ -63,6 +63,7 @@ func TestConfigApiCalls(t *testing.T) {
 					}),
 				},
 			}),
+			RowsSortOrder: []string{},
 		},
 		Rows: []*ConfigRow{row1, row2},
 	}
@@ -92,6 +93,24 @@ func TestConfigApiCalls(t *testing.T) {
 	assert.Len(t, *configList, 1)
 	assert.Equal(t, config.Config, (*configList)[0])
 
+	// Create a new row (row3) and add it to the existing configuration
+	row3 := &ConfigRow{
+		Name:              "Row3",
+		Description:       "Row3 description",
+		ChangeDescription: "Row3 test",
+		IsDisabled:        false,
+		Content: orderedmap.FromPairs([]orderedmap.Pair{
+			{Key: "row3", Value: "value3"},
+		}),
+		ConfigRowKey: ConfigRowKey{
+			BranchID:    config.BranchID,
+			ComponentID: config.ComponentID,
+			ConfigID:    config.ID,
+		},
+	}
+
+	config.Rows = append(config.Rows, row3)
+
 	// Update config
 	config.Name = "Test modified +++úěš!@#"
 	config.Description = "Test description modified"
@@ -104,8 +123,9 @@ func TestConfigApiCalls(t *testing.T) {
 			}),
 		},
 	})
-	_, err = api.UpdateConfigRequest(config.Config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
+	resConfig, err = api.UpdateConfigRequest(config, []string{"name", "description", "changeDescription", "configuration"}).Send(ctx)
 	assert.NoError(t, err)
+	assert.Equal(t, *config.Config, *resConfig.Config)
 
 	// List components
 	components, err = api.ListConfigsAndRowsFrom(branch.BranchKey).Send(ctx)
@@ -161,10 +181,10 @@ func expectedComponentsConfigTest() string {
         "id": "%s",
         "name": "Test modified +++úěš!@#",
         "description": "Test description modified",
-        "changeDescription": "updated",
+        "changeDescription": "Row%d test",
         "isDeleted": false,
         "created": "%s",
-        "version": 4,
+        "version": 7,
         "state": null,
         "isDisabled": false,
         "configuration": {
@@ -179,7 +199,7 @@ func expectedComponentsConfigTest() string {
             "description": "Row1 description",
             "changeDescription": "Row1 test",
             "isDisabled": false,
-            "version": 1,
+            "version": 2,
             "state": null,
             "configuration": {
               "row1": "value1"
@@ -191,10 +211,22 @@ func expectedComponentsConfigTest() string {
             "description": "Row2 description",
             "changeDescription": "Row2 test",
             "isDisabled": true,
-            "version": 1,
+            "version": 2,
             "state": null,
             "configuration": {
               "row2": "value2"
+            }
+          },
+          {
+            "id": "%s",
+            "name": "Row3",
+            "description": "Row3 description",
+            "changeDescription": "Row3 test",
+            "isDisabled": false,
+            "version": 1,
+            "state": null,
+            "configuration": {
+              "row3": "value3"
             }
           }
         ]

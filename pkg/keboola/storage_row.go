@@ -56,6 +56,27 @@ func (a *AuthorizedAPI) GetConfigRowRequest(key ConfigRowKey) request.APIRequest
 	return request.NewAPIRequest(row, req)
 }
 
+// ListConfigRowRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/configuration-row-list
+func (a *AuthorizedAPI) ListConfigRowRequest(key ConfigRowKey) request.APIRequest[*[]*ConfigRow] {
+	result := make([]*ConfigRow, 0)
+	req := a.
+		newRequest(StorageAPI).
+		WithResult(&result).
+		WithGet("branch/{branchId}/components/{componentId}/configs/{configId}/rows").
+		AndPathParam("branchId", key.BranchID.String()).
+		AndPathParam("componentId", key.ComponentID.String()).
+		AndPathParam("configId", key.ConfigID.String()).
+		WithOnSuccess(func(_ context.Context, _ request.HTTPResponse) error {
+			for _, row := range result {
+				row.BranchID = key.BranchID
+				row.ComponentID = key.ComponentID
+				row.ConfigID = key.ConfigID
+			}
+			return nil
+		})
+	return request.NewAPIRequest(&result, req)
+}
+
 // CreateConfigRowRequest https://kebooldocs.apiary.io/#reference/components-and-configurations/create-or-list-configuration-rows/create-development-branch-configuration-row
 func (a *AuthorizedAPI) CreateConfigRowRequest(row *ConfigRow) request.APIRequest[*ConfigRow] {
 	// Create request
