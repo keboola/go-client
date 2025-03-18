@@ -137,7 +137,7 @@ func (a *AuthorizedAPI) GetWorkspace(
 		return nil, err
 	}
 
-	workspaceID, err := GetWorkspaceID(config)
+	workspaceID, err := GetWorkspaceID(config.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (a *AuthorizedAPI) GetWorkspace(
 
 	out := &WorkspaceWithConfig{
 		Workspace: workspace,
-		Config:    config,
+		Config:    config.Config,
 	}
 	return out, nil
 }

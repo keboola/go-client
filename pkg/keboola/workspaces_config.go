@@ -23,7 +23,7 @@ func GetWorkspaceID(c *Config) (WorkspaceID, error) {
 	return WorkspaceID(out), nil
 }
 
-func (a *AuthorizedAPI) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) request.APIRequest[*Config] {
+func (a *AuthorizedAPI) GetWorkspaceConfigRequest(branchID BranchID, configID ConfigID) request.APIRequest[*ConfigWithRows] {
 	key := ConfigKey{
 		BranchID:    branchID,
 		ComponentID: WorkspacesComponent,

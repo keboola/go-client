@@ -128,8 +128,8 @@ func (a *AuthorizedAPI) ListConfigRequest(branchID BranchID, componentID Compone
 }
 
 // GetConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/manage-configurations/development-branch-configuration-detail
-func (a *AuthorizedAPI) GetConfigRequest(key ConfigKey) request.APIRequest[*Config] {
-	result := &Config{}
+func (a *AuthorizedAPI) GetConfigRequest(key ConfigKey) request.APIRequest[*ConfigWithRows] {
+	result := &ConfigWithRows{}
 	result.BranchID = key.BranchID
 	result.ComponentID = key.ComponentID
 	req := a.
@@ -138,7 +138,16 @@ func (a *AuthorizedAPI) GetConfigRequest(key ConfigKey) request.APIRequest[*Conf
 		WithGet("branch/{branchId}/components/{componentId}/configs/{configId}").
 		AndPathParam("branchId", key.BranchID.String()).
 		AndPathParam("componentId", key.ComponentID.String()).
-		AndPathParam("configId", key.ID.String())
+		AndPathParam("configId", key.ID.String()).
+		WithOnSuccess(func(ctx context.Context, response request.HTTPResponse) error {
+			rows, err := a.ListConfigRowRequest(ConfigRowKey{BranchID: key.BranchID, ComponentID: key.ComponentID, ConfigID: key.ID}).Send(ctx)
+			if err != nil {
+				return err
+			}
+
+			result.Rows = *rows
+			return nil
+		})
 	return request.NewAPIRequest(result, req)
 }
 
@@ -154,7 +163,7 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 		WithJSONBody(request.StructToMap(config.Config, nil)).
 		WithOnError(ignoreResourceAlreadyExistsError(func(ctx context.Context) error {
 			if result, err := a.GetConfigRequest(config.ConfigKey).Send(ctx); err == nil {
-				*config.Config = *result
+				*config.Config = *result.Config
 				return nil
 			} else {
 				return err
