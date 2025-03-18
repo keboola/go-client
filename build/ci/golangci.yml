@@ -60,7 +60,6 @@ linters:
     - errcheck
     - errname
     - errorlint
-    - exportloopref
     - forbidigo
     - gci
     - gochecknoglobals

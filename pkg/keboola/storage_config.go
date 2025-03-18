@@ -205,8 +205,9 @@ func (a *AuthorizedAPI) UpdateConfigRequest(config *ConfigWithRows, changedField
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
 				if row.ID == "" {
-					resp, err := a.CreateConfigRowRequest(row).Send(ctx)
-					if err != nil {
+					resp, vErr := a.CreateConfigRowRequest(row).Send(ctx)
+					if vErr != nil {
+						err = vErr
 						break
 					}
 
@@ -214,8 +215,9 @@ func (a *AuthorizedAPI) UpdateConfigRequest(config *ConfigWithRows, changedField
 					continue
 				}
 
-				resp, err := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
-				if err != nil {
+				resp, vErr := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
+				if vErr != nil {
+					err = vErr
 					break
 				}
 
