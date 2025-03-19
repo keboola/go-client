@@ -2,6 +2,7 @@ package keboola
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/keboola/go-utils/pkg/orderedmap"
@@ -169,6 +170,7 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 				row.ConfigID = config.ID
 				wg.Send(a.CreateConfigRowRequest(row))
 			}
+
 			return wg.Wait()
 		})
 	return request.NewAPIRequest(config, req)
@@ -199,33 +201,8 @@ func (a *AuthorizedAPI) UpdateConfigRequest(config *ConfigWithRows, changedField
 			tmpConfig.ID = config.ID
 			*config.Config = *tmpConfig.Config
 
-			var err error
-			for _, row := range config.Rows {
-				row.BranchID = config.BranchID
-				row.ComponentID = config.ComponentID
-				row.ConfigID = config.ID
-				if row.ID == "" {
-					resp, vErr := a.CreateConfigRowRequest(row).Send(ctx)
-					if vErr != nil {
-						err = vErr
-						break
-					}
-
-					*row = *resp
-					continue
-				}
-
-				resp, vErr := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
-				if vErr != nil {
-					err = vErr
-					break
-				}
-
-				// Update all fields from response
-				*row = *resp
-			}
-
-			return err
+			// Synchronize rows
+			return a.synchronizeConfigRows(ctx, config, changedFields)
 		})
 
 	return request.NewAPIRequest(config, req)
@@ -306,4 +283,69 @@ func (a *AuthorizedAPI) DeleteConfigMetadataRequest(key ConfigKey, metaID string
 		AndPathParam("metadataId", metaID).
 		WithOnError(ignoreResourceNotFoundError())
 	return request.NewAPIRequest(request.NoResult{}, req)
+}
+
+// synchronizeConfigRows synchronizes configuration rows with the current state.
+// It creates new rows, updates existing ones and deletes rows not present in the config.
+// If onlyCreate is true, it will only create new rows (used for CreateConfigRequest).
+func (a *AuthorizedAPI) synchronizeConfigRows(
+	ctx context.Context,
+	config *ConfigWithRows,
+	changedFields []string,
+) error {
+	// Make sure all rows have correct parent identifiers
+	for _, row := range config.Rows {
+		row.BranchID = config.BranchID
+		row.ComponentID = config.ComponentID
+		row.ConfigID = config.ID
+	}
+
+	// For update, we need to synchronize rows with current state
+	key := ConfigRowKey{BranchID: config.BranchID, ComponentID: config.ComponentID, ConfigID: config.ID}
+	rows, err := a.ListConfigRowRequest(key).Send(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Delete rows that aren't in the current config.Rows
+	for _, row := range *rows {
+		if slices.ContainsFunc(config.Rows, func(r *ConfigRow) bool { return r.ID == row.ID }) {
+			continue
+		}
+
+		deleteKey := ConfigRowKey{
+			BranchID:    config.BranchID,
+			ComponentID: config.ComponentID,
+			ConfigID:    config.ID,
+			ID:          row.ID,
+		}
+		_, err := a.DeleteConfigRowRequest(deleteKey).Send(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Create new rows or update existing ones
+	for _, row := range config.Rows {
+		if row.ID == "" {
+			// Create new row
+			resp, err := a.CreateConfigRowRequest(row).Send(ctx)
+			if err != nil {
+				return err
+			}
+
+			*row = *resp
+			continue
+		}
+
+		// Update existing row
+		resp, err := a.UpdateConfigRowRequest(row, changedFields).Send(ctx)
+		if err != nil {
+			return err
+		}
+
+		*row = *resp
+	}
+
+	return nil
 }
