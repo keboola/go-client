@@ -45,7 +45,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = api.CreateConfigRequest(targetConfig).Send(ctx)
+	_, err = api.CreateConfigRequest(targetConfig, true).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create scheduler config
@@ -78,7 +78,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = api.CreateConfigRequest(schedulerConfig).Send(ctx)
+	_, err = api.CreateConfigRequest(schedulerConfig, true).Send(ctx)
 	assert.NoError(t, err)
 
 	// List should return no schedule

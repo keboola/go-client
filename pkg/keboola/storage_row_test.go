@@ -42,7 +42,7 @@ func TestConfigRowApiCalls(t *testing.T) {
 			}),
 		},
 	}
-	_, err = api.CreateConfigRequest(config).Send(ctx)
+	_, err = api.CreateConfigRequest(config, true).Send(ctx)
 	assert.NoError(t, err)
 
 	// Create row1

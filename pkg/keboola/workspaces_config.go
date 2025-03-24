@@ -46,7 +46,7 @@ func (a *AuthorizedAPI) CreateWorkspaceConfigRequest(branchID BranchID, name str
 			Name: name,
 		},
 	}
-	return a.CreateConfigRequest(config)
+	return a.CreateConfigRequest(config, true)
 }
 
 func (a *AuthorizedAPI) DeleteWorkspaceConfigRequest(branchID BranchID, configID ConfigID) request.APIRequest[request.NoResult] {

@@ -139,9 +139,9 @@ func (a *AuthorizedAPI) CreateRequest(object Object) request.APIRequest[Object] 
 	case *Branch:
 		return request.NewAPIRequest(object, a.CreateBranchRequest(v))
 	case *Config:
-		return request.NewAPIRequest(object, a.CreateConfigRequest(&ConfigWithRows{Config: v}))
+		return request.NewAPIRequest(object, a.CreateConfigRequest(&ConfigWithRows{Config: v}, true))
 	case *ConfigWithRows:
-		return request.NewAPIRequest(object, a.CreateConfigRequest(v))
+		return request.NewAPIRequest(object, a.CreateConfigRequest(v, true))
 	case *ConfigRow:
 		return request.NewAPIRequest(object, a.CreateConfigRowRequest(v))
 	default:

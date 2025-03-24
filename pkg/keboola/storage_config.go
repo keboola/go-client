@@ -144,7 +144,7 @@ func (a *AuthorizedAPI) GetConfigRequest(key ConfigKey) request.APIRequest[*Conf
 }
 
 // CreateConfigRequest https://keboola.docs.apiary.io/#reference/components-and-configurations/component-configurations/create-development-branch-configuration
-func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIRequest[*ConfigWithRows] {
+func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows, withAsyncRows bool) request.APIRequest[*ConfigWithRows] {
 	// Create config
 	req := a.
 		newRequest(StorageAPI).
@@ -168,7 +168,15 @@ func (a *AuthorizedAPI) CreateConfigRequest(config *ConfigWithRows) request.APIR
 				row.BranchID = config.BranchID
 				row.ComponentID = config.ComponentID
 				row.ConfigID = config.ID
-				wg.Send(a.CreateConfigRowRequest(row))
+				if withAsyncRows {
+					wg.Send(a.CreateConfigRowRequest(row))
+					continue
+				}
+
+				_, err := a.CreateConfigRowRequest(row).Send(ctx)
+				if err != nil {
+					return err
+				}
 			}
 
 			return wg.Wait()
