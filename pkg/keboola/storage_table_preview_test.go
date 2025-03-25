@@ -238,7 +238,7 @@ func TestPreviewTableRequest(t *testing.T) {
 
 	// Upload file
 	content := []byte("id,value\n")
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		content = append(content, fmt.Sprintf("%d,%d\n", i, i)...)
 	}
 	written, err := Upload(ctx, file1, bytes.NewReader(content))

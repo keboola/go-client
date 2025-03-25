@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -251,9 +252,7 @@ func (r httpRequest) AndPathParam(key, value string) HTTPRequest {
 
 func (r httpRequest) WithPathParams(params map[string]string) HTTPRequest {
 	r.pathParams = make(map[string]string)
-	for k, v := range params {
-		r.pathParams[k] = v
-	}
+	maps.Copy(r.pathParams, params)
 	return r
 }
 

@@ -27,7 +27,7 @@ func TestStorageJobBackoff(t *testing.T) {
 
 	// Get all delays without sleep
 	var delays []time.Duration
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		delay := backoff.NextBackOff()
 		if delay == backoff.Stop {
 			break

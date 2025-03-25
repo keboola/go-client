@@ -29,7 +29,7 @@ func TestTicketProvider(t *testing.T) {
 	tickets := make([]string, 0)
 
 	// Request 3 tickets
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		provider.Request(func(ticket *Ticket) {
 			tickets = append(tickets, ticket.ID)
 		})

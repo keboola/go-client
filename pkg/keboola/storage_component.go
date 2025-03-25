@@ -2,6 +2,7 @@ package keboola
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 	"strings"
 
@@ -114,12 +115,7 @@ func (c *Component) IsTransformation() bool {
 }
 
 func (c *Component) IsTransformationWithBlocks() bool {
-	for _, flag := range c.Flags {
-		if flag == GenericCodeBlocksUIFlag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Flags, GenericCodeBlocksUIFlag)
 }
 
 // IsSharedCode returns true, if component is shared code.
@@ -154,22 +150,12 @@ func (c *Component) IsOrchestrator() bool {
 
 // IsDeprecated returns true, if component is deprecated.
 func (c *Component) IsDeprecated() bool {
-	for _, flag := range c.Flags {
-		if flag == DeprecatedFlag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Flags, DeprecatedFlag)
 }
 
 // IsExcludedFromNewList returns true, if component should be excluded from list of available new components.
 func (c *Component) IsExcludedFromNewList() bool {
-	for _, flag := range c.Flags {
-		if flag == ExcludeFromNewListFlag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Flags, ExcludeFromNewListFlag)
 }
 
 // NewComponentList returns only the components that should be included in list of available new components.
