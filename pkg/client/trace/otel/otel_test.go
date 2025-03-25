@@ -39,8 +39,7 @@ const (
 
 func TestSimpleRealRequest(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Setup tracing
 	traceExporter := tracetest.NewInMemoryExporter()
@@ -136,8 +135,7 @@ func TestSimpleRealRequest(t *testing.T) {
 
 func TestComplexMockedRequest(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Mocked responses (2x redirect, 3x retry, OK)
 	transport := httpmock.NewMockTransport()
