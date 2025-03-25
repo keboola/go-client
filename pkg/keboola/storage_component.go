@@ -114,10 +114,6 @@ func (c *Component) IsTransformation() bool {
 	return c.Type == TransformationType
 }
 
-func (c *Component) IsTransformationWithBlocks() bool {
-	return slices.Contains(c.Flags, GenericCodeBlocksUIFlag)
-}
-
 // IsSharedCode returns true, if component is shared code.
 func (c *Component) IsSharedCode() bool {
 	return c.ID == SharedCodeComponentID
