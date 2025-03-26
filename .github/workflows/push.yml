@@ -8,14 +8,14 @@ jobs:
       group: e2e-tests
       cancel-in-progress: false
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v3
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           cache: false
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
+          go-version-file: 'go.mod'
 
       - name: Set TEST_KBC_PROJECTS_FILE entries
         uses: ./.github/export-kbc-projects

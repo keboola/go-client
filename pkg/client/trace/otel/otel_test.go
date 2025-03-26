@@ -39,8 +39,7 @@ const (
 
 func TestSimpleRealRequest(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Setup tracing
 	traceExporter := tracetest.NewInMemoryExporter()
@@ -136,8 +135,7 @@ func TestSimpleRealRequest(t *testing.T) {
 
 func TestComplexMockedRequest(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Mocked responses (2x redirect, 3x retry, OK)
 	transport := httpmock.NewMockTransport()
@@ -238,7 +236,7 @@ func TestComplexMockedRequest(t *testing.T) {
 	spansCount := (int)(math.Max((float64)(len(expectedSpans)), (float64)(len(expectedSpans))))
 	var actualSpan tracetest.SpanStub
 	var expectedSpan tracetest.SpanStub
-	for i := 0; i < spansCount; i++ {
+	for i := range spansCount {
 		if len(actualSpans) > i {
 			actualSpan = actualSpans[i]
 		} else {
@@ -262,7 +260,7 @@ func TestComplexMockedRequest(t *testing.T) {
 	metersCount := (int)(math.Max((float64)(len(expectedMetrics)), (float64)(len(actualMetrics))))
 	var actualMeter metricdata.Metrics
 	var expectedMeter metricdata.Metrics
-	for i := 0; i < metersCount; i++ {
+	for i := range metersCount {
 		if len(actualMetrics) > i {
 			actualMeter = actualMetrics[i]
 		} else {

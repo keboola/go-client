@@ -68,7 +68,7 @@ func NewUploadWriter(ctx context.Context, params *UploadParams, region string, s
 	}
 
 	opts := &blob.WriterOptions{
-		BeforeWrite: func(as func(interface{}) bool) error {
+		BeforeWrite: func(as func(any) bool) error {
 			var req *s3.PutObjectInput
 			if as(&req) {
 				req.ACL = params.ACL

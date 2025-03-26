@@ -134,7 +134,7 @@ func sliceKey(key, slice string) string {
 
 func parseConnectionString(str string) (*ConnectionString, error) {
 	csMap := make(map[string]string)
-	for _, item := range strings.Split(str, ";") {
+	for item := range strings.SplitSeq(str, ";") {
 		parts := strings.SplitN(item, "=", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf(`connection string is malformed, it should contain key value pairs separated by semicolons`)

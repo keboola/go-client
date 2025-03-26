@@ -3,6 +3,7 @@ package request
 import (
 	jsonlib "encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"reflect"
 	"strings"
@@ -59,7 +60,7 @@ func structToMap(in reflect.Value, out map[string]any, allowedFields []string) {
 
 	// Iterate over fields
 	numFields := t.NumField()
-	for i := 0; i < numFields; i++ {
+	for i := range numFields {
 		field := t.Field(i)
 		fieldValue := in.Field(i)
 
@@ -106,9 +107,7 @@ func structToMap(in reflect.Value, out map[string]any, allowedFields []string) {
 
 func cloneParams(in map[string]string) (out map[string]string) {
 	out = make(map[string]string)
-	for k, v := range in {
-		out[k] = v
-	}
+	maps.Copy(out, in)
 	return out
 }
 

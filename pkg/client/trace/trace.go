@@ -49,7 +49,7 @@ func (t *ClientTrace) Compose(old *ClientTrace) {
 	tv := reflect.ValueOf(t).Elem()
 	ov := reflect.ValueOf(old).Elem()
 	structType := tv.Type()
-	for i := 0; i < structType.NumField(); i++ {
+	for i := range structType.NumField() {
 		tf := tv.Field(i)
 		hookType := tf.Type()
 		if hookType.Kind() != reflect.Func {

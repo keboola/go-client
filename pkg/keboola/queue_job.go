@@ -59,7 +59,7 @@ type QueueJob struct {
 	Status     string        `json:"status"`
 	IsFinished bool          `json:"isFinished"`
 	URL        string        `json:"url"`
-	Result     JobResult     `json:"result,omitempty"`
+	Result     JobResult     `json:"result"`
 	CreateTime iso8601.Time  `json:"createdTime"`
 	StartTime  *iso8601.Time `json:"startTime"`
 	EndTime    *iso8601.Time `json:"endTime"`
