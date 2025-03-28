@@ -48,7 +48,7 @@ func TestQueueApiCalls(t *testing.T) {
 		},
 		Rows: []*ConfigRow{},
 	}
-	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
+	resConfig, err := api.CreateConfigRequest(config, true).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, config, resConfig)
 	assert.NotEmpty(t, config.ID)
@@ -199,7 +199,7 @@ func TestDeprecatedQueueApiCalls(t *testing.T) {
 		},
 		Rows: []*ConfigRow{},
 	}
-	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
+	resConfig, err := api.CreateConfigRequest(config, true).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, config, resConfig)
 	assert.NotEmpty(t, config.ID)

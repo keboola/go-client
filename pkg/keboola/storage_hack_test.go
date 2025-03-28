@@ -101,7 +101,7 @@ func TestHack_CreateConfigRequest_AlreadyExists(t *testing.T) {
 
 	// Run request
 	config := &ConfigWithRows{Config: &Config{ConfigKey: ConfigKey{BranchID: 123, ComponentID: "foo.bar", ID: "123"}}}
-	_, err = api.CreateConfigRequest(config).Send(context.Background())
+	_, err = api.CreateConfigRequest(config, true).Send(context.Background())
 
 	// The request ended without an error, the config was loaded via a GET request
 	assert.NoError(t, err)

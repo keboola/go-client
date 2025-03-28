@@ -67,7 +67,7 @@ func TestConfigApiCalls(t *testing.T) {
 		},
 		Rows: []*ConfigRow{row1, row2},
 	}
-	resConfig, err := api.CreateConfigRequest(config).Send(ctx)
+	resConfig, err := api.CreateConfigRequest(config, true).Send(ctx)
 	assert.NoError(t, err)
 	assert.Same(t, config, resConfig)
 	assert.NotEmpty(t, config.ID)
