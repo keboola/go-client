@@ -54,3 +54,13 @@ func (a *AuthorizedAPI) ListSchedulesRequest() request.APIRequest[*[]*Schedule] 
 		WithURL("schedules")
 	return request.NewAPIRequest(&result, req)
 }
+
+func (a *AuthorizedAPI) GetScheduleRequest(key ScheduleKey) request.APIRequest[*Schedule] {
+	var result Schedule
+	req := a.newRequest(SchedulerAPI).
+		WithResult(&result).
+		WithMethod(http.MethodGet).
+		WithURL("schedules/{scheduleId}").
+		AndPathParam("scheduleId", key.ID.String())
+	return request.NewAPIRequest(&result, req)
+}
