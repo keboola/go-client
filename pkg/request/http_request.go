@@ -329,7 +329,7 @@ func (r httpRequest) Send(ctx context.Context) (HTTPResponse, any, error) {
 	}
 
 	// Send request
-	rawResponse, result, err := r.sender.Send(ctx, r)
+	rawResponse, result, err := r.sender.Send(ctx, r) // nolint:bodyclose
 	out := &httpResponse{httpRequest: r, rawResponse: rawResponse, result: result, err: err}
 
 	// Invoke listeners

@@ -16,7 +16,11 @@ import (
 // The error should be ignored, because the CREATE operation was performed.
 func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(context.Context, request.HTTPResponse, error) error {
 	return func(ctx context.Context, response request.HTTPResponse, err error) error {
-		if isResourceAlreadyExistsError(response.RawResponse(), err) {
+		rawResponse := response.RawResponse()
+		if rawResponse != nil && rawResponse.Body != nil {
+			defer rawResponse.Body.Close()
+		}
+		if isResourceAlreadyExistsError(rawResponse, err) {
 			// Fill result with the GET request
 			return getFn(ctx)
 		}
@@ -30,7 +34,11 @@ func ignoreResourceAlreadyExistsError(getFn func(context.Context) error) func(co
 // The error should be ignored, because the DELETE operation was performed.
 func ignoreResourceNotFoundError() func(context.Context, request.HTTPResponse, error) error {
 	return func(_ context.Context, response request.HTTPResponse, err error) error {
-		if isResourceNotFoundError(response.RawResponse(), err) {
+		rawResponse := response.RawResponse()
+		if rawResponse != nil && rawResponse.Body != nil {
+			defer rawResponse.Body.Close()
+		}
+		if isResourceNotFoundError(rawResponse, err) {
 			return nil
 		}
 		return err
