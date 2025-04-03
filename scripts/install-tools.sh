@@ -9,6 +9,9 @@ set -o pipefail         # Use last non-zero exit code in a pipeline
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
+# Version to install
+GOLANGCI_LINT_VERSION="v2.0.2"
+
 # gotestsum
 if ! command -v gotestsum &> /dev/null
 then
@@ -18,8 +21,13 @@ fi
 # golangci-lint
 if ! command -v golangci-lint &> /dev/null
 then
- go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.1
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin $GOLANGCI_LINT_VERSION
 fi
+
+# Verify installation
+echo "Verifying golangci-lint installation..."
+golangci-lint --version
+
 
 # godoc
 if ! command -v godoc &> /dev/null
