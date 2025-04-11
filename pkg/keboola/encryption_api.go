@@ -21,7 +21,7 @@ func (a *PublicAPI) EncryptRequest(projectID int, componentID ComponentID, data 
 	req := a.newRequest(EncryptionAPI).
 		WithResult(&result).
 		WithMethod(http.MethodPost).
-		WithURL("encrypt").
+		WithURL(EncryptionAPIEncrypt).
 		AndQueryParam("componentId", componentID.String()).
 		AndQueryParam("projectId", cast.ToString(projectID)).
 		WithJSONBody(data)
