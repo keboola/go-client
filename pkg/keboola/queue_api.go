@@ -148,7 +148,7 @@ func (b *CreateQueueJobRequestBuilder) Build() request.APIRequest[*QueueJob] {
 	req := b.api.newRequest(QueueAPI).
 		WithResult(&result).
 		WithMethod(http.MethodPost).
-		WithURL("jobs").
+		WithURL(QueueAPIJobs).
 		WithJSONBody(b.config)
 	return request.NewAPIRequest(result, req)
 }
@@ -173,7 +173,7 @@ func (a *AuthorizedAPI) CreateQueueJobRequest(componentID ComponentID, configID 
 	req := a.newRequest(QueueAPI).
 		WithResult(&result).
 		WithMethod(http.MethodPost).
-		WithURL("jobs").
+		WithURL(QueueAPIJobs).
 		WithJSONBody(data)
 	return request.NewAPIRequest(&result, req)
 }
@@ -199,7 +199,7 @@ func (a *AuthorizedAPI) CreateQueueJobConfigDataRequest(componentID ComponentID,
 	req := a.newRequest(QueueAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
-		WithURL("jobs").
+		WithURL(QueueAPIJobs).
 		WithJSONBody(body)
 	return request.NewAPIRequest(result, req)
 }
@@ -213,7 +213,7 @@ func (a *AuthorizedAPI) getQueueJobRequest(id JobID) request.APIRequest[*QueueJo
 	job := &QueueJob{}
 	req := a.newRequest(QueueAPI).
 		WithResult(job).
-		WithGet("jobs/{jobId}").
+		WithGet(QueueAPIJob).
 		AndPathParam("jobId", id.String())
 	return request.NewAPIRequest(job, req)
 }

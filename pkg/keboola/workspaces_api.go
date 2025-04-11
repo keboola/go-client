@@ -40,20 +40,24 @@ type WorkspaceDetails struct {
 	} `json:"connection"`
 }
 
+// GetWorkspaceInstanceRequest retrieves a workspace by its ID
+// https://sandboxes.keboola.com/documentation
 func (a *AuthorizedAPI) GetWorkspaceInstanceRequest(workspaceID WorkspaceID) request.APIRequest[*Workspace] {
 	result := &Workspace{}
 	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
-		WithGet("sandboxes/{sandboxId}").
+		WithGet(WorkspacesAPISandbox).
 		AndPathParam("sandboxId", workspaceID.String())
 	return request.NewAPIRequest(result, req)
 }
 
+// ListWorkspaceInstancesRequest returns a list of all workspaces
+// https://sandboxes.keboola.com/documentation
 func (a *AuthorizedAPI) ListWorkspaceInstancesRequest() request.APIRequest[*[]*Workspace] {
 	result := make([]*Workspace, 0)
 	req := a.newRequest(WorkspacesAPI).
 		WithResult(&result).
-		WithGet("sandboxes")
+		WithGet(WorkspacesAPISandboxes)
 	return request.NewAPIRequest(&result, req)
 }
 
