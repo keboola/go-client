@@ -147,3 +147,85 @@ func TestSchedulerApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 0)
 }
+
+// TestRefreshScheduleToken tests refreshing the token for a schedule.
+func TestRefreshScheduleToken(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	project, _ := testproject.GetTestProjectForTest(t)
+	c := client.NewTestClient()
+	api, err := keboola.NewAuthorizedAPI(ctx, project.StorageAPIHost(), project.StorageAPIToken(), keboola.WithClient(&c))
+	assert.NoError(t, err)
+
+	// Get default branch
+	branch, err := api.GetDefaultBranchRequest().Send(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, branch)
+
+	// Create a config to schedule
+	targetConfig := &keboola.ConfigWithRows{
+		Config: &keboola.Config{
+			ConfigKey: keboola.ConfigKey{
+				BranchID:    branch.ID,
+				ComponentID: "ex-generic-v2",
+			},
+			Name:              "Test for Refresh Token",
+			Description:       "Test description",
+			ChangeDescription: "My test",
+		},
+	}
+	_, err = api.CreateConfigRequest(targetConfig, true).Send(ctx)
+	assert.NoError(t, err)
+
+	// Create scheduler config
+	schedulerConfig := &keboola.ConfigWithRows{
+		Config: &keboola.Config{
+			ConfigKey: keboola.ConfigKey{
+				BranchID:    branch.ID,
+				ComponentID: "keboola.scheduler",
+			},
+			Name:              "Test Refresh Token",
+			Description:       "Test description for refresh token",
+			ChangeDescription: "My test",
+			Content: orderedmap.FromPairs([]orderedmap.Pair{
+				{
+					Key: "schedule",
+					Value: orderedmap.FromPairs([]orderedmap.Pair{
+						{Key: "cronTab", Value: "*/5 * * * *"},
+						{Key: "timezone", Value: "UTC"},
+						{Key: "state", Value: "disabled"},
+					}),
+				},
+				{
+					Key: "target",
+					Value: orderedmap.FromPairs([]orderedmap.Pair{
+						{Key: "componentId", Value: "ex-generic-v2"},
+						{Key: "configurationId", Value: targetConfig.ID},
+						{Key: "mode", Value: "run"},
+					}),
+				},
+			}),
+		},
+	}
+	_, err = api.CreateConfigRequest(schedulerConfig, true).Send(ctx)
+	assert.NoError(t, err)
+
+	// Activate schedule
+	createdSchedule, err := api.ActivateScheduleRequest(schedulerConfig.ID, "").Send(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, createdSchedule)
+	assert.NotEmpty(t, createdSchedule.ID)
+
+	// Refresh schedule token
+	_, err = api.RefreshScheduleTokenRequest(createdSchedule.ID).Send(ctx)
+	assert.NoError(t, err)
+
+	// Clean up - delete schedule
+	_, err = api.DeleteScheduleRequest(keboola.ScheduleKey{ID: createdSchedule.ID}).Send(ctx)
+	assert.NoError(t, err)
+
+	// Verify it was deleted - list should be empty
+	schedules, err := api.ListSchedulesRequest().Send(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, *schedules, 0)
+}
