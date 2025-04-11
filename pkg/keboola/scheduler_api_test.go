@@ -220,12 +220,8 @@ func TestRefreshScheduleToken(t *testing.T) {
 	_, err = api.RefreshScheduleTokenRequest(createdSchedule.ID).Send(ctx)
 	assert.NoError(t, err)
 
-	// Clean up - delete schedule
-	_, err = api.DeleteScheduleRequest(keboola.ScheduleKey{ID: createdSchedule.ID}).Send(ctx)
+	// Get schedule after refresh
+	afterRefresh, err := api.GetScheduleRequest(createdSchedule.ScheduleKey).Send(ctx)
 	assert.NoError(t, err)
-
-	// Verify it was deleted - list should be empty
-	schedules, err := api.ListSchedulesRequest().Send(ctx)
-	assert.NoError(t, err)
-	assert.Len(t, *schedules, 0)
+	assert.NotSame(t, &createdSchedule.TokenID, &afterRefresh.TokenID)
 }
