@@ -97,6 +97,27 @@ func TestSchedulerApiCalls(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 1)
 
+	schedule, err = api.GetScheduleRequest(schedule.ScheduleKey).Send(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, &keboola.Schedule{
+		ScheduleKey: keboola.ScheduleKey{
+			ID: schedule.ID,
+		},
+		ConfigID:               schedulerConfig.ID,
+		ConfigurationVersionID: "1",
+		ScheduleCron: keboola.ScheduleCron{
+			CronTab:  "*/2 * * * *",
+			Timezone: "UTC",
+			State:    "disabled",
+		},
+		ScheduleTarget: keboola.ScheduleTarget{
+			ComponentID:     "ex-generic-v2",
+			ConfigurationID: targetConfig.ID,
+			Mode:            "run",
+		},
+		Executions: []keboola.ScheduleExecution{},
+	}, schedule)
+
 	// Delete
 	_, err = api.DeleteScheduleRequest(schedule.ScheduleKey).Send(ctx)
 	assert.NoError(t, err)
