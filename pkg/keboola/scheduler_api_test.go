@@ -10,6 +10,7 @@ import (
 
 	"github.com/keboola/go-client/pkg/client"
 	"github.com/keboola/go-client/pkg/keboola"
+	"github.com/keboola/go-client/pkg/request"
 )
 
 func TestSchedulerApiCalls(t *testing.T) {
@@ -138,6 +139,35 @@ func TestSchedulerApiCalls(t *testing.T) {
 	schedules, err = api.ListSchedulesRequest().Send(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, *schedules, 1)
+
+	tokenDetailBeforeRefresh, err := api.TokenDetailRequest(schedule.TokenID).Send(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, tokenDetailBeforeRefresh)
+	assert.Equal(t, tokenDetailBeforeRefresh.ID, schedule.TokenID)
+
+	// Store the refresh time to compare later
+	refreshTimeBeforeRefresh := tokenDetailBeforeRefresh.Refreshed.Time.String()
+
+	// Create a variable to store the refreshed token
+	var tokenDetailAfterRefresh *keboola.Token
+
+	// Refresh token with a callback to check the token details immediately after refresh
+	_, err = api.RefreshScheduleTokenRequest(schedule.ID).
+		WithOnSuccess(func(ctx context.Context, _ request.NoResult) error {
+			// Request token details right after the refresh operation
+			var fetchErr error
+			tokenDetailAfterRefresh, fetchErr = api.TokenDetailRequest(tokenDetailBeforeRefresh.ID).Send(ctx)
+			return fetchErr
+		}).
+		Send(ctx)
+	assert.NoError(t, err)
+
+	// Verify token was properly fetched in the callback
+	assert.NotNil(t, tokenDetailAfterRefresh)
+	assert.Equal(t, tokenDetailAfterRefresh.ID, schedule.TokenID)
+	
+	// Verify the token was actually refreshed by comparing refresh times
+	assert.NotEqual(t, refreshTimeBeforeRefresh, tokenDetailAfterRefresh.Refreshed.Time.String())
 
 	// Delete for configuration
 	_, err = api.DeleteSchedulesForConfigurationRequest(schedulerConfig.ID).Send(ctx)
