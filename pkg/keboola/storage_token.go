@@ -149,6 +149,17 @@ func (a *PublicAPI) VerifyTokenRequest(token string) request.APIRequest[*Token] 
 	return request.NewAPIRequest(result, req)
 }
 
+// TokenDetailRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/token/token-detail
+func (a *AuthorizedAPI) TokenDetailRequest(tokenID string) request.APIRequest[*Token] {
+	result := &Token{}
+	req := a.
+		newRequest(StorageAPI).
+		WithResult(result).
+		WithGet("tokens/{tokenId}").
+		AndPathParam("tokenId", tokenID)
+	return request.NewAPIRequest(result, req)
+}	
+
 // CreateTokenRequest https://keboola.docs.apiary.io/#reference/tokens-and-permissions/tokens-collection/create-token
 func (a *AuthorizedAPI) CreateTokenRequest(opts ...CreateTokenOption) request.APIRequest[*Token] {
 	options := &createTokenOptions{}

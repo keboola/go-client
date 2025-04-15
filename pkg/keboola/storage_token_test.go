@@ -156,6 +156,34 @@ func TestListAndDeleteToken(t *testing.T) {
 	assert.Empty(t, ignoreMasterTokens(*allTokens))
 }
 
+func TestTokenDetailRequest(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	_, api := APIClientForAnEmptyProject(t, ctx)
+
+	// Create a token
+	description := "token detail request test"
+	createdToken, err := api.CreateTokenRequest(
+		WithDescription(description),
+		WithExpiresIn(5*time.Minute),
+	).Send(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, createdToken.ID)
+
+	// Get token details
+	detailedToken, err := api.TokenDetailRequest(createdToken.ID).Send(ctx)
+	assert.NoError(t, err)
+	
+	// Verify token details
+	assert.Equal(t, createdToken.ID, detailedToken.ID)
+	assert.Equal(t, description, detailedToken.Description)
+	assert.NotNil(t, detailedToken.Expires)
+	
+	// Cleanup
+	_, err = api.DeleteTokenRequest(createdToken.ID).Send(ctx)
+	assert.NoError(t, err)
+}
+
 func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

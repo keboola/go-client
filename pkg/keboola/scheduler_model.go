@@ -17,6 +17,7 @@ type Schedule struct {
 	ScheduleKey
 	ConfigID               ConfigID            `json:"configurationId"`
 	ConfigurationVersionID string              `json:"configurationVersionId"`
+	TokenID                string              `json:"tokenId"`
 	ScheduleCron           ScheduleCron        `json:"schedule"`
 	ScheduleTarget         ScheduleTarget      `json:"target"`
 	Executions             []ScheduleExecution `json:"executions"`

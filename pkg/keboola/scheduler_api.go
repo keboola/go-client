@@ -22,7 +22,7 @@ func (a *AuthorizedAPI) ActivateScheduleRequest(configID ConfigID, configuration
 	req := a.newRequest(SchedulerAPI).
 		WithResult(result).
 		WithMethod(http.MethodPost).
-		WithURL("schedules").
+		WithURL(SchedulerAPISchedules).
 		WithJSONBody(body)
 	return request.NewAPIRequest(result, req)
 }
@@ -31,7 +31,7 @@ func (a *AuthorizedAPI) ActivateScheduleRequest(configID ConfigID, configuration
 func (a *AuthorizedAPI) DeleteScheduleRequest(key ScheduleKey) request.APIRequest[request.NoResult] {
 	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
-		WithURL("schedules/{scheduleId}").
+		WithURL(SchedulerAPISchedule).
 		AndPathParam("scheduleId", key.ID.String())
 	return request.NewAPIRequest(request.NoResult{}, req)
 }
@@ -40,7 +40,7 @@ func (a *AuthorizedAPI) DeleteScheduleRequest(key ScheduleKey) request.APIReques
 func (a *AuthorizedAPI) DeleteSchedulesForConfigurationRequest(configID ConfigID) request.APIRequest[request.NoResult] {
 	req := a.newRequest(SchedulerAPI).
 		WithMethod(http.MethodDelete).
-		WithURL("configurations/{configurationId}").
+		WithURL(SchedulerAPIConfigSchedules).
 		AndPathParam("configurationId", configID.String())
 	return request.NewAPIRequest(request.NoResult{}, req)
 }
@@ -51,16 +51,28 @@ func (a *AuthorizedAPI) ListSchedulesRequest() request.APIRequest[*[]*Schedule] 
 	req := a.newRequest(SchedulerAPI).
 		WithResult(&result).
 		WithMethod(http.MethodGet).
-		WithURL("schedules")
+		WithURL(SchedulerAPISchedules)
 	return request.NewAPIRequest(&result, req)
 }
 
+// GetScheduleRequest retrieves a schedule by its ID
+// https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/getSchedule
 func (a *AuthorizedAPI) GetScheduleRequest(key ScheduleKey) request.APIRequest[*Schedule] {
 	var result Schedule
 	req := a.newRequest(SchedulerAPI).
 		WithResult(&result).
 		WithMethod(http.MethodGet).
-		WithURL("schedules/{scheduleId}").
+		WithURL(SchedulerAPISchedule).
 		AndPathParam("scheduleId", key.ID.String())
 	return request.NewAPIRequest(&result, req)
+}
+
+// RefreshScheduleTokenRequest refreshes the token for a schedule
+// https://app.swaggerhub.com/apis/odinuv/scheduler/1.0.0#/schedules/refreshToken
+func (a *AuthorizedAPI) RefreshScheduleTokenRequest(scheduleID ScheduleID) request.APIRequest[request.NoResult] {
+	req := a.newRequest(SchedulerAPI).
+		WithMethod(http.MethodPost).
+		WithURL(SchedulerAPIRefreshToken).
+		AndPathParam("scheduleId", scheduleID.String())
+	return request.NewAPIRequest(request.NoResult{}, req)
 }
