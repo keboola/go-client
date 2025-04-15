@@ -104,6 +104,7 @@ func TestSchedulerApiCalls(t *testing.T) {
 			ID: schedule.ID,
 		},
 		ConfigID:               schedulerConfig.ID,
+		TokenID:                schedule.TokenID,
 		ConfigurationVersionID: "1",
 		ScheduleCron: keboola.ScheduleCron{
 			CronTab:  "*/2 * * * *",
