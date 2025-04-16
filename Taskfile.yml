@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  install-tools:
+    cmds:
+      - bash ./scripts/install-tools.sh
+
+  lint:
+    cmds:
+      - bash ./scripts/lint.sh
+
+  fix:
+    cmds:
+      - bash ./scripts/fix.sh
+
+  tests:
+    cmds:
+      - gotestsum --no-color=false --format testname -- -timeout 600s -p 8 -parallel 8 -v -race -coverprofile=/tmp/profile.out ./pkg/...
+
+  godoc:
+    cmds:
+      - godoc -http=0.0.0.0:6060
