@@ -17,7 +17,7 @@ RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
 RUN mkdir -p /tmp/build
 COPY Taskfile.yml /tmp/build/Taskfile.yml
 COPY scripts  /tmp/build/scripts
-RUN cd /tmp/build && task install-tools && rm -rf /tmp/build
+RUN cd /tmp/build && task tools && rm -rf /tmp/build
 
 # Set prompt
 RUN mkdir -p ~ && \

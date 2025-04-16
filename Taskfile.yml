@@ -1,9 +1,9 @@
 version: '3'
 
 tasks:
-  install-tools:
+  tools:
     cmds:
-      - bash ./scripts/install-tools.sh
+      - bash ./scripts/tools.sh
 
   lint:
     cmds:
@@ -15,8 +15,8 @@ tasks:
 
   tests:
     cmds:
-      - gotestsum --no-color=false --format testname -- -timeout 600s -p 8 -parallel 8 -v -race -coverprofile=/tmp/profile.out ./pkg/...
+      - go tool gotestsum --no-color=false --format testname -- -timeout 600s -p 8 -parallel 8 -v -race -coverprofile=/tmp/profile.out ./pkg/...
 
   godoc:
     cmds:
-      - godoc -http=0.0.0.0:6060
+      - go tool godoc -http=0.0.0.0:6060
