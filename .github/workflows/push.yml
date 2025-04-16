@@ -17,6 +17,11 @@ jobs:
           cache: false
           go-version-file: 'go.mod'
 
+      - name: Install Task
+        shell: bash
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+
       - name: Set TEST_KBC_PROJECTS_FILE entries
         uses: ./.github/export-kbc-projects
         with:
@@ -24,12 +29,12 @@ jobs:
 
       - name: Install tools
         run: |
-          make install-tools
+          task install-tools
 
       - name: Lint and test
         run: |
-          make lint
-          make tests
+          task lint
+          task tests
         env:
           TEST_KBC_PROJECTS_LOCK_HOST: ${{ vars.TEST_KBC_PROJECTS_LOCK_HOST }}
           TEST_KBC_PROJECTS_LOCK_PASSWORD: ${{ secrets.TEST_KBC_PROJECTS_LOCK_PASSWORD }}

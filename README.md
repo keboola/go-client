@@ -133,7 +133,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error handled: %v\n", err)
 	}
-	
+
 	// Using query parameters
 	var users []User
 	_, _, err = request.NewHTTPRequest(c).
@@ -146,7 +146,7 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 	fmt.Printf("Users: %+v\n", users)
-	
+
 	// Using path parameters
 	var project User
 	_, _, err = request.NewHTTPRequest(c).
@@ -159,7 +159,7 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 	fmt.Printf("Project: %+v\n", project)
-	
+
 	// Using callbacks
 	_, _, err = request.NewHTTPRequest(c).
 		WithGet("/users/123").
@@ -176,7 +176,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-	
+
 	// Using form body
 	var loginResponse struct {
 		Token string `json:"token"`
@@ -205,13 +205,13 @@ docker-compose run --rm -u "$UID:$GID" --service-ports dev bash
 
 Run lint and tests in container:
 ```sh
-make lint
-make tests
+task lint
+task tests
 ```
 
 Run HTTP server with documentation:
 ```sh
-make godoc
+task godoc
 ```
 
 Open `http://localhost:6060/pkg/github.com/keboola/go-client/pkg/` in browser.
