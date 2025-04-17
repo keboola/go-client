@@ -1,0 +1,28 @@
+version: '3'
+
+tasks:
+  tools:
+    cmds:
+      - bash ./scripts/tools.sh
+
+  lint:
+    cmds:
+      - bash ./scripts/lint.sh
+
+  fix:
+    cmds:
+      - bash ./scripts/fix.sh
+
+  tests:
+    cmds:
+      - go tool gotestsum --no-color=false --format testname -- -timeout 600s -p 8 -parallel 8 -v -race -coverprofile=/tmp/profile.out ./pkg/...
+
+  godoc:
+    cmds:
+      - go tool godoc -http=0.0.0.0:6060
+
+  update:
+    cmds:
+      - go tool go-mod-upgrade
+      - go mod tidy
+      - go mod vendor

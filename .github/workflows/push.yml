@@ -4,9 +4,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    concurrency:
-      group: e2e-tests
-      cancel-in-progress: false
     steps:
       - name: Check out source code
         uses: actions/checkout@v4
@@ -14,8 +11,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          cache: false
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
+
+      - name: Install Task
+        shell: bash
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
       - name: Set TEST_KBC_PROJECTS_FILE entries
         uses: ./.github/export-kbc-projects
@@ -24,14 +25,13 @@ jobs:
 
       - name: Install tools
         run: |
-          make install-tools
+          task tools
 
       - name: Lint and test
-        run: |
-          make lint
-          make tests
         env:
           TEST_KBC_PROJECTS_LOCK_HOST: ${{ vars.TEST_KBC_PROJECTS_LOCK_HOST }}
           TEST_KBC_PROJECTS_LOCK_PASSWORD: ${{ secrets.TEST_KBC_PROJECTS_LOCK_PASSWORD }}
           TEST_KBC_PROJECTS_FILE: '${{ github.workspace }}/${{ vars.TEST_KBC_PROJECTS_FILE }}'
-
+        run: |
+          task lint
+          task tests
