@@ -1,5 +1,7 @@
 # Keboola Go Client
 
+> **⚠️ DEPRECATED** - This repository is deprecated. Please use [Keboola Go SDK v2](https://github.com/keboola/keboola-sdk-go) instead.
+
 ## Packages
 
 ### `request` package
